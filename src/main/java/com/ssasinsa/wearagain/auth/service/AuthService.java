@@ -6,4 +6,6 @@ import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
 public interface AuthService {
 
     OAuthLoginResponse loginWithGoogle(GoogleOAuthLoginRequest request);
+
+    String generateGoogleAuthorizationUrl();
 }

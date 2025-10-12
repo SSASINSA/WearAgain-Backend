@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Google OAuth2 로그인 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        button, a {
+            display: inline-block;
+            padding: 0.5rem 1rem;
+            margin-top: 0.5rem;
+        }
+        .success {
+            color: #0b7a1b;
+        }
+        .error {
+            color: #c00;
+        }
+        label {
+            display: block;
+            margin-top: 1rem;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 0.5rem;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Google OAuth2 로그인 테스트 페이지</h1>
+    <section>
+        <h2>1. Google 로그인 페이지로 이동</h2>
+        <p>아래 버튼을 클릭하면 Google 로그인 화면으로 이동합니다. 로그인 후 발급된 인증 코드를 복사해 주세요.</p>
+        <button id="open-google-login" disabled>Google 로그인 열기</button>
+        <p id="authorize-url-status"></p>
+    </section>
+
+    <section>
+        <h2>2. 인증 코드로 토큰 요청</h2>
+        <label for="authorization-code">Google에서 받은 authorization code</label>
+        <input id="authorization-code" type="text" placeholder="여기에 인증 코드를 붙여 넣으세요">
+        <button id="exchange-token">액세스 토큰 요청</button>
+        <p id="exchange-status"></p>
+        <pre id="exchange-result"></pre>
+    </section>
+</div>
+
+<script>
+    const authorizeButton = document.getElementById('open-google-login');
+    const authorizeStatus = document.getElementById('authorize-url-status');
+    const exchangeButton = document.getElementById('exchange-token');
+    const exchangeStatus = document.getElementById('exchange-status');
+    const exchangeResult = document.getElementById('exchange-result');
+
+    async function fetchAuthorizationUrl() {
+        try {
+            authorizeStatus.textContent = 'Google authorization URL을 불러오는 중입니다...';
+            const response = await fetch('/api/v1/auth/google/authorize-url');
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+            const data = await response.json();
+            authorizeButton.disabled = false;
+            authorizeButton.addEventListener('click', () => {
+                window.location.href = data.authorizationUrl;
+            });
+            authorizeStatus.textContent = 'Google 로그인 버튼을 클릭하면 새 창이 열립니다.';
+            authorizeStatus.className = 'success';
+        } catch (error) {
+            authorizeStatus.textContent = `authorization URL을 불러오지 못했습니다: ${error}`;
+            authorizeStatus.className = 'error';
+        }
+    }
+
+    async function exchangeAuthorizationCode() {
+        const code = document.getElementById('authorization-code').value.trim();
+        if (!code) {
+            exchangeStatus.textContent = '인증 코드를 입력해 주세요.';
+            exchangeStatus.className = 'error';
+            return;
+        }
+        exchangeStatus.textContent = '토큰을 요청하는 중입니다...';
+        exchangeStatus.className = '';
+        exchangeResult.textContent = '';
+
+        try {
+            const response = await fetch('/api/v1/auth/google/callback', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ authorizationCode: code })
+            });
+
+            const resultJson = await response.json();
+            if (!response.ok) {
+                exchangeStatus.textContent = '요청이 실패했습니다.';
+                exchangeStatus.className = 'error';
+            } else {
+                exchangeStatus.textContent = '요청이 성공했습니다.';
+                exchangeStatus.className = 'success';
+            }
+            exchangeResult.textContent = JSON.stringify(resultJson, null, 2);
+        } catch (error) {
+            exchangeStatus.textContent = `요청 중 오류가 발생했습니다: ${error}`;
+            exchangeStatus.className = 'error';
+        }
+    }
+
+    exchangeButton.addEventListener('click', exchangeAuthorizationCode);
+    fetchAuthorizationUrl();
+</script>
+</body>
+</html>

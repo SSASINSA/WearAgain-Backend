@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain.auth.service;
 
+import com.ssasinsa.wearagain.auth.config.GoogleOAuthProperties;
 import com.ssasinsa.wearagain.auth.config.JwtProperties;
 import com.ssasinsa.wearagain.auth.domain.AuthProvider;
 import com.ssasinsa.wearagain.auth.domain.User;
@@ -17,13 +18,15 @@ import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleUserInfoResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 @RequiredArgsConstructor
@@ -36,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRedisKeyManager refreshTokenRedisKeyManager;
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtProperties jwtProperties;
+    private final GoogleOAuthProperties googleOAuthProperties;
 
     @Override
     @Transactional
@@ -63,6 +67,21 @@ public class AuthServiceImpl implements AuthService {
         storeRefreshToken(user.getId(), refreshToken);
 
         return OAuthLoginResponse.of(user, accessToken, refreshToken);
+    }
+
+    @Override
+    public String generateGoogleAuthorizationUrl() {
+        List<String> scopes = List.of("openid", "email", "profile");
+        return UriComponentsBuilder
+                .fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
+                .queryParam("client_id", googleOAuthProperties.clientId())
+                .queryParam("redirect_uri", googleOAuthProperties.redirectUri())
+                .queryParam("response_type", "code")
+                .queryParam("scope", String.join(" ", scopes))
+                .queryParam("access_type", "offline")
+                .queryParam("prompt", "consent")
+                .build(true)
+                .toUriString();
     }
 
     private User findOrCreateGoogleUser(GoogleUserInfoResponse userInfo) {
