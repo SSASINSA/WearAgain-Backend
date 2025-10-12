@@ -14,6 +14,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.util.Objects;
+import java.util.UUID;
+
 import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.Getter;
@@ -32,8 +34,10 @@ import lombok.NoArgsConstructor;
 public class UserOAuthAccount extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "BINARY(16)", nullable = false, updatable = false)
+    private UUID id;
+
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -49,7 +53,8 @@ public class UserOAuthAccount extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private UserOAuthAccount(AuthProvider provider, String providerUserId, String email, User user) {
+    private UserOAuthAccount(UUID id, AuthProvider provider, String providerUserId, String email, User user){
+        this.id = id;
         this.provider = provider;
         this.providerUserId = providerUserId;
         this.email = email;

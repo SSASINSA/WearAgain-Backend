@@ -54,7 +54,6 @@ public class User extends BaseTimeEntity {
 
     public static User create(String email, String displayName, String profileImageUrl) {
         return User.builder()
-                .id(UUID.randomUUID())
                 .email(email)
                 .displayName(displayName)
                 .profileImageUrl(profileImageUrl)
