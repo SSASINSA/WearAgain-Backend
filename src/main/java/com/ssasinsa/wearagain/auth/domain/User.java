@@ -13,17 +13,14 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import lombok.AccessLevel;
-import lombok.Builder;
+
+import lombok.*;
 import lombok.Builder.Default;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(name = "users")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder(access = AccessLevel.PRIVATE)
 public class User extends BaseTimeEntity {
 
     @Id
@@ -41,24 +38,15 @@ public class User extends BaseTimeEntity {
     private String profileImageUrl;
 
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    @Default
     private List<UserOAuthAccount> oauthAccounts = new ArrayList<>();
 
-    private User(UUID id, String email, String displayName, String profileImageUrl, List<UserOAuthAccount> oauthAccounts) {
-        this.id = id;
+    @Builder(access = AccessLevel.PRIVATE)
+    private User(String email, String displayName, String profileImageUrl){
         this.email = email;
         this.displayName = displayName;
         this.profileImageUrl = profileImageUrl;
-        this.oauthAccounts = oauthAccounts;
     }
 
-    public static User create(String email, String displayName, String profileImageUrl) {
-        return User.builder()
-                .email(email)
-                .displayName(displayName)
-                .profileImageUrl(profileImageUrl)
-                .build();
-    }
 
     public void addOAuthAccount(UserOAuthAccount account) {
         oauthAccounts.add(account);

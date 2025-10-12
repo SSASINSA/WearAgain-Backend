@@ -16,10 +16,7 @@ import jakarta.persistence.UniqueConstraint;
 import java.util.Objects;
 import java.util.UUID;
 
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Getter
 @Entity
@@ -30,7 +27,6 @@ import lombok.NoArgsConstructor;
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@Builder(access = AccessLevel.PRIVATE)
 public class UserOAuthAccount extends BaseTimeEntity {
 
     @Id
@@ -53,8 +49,8 @@ public class UserOAuthAccount extends BaseTimeEntity {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    private UserOAuthAccount(UUID id, AuthProvider provider, String providerUserId, String email, User user){
-        this.id = id;
+    @Builder(access = AccessLevel.PRIVATE)
+    private UserOAuthAccount(AuthProvider provider, String providerUserId, String email, User user){
         this.provider = provider;
         this.providerUserId = providerUserId;
         this.email = email;
