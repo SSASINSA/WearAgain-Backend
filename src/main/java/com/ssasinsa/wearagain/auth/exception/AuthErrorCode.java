@@ -1,0 +1,35 @@
+package com.ssasinsa.wearagain.auth.exception;
+
+import com.ssasinsa.wearagain.global.exception.ErrorCode;
+import org.springframework.http.HttpStatus;
+
+public enum AuthErrorCode implements ErrorCode {
+    GOOGLE_AUTHORIZATION_CODE_REQUIRED("A1004", "Google 인증 코드가 필요합니다.", HttpStatus.BAD_REQUEST.value()),
+    GOOGLE_TOKEN_REQUEST_FAILED("A1001", "Google 토큰 발급에 실패했습니다.", HttpStatus.UNAUTHORIZED.value()),
+    GOOGLE_USERINFO_REQUEST_FAILED("A1001", "Google 사용자 정보를 불러오지 못했습니다.", HttpStatus.UNAUTHORIZED.value());
+
+    private final String code;
+    private final String message;
+    private final int status;
+
+    AuthErrorCode(String code, String message, int status) {
+        this.code = code;
+        this.message = message;
+        this.status = status;
+    }
+
+    @Override
+    public String getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return message;
+    }
+
+    @Override
+    public int getStatus() {
+        return status;
+    }
+}
