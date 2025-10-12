@@ -90,3 +90,8 @@ gradle-app.setting
 
 # Misc
 HELP.md
+
+# codex
+AGENTS.md
+prd/
+todolist.md
