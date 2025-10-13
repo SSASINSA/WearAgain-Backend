@@ -40,7 +40,7 @@ public class GoogleOAuthClient {
             String decodedCode = URLDecoder.decode(authorizationCode, StandardCharsets.UTF_8);
             GoogleOAuthTokenResponse response = googleClient.post()
                     .uri(uriBuilder -> {
-                        var builtUri = uriBuilder
+                        return uriBuilder
                                 .path("/token")
                                 .queryParam("code", decodedCode)
                                 .queryParam("client_id", properties.clientId())
@@ -48,23 +48,15 @@ public class GoogleOAuthClient {
                                 .queryParam("grant_type", GRANT_TYPE_AUTHORIZATION_CODE)
                                 .queryParam("redirect_uri", properties.redirectUri())
                                 .build();
-                        System.out.println("[GoogleOAuthClient] Actual requestToken URL: " + builtUri);
-                        return builtUri;
                     })
                     .retrieve()
-                    .onStatus(HttpStatus.BAD_REQUEST::equals,
-                            r -> r.bodyToMono(String.class).map(Exception::new))
                     .bodyToMono(GoogleOAuthTokenResponse.class)
-                    .doOnError(e -> {
-                        System.err.println("[GoogleOAuthClient] Error during token request: " + e.getMessage());
-                    })
-                    .onErrorMap(e -> new AuthException(AuthErrorCode.GOOGLE_TOKEN_REQUEST_FAILED, e))
                     .block();
             if (response == null) {
                 throw new AuthException(AuthErrorCode.GOOGLE_TOKEN_REQUEST_FAILED);
             }
             return response;
-        } catch (Exception exception) {
+        } catch (WebClientResponseException | WebClientRequestException exception) {
             throw new AuthException(AuthErrorCode.GOOGLE_TOKEN_REQUEST_FAILED, exception);
         }
     }
@@ -78,7 +70,6 @@ public class GoogleOAuthClient {
                         httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
                     })
                     .retrieve()
-//                    .onStatus(httpStatus -> httpStatus.is2xxSuccessful(), clientResponse -> clientResponse.bodyToMono(String.class).map(Exception::new))
                     .bodyToMono(GoogleUserInfoResponse.class)
                     .block();
             if (response == null) {
