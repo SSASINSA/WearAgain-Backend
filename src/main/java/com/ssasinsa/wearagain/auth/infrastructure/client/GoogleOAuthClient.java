@@ -32,10 +32,6 @@ public class GoogleOAuthClient {
     }
 
     public GoogleOAuthTokenResponse requestToken(String authorizationCode) {
-        WebClient googleClient = WebClient.builder()
-                .baseUrl("https://oauth2.googleapis.com")
-                .defaultHeader("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                .build();
         try {
             String decodedCode = URLDecoder.decode(authorizationCode, StandardCharsets.UTF_8);
             GoogleOAuthTokenResponse response = webClient.post()
