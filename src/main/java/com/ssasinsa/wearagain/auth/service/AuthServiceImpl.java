@@ -18,7 +18,6 @@ import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleUserInfoResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
 
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.time.Duration;
 import java.util.List;
