@@ -6,6 +6,9 @@ public record GoogleOAuthTokenResponse(
         @JsonProperty("access_token")
         String accessToken,
 
+        @JsonProperty("refresh_token")
+        String refreshToken,
+
         @JsonProperty("id_token")
         String idToken,
 
@@ -13,6 +16,9 @@ public record GoogleOAuthTokenResponse(
         String tokenType,
 
         @JsonProperty("expires_in")
-        long expiresIn
+        long expiresIn,
+
+        @JsonProperty("scope")
+        String scope
 ) {
 }

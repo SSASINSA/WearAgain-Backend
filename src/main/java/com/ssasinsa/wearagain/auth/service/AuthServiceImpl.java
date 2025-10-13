@@ -17,10 +17,14 @@ import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleOAuthTokenRespons
 import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleUserInfoResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
+
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -72,12 +76,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public String generateGoogleAuthorizationUrl() {
         List<String> scopes = List.of("openid", "email", "profile");
+        String scopePreString = "https://www.googleapis.com/auth/userinfo.";
         return UriComponentsBuilder
                 .fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
                 .queryParam("client_id", googleOAuthProperties.clientId())
                 .queryParam("redirect_uri", googleOAuthProperties.redirectUri())
                 .queryParam("response_type", "code")
-                .queryParam("scope", String.join(" ", scopes))
+                .queryParam("scope",  URLEncoder.encode(String.join(" ", scopes)))
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
                 .build(true)

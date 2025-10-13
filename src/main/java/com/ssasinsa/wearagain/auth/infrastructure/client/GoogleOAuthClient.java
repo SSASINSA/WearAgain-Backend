@@ -3,80 +3,89 @@ package com.ssasinsa.wearagain.auth.infrastructure.client;
 import com.ssasinsa.wearagain.auth.config.GoogleOAuthProperties;
 import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.auth.exception.AuthException;
-import org.springframework.boot.web.client.RestTemplateBuilder;
-import org.springframework.http.HttpEntity;
+
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.reactive.function.BodyInserters;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 @Component
 public class GoogleOAuthClient {
 
     private static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
 
-    private final RestTemplate restTemplate;
+    private final WebClient webClient;
     private final GoogleOAuthProperties properties;
 
-    public GoogleOAuthClient(RestTemplateBuilder restTemplateBuilder, GoogleOAuthProperties properties) {
-        this.restTemplate = restTemplateBuilder.build();
+    public GoogleOAuthClient(WebClient.Builder webClientBuilder, GoogleOAuthProperties properties) {
+        this.webClient = webClientBuilder.build();
         this.properties = properties;
     }
 
     public GoogleOAuthTokenResponse requestToken(String authorizationCode) {
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("code", authorizationCode);
-        formData.add("client_id", properties.clientId());
-        formData.add("client_secret", properties.clientSecret());
-        formData.add("redirect_uri", properties.redirectUri());
-        formData.add("grant_type", GRANT_TYPE_AUTHORIZATION_CODE);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-
-        HttpEntity<MultiValueMap<String, String>> entity = new HttpEntity<>(formData, headers);
-
+        WebClient googleClient = WebClient.builder()
+                .baseUrl("https://oauth2.googleapis.com")
+                .defaultHeader("Content-Type", MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .build();
         try {
-            ResponseEntity<GoogleOAuthTokenResponse> response = restTemplate.postForEntity(
-                    properties.tokenUri(),
-                    entity,
-                    GoogleOAuthTokenResponse.class
-            );
-            GoogleOAuthTokenResponse body = response.getBody();
-            if (!response.getStatusCode().is2xxSuccessful() || body == null) {
+            String decodedCode = URLDecoder.decode(authorizationCode, StandardCharsets.UTF_8);
+            GoogleOAuthTokenResponse response = googleClient.post()
+                    .uri(uriBuilder -> {
+                        var builtUri = uriBuilder
+                                .path("/token")
+                                .queryParam("code", decodedCode)
+                                .queryParam("client_id", properties.clientId())
+                                .queryParam("client_secret", properties.clientSecret())
+                                .queryParam("grant_type", GRANT_TYPE_AUTHORIZATION_CODE)
+                                .queryParam("redirect_uri", properties.redirectUri())
+                                .build();
+                        System.out.println("[GoogleOAuthClient] Actual requestToken URL: " + builtUri);
+                        return builtUri;
+                    })
+                    .retrieve()
+                    .onStatus(HttpStatus.BAD_REQUEST::equals,
+                            r -> r.bodyToMono(String.class).map(Exception::new))
+                    .bodyToMono(GoogleOAuthTokenResponse.class)
+                    .doOnError(e -> {
+                        System.err.println("[GoogleOAuthClient] Error during token request: " + e.getMessage());
+                    })
+                    .onErrorMap(e -> new AuthException(AuthErrorCode.GOOGLE_TOKEN_REQUEST_FAILED, e))
+                    .block();
+            if (response == null) {
                 throw new AuthException(AuthErrorCode.GOOGLE_TOKEN_REQUEST_FAILED);
             }
-            return body;
-        } catch (RestClientException exception) {
+            return response;
+        } catch (Exception exception) {
             throw new AuthException(AuthErrorCode.GOOGLE_TOKEN_REQUEST_FAILED, exception);
         }
     }
 
     public GoogleUserInfoResponse fetchUserInfo(String accessToken) {
-        HttpHeaders headers = new HttpHeaders();
-        headers.setBearerAuth(accessToken);
-        headers.setAccept(MediaType.parseMediaTypes(MediaType.APPLICATION_JSON_VALUE));
-
-        HttpEntity<Void> entity = new HttpEntity<>(headers);
-
         try {
-            ResponseEntity<GoogleUserInfoResponse> response = restTemplate.exchange(
-                    properties.userInfoUri(),
-                    HttpMethod.GET,
-                    entity,
-                    GoogleUserInfoResponse.class
-            );
-            GoogleUserInfoResponse body = response.getBody();
-            if (!response.getStatusCode().is2xxSuccessful() || body == null) {
+            GoogleUserInfoResponse response = webClient.get()
+                    .uri(properties.userInfoUri())
+                    .headers(httpHeaders -> {
+                        httpHeaders.setBearerAuth(accessToken);
+                        httpHeaders.setAccept(List.of(MediaType.APPLICATION_JSON));
+                    })
+                    .retrieve()
+//                    .onStatus(httpStatus -> httpStatus.is2xxSuccessful(), clientResponse -> clientResponse.bodyToMono(String.class).map(Exception::new))
+                    .bodyToMono(GoogleUserInfoResponse.class)
+                    .block();
+            if (response == null) {
                 throw new AuthException(AuthErrorCode.GOOGLE_USERINFO_REQUEST_FAILED);
             }
-            return body;
-        } catch (RestClientException exception) {
+            return response;
+        } catch (WebClientResponseException | WebClientRequestException exception) {
             throw new AuthException(AuthErrorCode.GOOGLE_USERINFO_REQUEST_FAILED, exception);
         }
     }
