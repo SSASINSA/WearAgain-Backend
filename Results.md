@@ -12,3 +12,17 @@
 ## 회고/이슈
 - 실제 Google API 호출을 위해서는 `OAUTH_GOOGLE_CLIENT_ID`, `OAUTH_GOOGLE_CLIENT_SECRET`, `OAUTH_GOOGLE_REDIRECT_URI` 값이 유효해야 하며, 로컬 테스트 전에 환경 변수를 반드시 점검해야 합니다.
 - JWT 비밀키는 충분한 길이로 설정하지 않으면 런타임 예외가 발생하므로 운영 환경에서 안전한 키 관리가 필요합니다.
+
+# [TASK] Kakao OAuth2 로그인/회원가입 처리 (#3)
+## 개요
+- Kakao OAuth2 Authorization Code 플로우를 통해 로그인/회원가입을 처리하고 JWT 토큰을 발급하는 기능을 추가했습니다.
+
+## 상세 내용
+- `GET /api/v1/auth/kakao/authorize-url`, `POST /api/v1/auth/kakao/callback` 엔드포인트를 구현해 Kakao 인가 URL 발급과 로그인 처리를 분리했습니다.
+- Kakao 토큰 발급/사용자 정보 조회를 담당하는 `KakaoOAuthClient` 및 DTO를 추가하고, 이메일 제공이 누락된 경우 예외를 변환하도록 했습니다.
+- 공통 OAuth 회원 조회/생성 로직을 재사용하도록 `AuthServiceImpl`을 리팩터링하고 JWT 발급/저장 과정을 메서드로 분리했습니다.
+- README에 Kakao API 명세와 에러 코드 설명을 업데이트하고, `AuthErrorCode`에 Kakao 전용 코드를 확장했습니다.
+
+## 회고/이슈
+- Kakao 계정에서 이메일 제공 권한을 미동의한 사용자는 `A1002` 에러로 응답되므로, 프론트엔드에서 이메일 제공 동의를 유도하는 UX가 필요합니다.
+- 로컬에서 `./gradlew test` 실행 시 JDK 17 이상이 필요하므로 개발 환경 JDK 버전을 점검해야 합니다.

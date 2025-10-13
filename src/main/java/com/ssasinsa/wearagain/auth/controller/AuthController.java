@@ -1,7 +1,8 @@
 package com.ssasinsa.wearagain.auth.controller;
 
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
-import com.ssasinsa.wearagain.auth.dto.response.GoogleAuthorizationUrlResponse;
+import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
+import com.ssasinsa.wearagain.auth.dto.response.OAuthAuthorizationUrlResponse;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
 import com.ssasinsa.wearagain.auth.service.AuthService;
 import jakarta.validation.Valid;
@@ -23,14 +24,26 @@ public class AuthController {
     private final AuthService authService;
 
     @GetMapping("/google/authorize-url")
-    public ResponseEntity<GoogleAuthorizationUrlResponse> getGoogleAuthorizationUrl() {
+    public ResponseEntity<OAuthAuthorizationUrlResponse> getGoogleAuthorizationUrl() {
         String authorizationUrl = authService.generateGoogleAuthorizationUrl();
-        return ResponseEntity.ok(new GoogleAuthorizationUrlResponse(authorizationUrl));
+        return ResponseEntity.ok(new OAuthAuthorizationUrlResponse(authorizationUrl));
     }
 
     @PostMapping("/google/callback")
     public ResponseEntity<OAuthLoginResponse> loginWithGoogle(@Valid @RequestBody GoogleOAuthLoginRequest request) {
         OAuthLoginResponse response = authService.loginWithGoogle(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/kakao/authorize-url")
+    public ResponseEntity<OAuthAuthorizationUrlResponse> getKakaoAuthorizationUrl() {
+        String authorizationUrl = authService.generateKakaoAuthorizationUrl();
+        return ResponseEntity.ok(new OAuthAuthorizationUrlResponse(authorizationUrl));
+    }
+
+    @PostMapping("/kakao/callback")
+    public ResponseEntity<OAuthLoginResponse> loginWithKakao(@Valid @RequestBody KakaoOAuthLoginRequest request) {
+        OAuthLoginResponse response = authService.loginWithKakao(request);
         return ResponseEntity.ok(response);
     }
 }

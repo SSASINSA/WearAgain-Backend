@@ -2,12 +2,14 @@ package com.ssasinsa.wearagain.auth.service;
 
 import com.ssasinsa.wearagain.auth.config.GoogleOAuthProperties;
 import com.ssasinsa.wearagain.auth.config.JwtProperties;
+import com.ssasinsa.wearagain.auth.config.KakaoOAuthProperties;
 import com.ssasinsa.wearagain.auth.domain.AuthProvider;
 import com.ssasinsa.wearagain.auth.domain.User;
 import com.ssasinsa.wearagain.auth.domain.UserOAuthAccount;
 import com.ssasinsa.wearagain.auth.domain.repository.UserOAuthAccountRepository;
 import com.ssasinsa.wearagain.auth.domain.repository.UserRepository;
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
+import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
 import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.auth.exception.AuthException;
@@ -15,10 +17,14 @@ import com.ssasinsa.wearagain.auth.infrastructure.RefreshTokenRedisKeyManager;
 import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleOAuthClient;
 import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleOAuthTokenResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleUserInfoResponse;
+import com.ssasinsa.wearagain.auth.infrastructure.client.KakaoOAuthClient;
+import com.ssasinsa.wearagain.auth.infrastructure.client.KakaoOAuthTokenResponse;
+import com.ssasinsa.wearagain.auth.infrastructure.client.KakaoUserInfoResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
 
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
@@ -36,6 +42,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 public class AuthServiceImpl implements AuthService {
 
     private final GoogleOAuthClient googleOAuthClient;
+    private final KakaoOAuthClient kakaoOAuthClient;
     private final UserRepository userRepository;
     private final UserOAuthAccountRepository userOAuthAccountRepository;
     private final JwtTokenProvider jwtTokenProvider;
@@ -43,12 +50,13 @@ public class AuthServiceImpl implements AuthService {
     private final RedisTemplate<String, String> redisTemplate;
     private final JwtProperties jwtProperties;
     private final GoogleOAuthProperties googleOAuthProperties;
+    private final KakaoOAuthProperties kakaoOAuthProperties;
 
     @Override
     @Transactional
     public OAuthLoginResponse loginWithGoogle(GoogleOAuthLoginRequest request) {
         if (!StringUtils.hasText(request.authorizationCode())) {
-            throw new AuthException(AuthErrorCode.GOOGLE_AUTHORIZATION_CODE_REQUIRED);
+            throw new AuthException(AuthErrorCode.AUTHORIZATION_CODE_REQUIRED);
         }
 
         GoogleOAuthTokenResponse tokenResponse = googleOAuthClient.requestToken(request.authorizationCode());
@@ -62,57 +70,119 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.GOOGLE_USERINFO_REQUEST_FAILED);
         }
 
-        User user = findOrCreateGoogleUser(userInfo);
+        User user = findOrCreateOAuthUser(
+                AuthProvider.GOOGLE,
+                userInfo.id(),
+                userInfo.email(),
+                userInfo.name(),
+                userInfo.pictureUrl()
+        );
 
-        JwtToken accessToken = jwtTokenProvider.createAccessToken(user);
-        JwtToken refreshToken = jwtTokenProvider.createRefreshToken(user);
+        return issueTokens(user);
+    }
 
-        storeRefreshToken(user.getId(), refreshToken);
+    @Override
+    @Transactional
+    public OAuthLoginResponse loginWithKakao(KakaoOAuthLoginRequest request) {
+        if (!StringUtils.hasText(request.authorizationCode())) {
+            throw new AuthException(AuthErrorCode.AUTHORIZATION_CODE_REQUIRED);
+        }
 
-        return OAuthLoginResponse.of(user, accessToken, refreshToken);
+        KakaoOAuthTokenResponse tokenResponse = kakaoOAuthClient.requestToken(request.authorizationCode());
+        if (!StringUtils.hasText(tokenResponse.accessToken())) {
+            throw new AuthException(AuthErrorCode.KAKAO_TOKEN_REQUEST_FAILED);
+        }
+
+        KakaoUserInfoResponse userInfo = kakaoOAuthClient.fetchUserInfo(tokenResponse.accessToken());
+        if (userInfo.id() == null) {
+            throw new AuthException(AuthErrorCode.KAKAO_USERINFO_REQUEST_FAILED);
+        }
+        if (!userInfo.hasEmail() || !StringUtils.hasText(userInfo.email())) {
+            throw new AuthException(AuthErrorCode.KAKAO_EMAIL_NOT_PROVIDED);
+        }
+
+        User user = findOrCreateOAuthUser(
+                AuthProvider.KAKAO,
+                userInfo.id().toString(),
+                userInfo.email(),
+                userInfo.nickname(),
+                userInfo.profileImageUrl()
+        );
+
+        return issueTokens(user);
     }
 
     @Override
     public String generateGoogleAuthorizationUrl() {
         List<String> scopes = List.of("openid", "email", "profile");
-        String scopePreString = "https://www.googleapis.com/auth/userinfo.";
+        String encodedScope = URLEncoder.encode(String.join(" ", scopes), StandardCharsets.UTF_8);
         return UriComponentsBuilder
                 .fromUriString("https://accounts.google.com/o/oauth2/v2/auth")
                 .queryParam("client_id", googleOAuthProperties.clientId())
                 .queryParam("redirect_uri", googleOAuthProperties.redirectUri())
                 .queryParam("response_type", "code")
-                .queryParam("scope",  URLEncoder.encode(String.join(" ", scopes)))
+                .queryParam("scope", encodedScope)
                 .queryParam("access_type", "offline")
                 .queryParam("prompt", "consent")
                 .build(true)
                 .toUriString();
     }
 
-    private User findOrCreateGoogleUser(GoogleUserInfoResponse userInfo) {
+    @Override
+    public String generateKakaoAuthorizationUrl() {
+        List<String> scopes = List.of("profile_nickname", "account_email");
+        String encodedScope = URLEncoder.encode(String.join(" ", scopes), StandardCharsets.UTF_8);
+        return UriComponentsBuilder
+                .fromUriString("https://kauth.kakao.com/oauth/authorize")
+                .queryParam("client_id", kakaoOAuthProperties.clientId())
+                .queryParam("redirect_uri", kakaoOAuthProperties.redirectUri())
+                .queryParam("response_type", "code")
+                .queryParam("scope", encodedScope)
+                .queryParam("prompt", "select_account")
+                .build(true)
+                .toUriString();
+    }
+
+    private User findOrCreateOAuthUser(
+            AuthProvider provider,
+            String providerUserId,
+            String email,
+            String preferredName,
+            String profileImageUrl
+    ) {
         Optional<UserOAuthAccount> existingAccount = userOAuthAccountRepository.findByProviderAndProviderUserId(
-                AuthProvider.GOOGLE,
-                userInfo.id()
+                provider,
+                providerUserId
         );
         if (existingAccount.isPresent()) {
             return existingAccount.get().getUser();
         }
 
-        Optional<User> existingUser = userRepository.findByEmail(userInfo.email());
+        Optional<User> existingUser = userRepository.findByEmail(email);
         User user = existingUser.orElseGet(() ->
-                userRepository.save(User.create(userInfo.email(), resolveDisplayName(userInfo), userInfo.pictureUrl()))
+                userRepository.save(User.create(email, resolveDisplayName(preferredName, email), profileImageUrl))
         );
 
-        UserOAuthAccount account = UserOAuthAccount.create(AuthProvider.GOOGLE, userInfo.id(), userInfo.email(), user);
+        UserOAuthAccount account = UserOAuthAccount.create(provider, providerUserId, email, user);
         userOAuthAccountRepository.save(account);
         return user;
     }
 
-    private String resolveDisplayName(GoogleUserInfoResponse userInfo) {
-        if (StringUtils.hasText(userInfo.name())) {
-            return userInfo.name();
+    private String resolveDisplayName(String preferredName, String email) {
+        if (StringUtils.hasText(preferredName)) {
+            return preferredName;
         }
-        int atIndex = userInfo.email().indexOf('@');
-        return atIndex > 0 ? userInfo.email().substring(0, atIndex) : userInfo.email();
+        int atIndex = email.indexOf('@');
+        return atIndex > 0 ? email.substring(0, atIndex) : email;
+    }
+
+    private OAuthLoginResponse issueTokens(User user) {
+        JwtToken accessToken = jwtTokenProvider.createAccessToken(user);
+        JwtToken refreshToken = jwtTokenProvider.createRefreshToken(user);
+
+        storeRefreshToken(user.getId(), refreshToken);
+
+        return OAuthLoginResponse.of(user, accessToken, refreshToken);
     }
 
     private void storeRefreshToken(UUID userId, JwtToken refreshToken) {
