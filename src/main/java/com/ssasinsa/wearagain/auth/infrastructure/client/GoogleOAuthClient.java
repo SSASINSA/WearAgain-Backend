@@ -38,10 +38,10 @@ public class GoogleOAuthClient {
                 .build();
         try {
             String decodedCode = URLDecoder.decode(authorizationCode, StandardCharsets.UTF_8);
-            GoogleOAuthTokenResponse response = googleClient.post()
+            GoogleOAuthTokenResponse response = webClient.post()
                     .uri(uriBuilder -> {
                         return uriBuilder
-                                .path("/token")
+                                .path(properties.tokenUri())
                                 .queryParam("code", decodedCode)
                                 .queryParam("client_id", properties.clientId())
                                 .queryParam("client_secret", properties.clientSecret())
