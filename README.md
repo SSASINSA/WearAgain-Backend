@@ -13,33 +13,52 @@
 ## OAuth2 API 명세
 
 ### 1. Google 로그인/회원가입
+- **GET** `/api/v1/auth/google/authorize-url`
+  - 응답
+    ```json
+    {
+      "authorizationUrl": "https://accounts.google.com/o/oauth2/..."
+    }
+    ```
 - **POST** `/api/v1/auth/google/callback`
 - 요청
   ```json
   {
-    "code": "AUTHORIZATION_CODE"
+    "authorizationCode": "AUTHORIZATION_CODE"
   }
   ```
 - 성공 응답
   ```json
   {
+    "userId": "00000000-0000-0000-0000-000000000000",
+    "email": "user@example.com",
+    "displayName": "사용자",
+    "profileImageUrl": "https://lh3.googleusercontent.com/...",
     "accessToken": "JWT_ACCESS_TOKEN",
     "refreshToken": "JWT_REFRESH_TOKEN",
-    "userId": "00000000-0000-0000-0000-000000000000"
+    "accessTokenExpiresIn": 900,
+    "refreshTokenExpiresIn": 1209600
   }
   ```
 - 실패 시 `A1001` 또는 `A1004` 에러 코드 사용
 
 ### 2. Kakao 로그인/회원가입
+- **GET** `/api/v1/auth/kakao/authorize-url`
+  - 응답
+    ```json
+    {
+      "authorizationUrl": "https://kauth.kakao.com/oauth/authorize?..."
+    }
+    ```
 - **POST** `/api/v1/auth/kakao/callback`
 - 요청
   ```json
   {
-    "code": "AUTHORIZATION_CODE"
+    "authorizationCode": "AUTHORIZATION_CODE"
   }
   ```
 - 성공 응답: Google과 동일 구조 (`userId`는 UUID 문자열)
-- 실패 시 `A1002` 또는 `A1004` 에러 코드 사용
+- 실패 시 `A1002`(토큰/사용자 정보 조회 또는 이메일 미제공) 또는 `A1004`(인가 코드 누락) 에러 코드 사용
 
 ### 3. Apple 로그인/회원가입
 - **POST** `/api/v1/auth/apple/callback`
@@ -89,7 +108,7 @@
 | ErrorCode | HTTP Status | 설명 |
 |-----------|-------------|------|
 | A1001 | 401 Unauthorized | Google OAuth 인증 실패 |
-| A1002 | 401 Unauthorized | Kakao OAuth 인증 실패 |
+| A1002 | 401 Unauthorized | Kakao OAuth 인증 실패 또는 이메일 미제공 |
 | A1003 | 401 Unauthorized | Apple OAuth 인증 실패 |
 | A1004 | 400 Bad Request | Authorization Code 누락/유효하지 않음 |
 | A1005 | 401 Unauthorized | Refresh Token 만료 또는 불일치 |

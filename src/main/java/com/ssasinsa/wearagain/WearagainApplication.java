@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain;
 
 import com.ssasinsa.wearagain.auth.config.AuthRedisProperties;
 import com.ssasinsa.wearagain.auth.config.GoogleOAuthProperties;
+import com.ssasinsa.wearagain.auth.config.KakaoOAuthProperties;
 import com.ssasinsa.wearagain.auth.config.JwtProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -9,7 +10,12 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 @EnableJpaAuditing
-@EnableConfigurationProperties({JwtProperties.class, AuthRedisProperties.class, GoogleOAuthProperties.class})
+@EnableConfigurationProperties({
+        JwtProperties.class,
+        AuthRedisProperties.class,
+        GoogleOAuthProperties.class,
+        KakaoOAuthProperties.class
+})
 @SpringBootApplication
 public class WearagainApplication {
 
