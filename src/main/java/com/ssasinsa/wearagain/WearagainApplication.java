@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain;
 
+import com.ssasinsa.wearagain.auth.config.AppleOAuthProperties;
 import com.ssasinsa.wearagain.auth.config.AuthRedisProperties;
 import com.ssasinsa.wearagain.auth.config.GoogleOAuthProperties;
 import com.ssasinsa.wearagain.auth.config.KakaoOAuthProperties;
@@ -14,7 +15,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
         JwtProperties.class,
         AuthRedisProperties.class,
         GoogleOAuthProperties.class,
-        KakaoOAuthProperties.class
+        KakaoOAuthProperties.class,
+        AppleOAuthProperties.class
 })
 @SpringBootApplication
 public class WearagainApplication {

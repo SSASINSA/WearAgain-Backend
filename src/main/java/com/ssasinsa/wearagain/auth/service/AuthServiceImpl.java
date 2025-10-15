@@ -8,12 +8,16 @@ import com.ssasinsa.wearagain.auth.domain.User;
 import com.ssasinsa.wearagain.auth.domain.UserOAuthAccount;
 import com.ssasinsa.wearagain.auth.domain.repository.UserOAuthAccountRepository;
 import com.ssasinsa.wearagain.auth.domain.repository.UserRepository;
+import com.ssasinsa.wearagain.auth.dto.request.AppleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
 import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.auth.exception.AuthException;
 import com.ssasinsa.wearagain.auth.infrastructure.RefreshTokenRedisKeyManager;
+import com.ssasinsa.wearagain.auth.infrastructure.client.AppleOAuthClient;
+import com.ssasinsa.wearagain.auth.infrastructure.client.AppleOAuthClient.AppleUserInfo;
+import com.ssasinsa.wearagain.auth.infrastructure.client.AppleOAuthTokenResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleOAuthClient;
 import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleOAuthTokenResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleUserInfoResponse;
@@ -27,6 +31,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,6 +48,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final GoogleOAuthClient googleOAuthClient;
     private final KakaoOAuthClient kakaoOAuthClient;
+    private final AppleOAuthClient appleOAuthClient;
     private final UserRepository userRepository;
     private final UserOAuthAccountRepository userOAuthAccountRepository;
     private final JwtTokenProvider jwtTokenProvider;
@@ -107,6 +113,42 @@ public class AuthServiceImpl implements AuthService {
                 userInfo.email(),
                 userInfo.nickname(),
                 userInfo.profileImageUrl()
+        );
+
+        return issueTokens(user);
+    }
+
+    @Override
+    @Transactional
+    public OAuthLoginResponse loginWithApple(AppleOAuthLoginRequest request) {
+        if (!StringUtils.hasText(request.code()) || !StringUtils.hasText(request.idToken())) {
+            throw new AuthException(AuthErrorCode.AUTHORIZATION_CODE_REQUIRED);
+        }
+
+        AppleUserInfo requestUserInfo = appleOAuthClient.parseIdToken(request.idToken());
+        if (!StringUtils.hasText(requestUserInfo.email())) {
+            throw new AuthException(AuthErrorCode.APPLE_USERINFO_REQUEST_FAILED);
+        }
+
+        AppleOAuthTokenResponse tokenResponse = appleOAuthClient.requestToken(request.code());
+        if (!StringUtils.hasText(tokenResponse.idToken())) {
+            throw new AuthException(AuthErrorCode.APPLE_TOKEN_REQUEST_FAILED);
+        }
+
+        AppleUserInfo appleUserInfo = appleOAuthClient.parseIdToken(tokenResponse.idToken());
+        if (!Objects.equals(requestUserInfo.providerUserId(), appleUserInfo.providerUserId())) {
+            throw new AuthException(AuthErrorCode.APPLE_USERINFO_REQUEST_FAILED);
+        }
+        if (!StringUtils.hasText(appleUserInfo.email())) {
+            throw new AuthException(AuthErrorCode.APPLE_USERINFO_REQUEST_FAILED);
+        }
+
+        User user = findOrCreateOAuthUser(
+                AuthProvider.APPLE,
+                appleUserInfo.providerUserId(),
+                appleUserInfo.email(),
+                null,
+                null
         );
 
         return issueTokens(user);
