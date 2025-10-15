@@ -3,18 +3,21 @@ package com.ssasinsa.wearagain.auth.infrastructure.client;
 import com.ssasinsa.wearagain.auth.config.AppleOAuthProperties;
 import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.auth.exception.AuthException;
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
+import io.jsonwebtoken.JwtBuilder;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.SigningKeyResolverAdapter;
 
-import java.io.IOException;
+import java.lang.reflect.Array;
 import java.math.BigInteger;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
-import java.security.PublicKey;
 import java.security.PrivateKey;
 import java.security.NoSuchAlgorithmException;
+import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.RSAPublicKeySpec;
@@ -22,8 +25,9 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.locks.ReentrantLock;
 
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
@@ -43,6 +47,7 @@ public class AppleOAuthClient {
     private final WebClient webClient;
     private final AppleOAuthProperties properties;
     private final Map<String, CachedKey> publicKeyCache = new ConcurrentHashMap<>();
+    private final ConcurrentMap<String, ReentrantLock> keyLocks = new ConcurrentHashMap<>();
 
     public AppleOAuthClient(WebClient.Builder webClientBuilder, AppleOAuthProperties properties) {
         this.webClient = webClientBuilder.build();
@@ -104,16 +109,26 @@ public class AppleOAuthClient {
     private void validateAudience(Claims claims) {
         Object audienceClaim = claims.get("aud");
 
-        if (audienceClaim instanceof Set<?> audienceSet) {
-            boolean matched = audienceSet.stream()
+        if (audienceClaim instanceof String audience) {
+            if (properties.clientId().equals(audience)) {
+                return;
+            }
+        } else if (audienceClaim instanceof Collection<?> audienceCollection) {
+            boolean matched = audienceCollection.stream()
                     .map(Object::toString)
                     .anyMatch(properties.clientId()::equals);
 
             if (matched) {
                 return;
             }
-        } else {
-            throw new AuthException(AuthErrorCode.APPLE_USERINFO_REQUEST_FAILED);
+        } else if (audienceClaim != null && audienceClaim.getClass().isArray()) {
+            int length = Array.getLength(audienceClaim);
+            for (int index = 0; index < length; index++) {
+                Object value = Array.get(audienceClaim, index);
+                if (properties.clientId().equals(String.valueOf(value))) {
+                    return;
+                }
+            }
         }
 
         throw new AuthException(AuthErrorCode.APPLE_USERINFO_REQUEST_FAILED);
@@ -139,7 +154,9 @@ public class AppleOAuthClient {
             return cachedKey.publicKey();
         }
 
-        synchronized (publicKeyCache) {
+        ReentrantLock lock = keyLocks.computeIfAbsent(keyId, key -> new ReentrantLock());
+        lock.lock();
+        try {
             cachedKey = publicKeyCache.get(keyId);
             if (cachedKey != null && !cachedKey.isExpired()) {
                 return cachedKey.publicKey();
@@ -151,6 +168,11 @@ public class AppleOAuthClient {
                 throw new AuthException(AuthErrorCode.APPLE_USERINFO_REQUEST_FAILED);
             }
             return refreshed.publicKey();
+        } finally {
+            lock.unlock();
+            if (!lock.hasQueuedThreads()) {
+                keyLocks.remove(keyId, lock);
+            }
         }
     }
 
@@ -221,10 +243,9 @@ public class AppleOAuthClient {
 
     private PrivateKey loadPrivateKey() {
         try {
-            ClassPathResource resource = new ClassPathResource("static/AuthKey_" + properties.keyId() + ".p8");
-
-            // 파일 전체 읽기
-            String raw = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            String raw = Optional.ofNullable(properties.privateKey())
+                    .filter(StringUtils::hasText)
+                    .orElseThrow(() -> new AuthException(AuthErrorCode.APPLE_TOKEN_REQUEST_FAILED));
 
             String sanitized = raw
                     .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -236,8 +257,8 @@ public class AppleOAuthClient {
             KeyFactory keyFactory = KeyFactory.getInstance("EC"); // Apple은 P-256 EC 키 사용
             return keyFactory.generatePrivate(keySpec);
 
-        } catch (IOException | NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new AuthException(AuthErrorCode.APPLE_TOKEN_REQUEST_FAILED, e);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | IllegalArgumentException exception) {
+            throw new AuthException(AuthErrorCode.APPLE_TOKEN_REQUEST_FAILED, exception);
         }
     }
 
