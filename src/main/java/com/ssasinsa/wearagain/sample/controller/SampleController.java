@@ -21,9 +21,9 @@ public class SampleController {
         AuthenticatedUser principal = authentication != null && authentication.getPrincipal() instanceof AuthenticatedUser authUser
                 ? authUser
                 : null;
-        return Map.of(
-                "message", "인증이 필요한 엔드포인트에 접근했습니다.",
-                "user", principal
-        );
+        Map<String, Object> result = new java.util.HashMap<>();
+        result.put("message", "인증이 필요한 엔드포인트에 접근했습니다.");
+        result.put("user", principal);
+        return result;
     }
 }
