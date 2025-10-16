@@ -108,30 +108,31 @@ public class AppleOAuthClient {
 
     private void validateAudience(Claims claims) {
         Object audienceClaim = claims.get("aud");
-
-        if (audienceClaim instanceof String audience) {
-            if (properties.clientId().equals(audience)) {
-                return;
-            }
-        } else if (audienceClaim instanceof Collection<?> audienceCollection) {
-            boolean matched = audienceCollection.stream()
-                    .map(Object::toString)
-                    .anyMatch(properties.clientId()::equals);
-
-            if (matched) {
-                return;
-            }
-        } else if (audienceClaim != null && audienceClaim.getClass().isArray()) {
-            int length = Array.getLength(audienceClaim);
-            for (int index = 0; index < length; index++) {
-                Object value = Array.get(audienceClaim, index);
-                if (properties.clientId().equals(String.valueOf(value))) {
-                    return;
-                }
-            }
+        List<String> audienceList = extractAudienceList(audienceClaim);
+        if (audienceList.stream().anyMatch(properties.clientId()::equals)) {
+            return;
         }
-
         throw new AuthException(AuthErrorCode.APPLE_USERINFO_REQUEST_FAILED);
+    }
+
+    private List<String> extractAudienceList(Object audienceClaim) {
+        if (audienceClaim == null) return Collections.emptyList();
+        if (audienceClaim instanceof String audience) {
+            return List.of(audience);
+        }
+        if (audienceClaim instanceof Collection<?> collection) {
+            return collection.stream().map(Object::toString).toList();
+        }
+        if (audienceClaim.getClass().isArray()) {
+            int length = Array.getLength(audienceClaim);
+            List<String> result = new ArrayList<>();
+            for (int i = 0; i < length; i++) {
+                Object value = Array.get(audienceClaim, i);
+                result.add(String.valueOf(value));
+            }
+            return result;
+        }
+        return List.of(audienceClaim.toString());
     }
 
     private boolean parseEmailVerified(Object claim) {
