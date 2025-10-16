@@ -11,7 +11,9 @@ import com.ssasinsa.wearagain.auth.domain.repository.UserRepository;
 import com.ssasinsa.wearagain.auth.dto.request.AppleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
+import com.ssasinsa.wearagain.auth.dto.request.TokenRefreshRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
+import com.ssasinsa.wearagain.auth.dto.response.TokenRefreshResponse;
 import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.auth.exception.AuthException;
 import com.ssasinsa.wearagain.auth.infrastructure.RefreshTokenRedisKeyManager;
@@ -26,6 +28,7 @@ import com.ssasinsa.wearagain.auth.infrastructure.client.KakaoOAuthTokenResponse
 import com.ssasinsa.wearagain.auth.infrastructure.client.KakaoUserInfoResponse;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
+import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider.RefreshTokenClaims;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -35,6 +38,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
@@ -152,6 +156,46 @@ public class AuthServiceImpl implements AuthService {
         );
 
         return issueTokens(user);
+    }
+
+    @Override
+    @Transactional
+    public TokenRefreshResponse refreshToken(TokenRefreshRequest request) {
+        String refreshTokenValue = request.refreshToken();
+        if (!StringUtils.hasText(refreshTokenValue)) {
+            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID);
+        }
+
+        RefreshTokenClaims claims;
+        try {
+            claims = jwtTokenProvider.parseRefreshToken(refreshTokenValue);
+        } catch (JwtException | IllegalArgumentException exception) {
+            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID, exception);
+        }
+
+        UUID userId = claims.userId();
+        UUID tokenId = claims.tokenId();
+
+        String userKey = refreshTokenRedisKeyManager.userRefreshTokenKey(userId);
+        String storedToken = redisTemplate.opsForValue().get(userKey);
+        if (!StringUtils.hasText(storedToken) || !storedToken.equals(refreshTokenValue)) {
+            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID);
+        }
+
+        String rotationKey = refreshTokenRedisKeyManager.rotationDetectorKey(tokenId.toString());
+        Boolean deleted = redisTemplate.delete(rotationKey);
+        if (!Boolean.TRUE.equals(deleted)) {
+            throw new AuthException(AuthErrorCode.REFRESH_TOKEN_REUSED);
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID));
+
+        JwtToken newAccessToken = jwtTokenProvider.createAccessToken(user);
+        JwtToken newRefreshToken = jwtTokenProvider.createRefreshToken(user);
+        storeRefreshToken(user.getId(), newRefreshToken);
+
+        return TokenRefreshResponse.of(newAccessToken, newRefreshToken);
     }
 
     @Override

@@ -17,7 +17,9 @@ import com.ssasinsa.wearagain.auth.domain.UserOAuthAccount;
 import com.ssasinsa.wearagain.auth.domain.repository.UserOAuthAccountRepository;
 import com.ssasinsa.wearagain.auth.domain.repository.UserRepository;
 import com.ssasinsa.wearagain.auth.dto.request.AppleOAuthLoginRequest;
+import com.ssasinsa.wearagain.auth.dto.request.TokenRefreshRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
+import com.ssasinsa.wearagain.auth.dto.response.TokenRefreshResponse;
 import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.auth.exception.AuthException;
 import com.ssasinsa.wearagain.auth.infrastructure.RefreshTokenRedisKeyManager;
@@ -28,6 +30,7 @@ import com.ssasinsa.wearagain.auth.infrastructure.client.GoogleOAuthClient;
 import com.ssasinsa.wearagain.auth.infrastructure.client.KakaoOAuthClient;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
+import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider.RefreshTokenClaims;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -39,6 +42,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import io.jsonwebtoken.JwtException;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceImplTest {
@@ -148,6 +152,91 @@ class AuthServiceImplTest {
                 .satisfies(exception -> {
                     AuthException authException = (AuthException) exception;
                     assertThat(authException.getErrorCode()).isEqualTo(AuthErrorCode.AUTHORIZATION_CODE_REQUIRED);
+                });
+    }
+
+    @Test
+    void should_issue_new_tokens_when_refresh_token_valid() {
+        UUID userId = UUID.randomUUID();
+        UUID currentTokenId = UUID.randomUUID();
+        String refreshTokenValue = "old-refresh-token";
+        TokenRefreshRequest request = new TokenRefreshRequest(refreshTokenValue);
+        Instant issuedAt = Instant.now().minusSeconds(60);
+        Instant expiresAt = Instant.now().plusSeconds(3600);
+        RefreshTokenClaims claims = new RefreshTokenClaims(userId, currentTokenId, issuedAt, expiresAt);
+
+        when(jwtTokenProvider.parseRefreshToken(refreshTokenValue)).thenReturn(claims);
+
+        User user = org.mockito.Mockito.mock(User.class);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(user.getId()).thenReturn(userId);
+        when(user.getEmail()).thenReturn("user@example.com");
+        when(user.getDisplayName()).thenReturn("Refresh User");
+
+        String userKey = "auth:refresh-token:user:" + userId;
+        when(refreshTokenRedisKeyManager.userRefreshTokenKey(userId)).thenReturn(userKey);
+        when(redisTemplate.opsForValue().get(userKey)).thenReturn(refreshTokenValue);
+
+        String rotationKey = "auth:refresh-token:rotation:" + currentTokenId;
+        when(refreshTokenRedisKeyManager.rotationDetectorKey(currentTokenId.toString())).thenReturn(rotationKey);
+        when(redisTemplate.delete(rotationKey)).thenReturn(true);
+
+        UUID newTokenId = UUID.randomUUID();
+        JwtToken newAccessToken = new JwtToken("new-access", Instant.now().plusSeconds(900), null);
+        JwtToken newRefreshToken = new JwtToken("new-refresh", Instant.now().plusSeconds(7200), newTokenId);
+        when(jwtTokenProvider.createAccessToken(user)).thenReturn(newAccessToken);
+        when(jwtTokenProvider.createRefreshToken(user)).thenReturn(newRefreshToken);
+
+        String newRotationKey = "auth:refresh-token:rotation:" + newTokenId;
+        when(refreshTokenRedisKeyManager.rotationDetectorKey(newTokenId.toString())).thenReturn(newRotationKey);
+
+        TokenRefreshResponse response = authService.refreshToken(request);
+
+        assertThat(response.accessToken()).isEqualTo("new-access");
+        assertThat(response.refreshToken()).isEqualTo("new-refresh");
+        assertThat(response.accessTokenExpiresIn()).isPositive();
+        assertThat(response.refreshTokenExpiresIn()).isPositive();
+
+        verify(redisTemplate).delete(rotationKey);
+        verify(valueOperations).set(eq(userKey), eq("new-refresh"), eq(Duration.ofMillis(jwtProperties.refreshToken().validity())));
+        verify(valueOperations).set(eq(newRotationKey), eq(userId.toString()), eq(Duration.ofMillis(jwtProperties.refreshToken().validity())));
+    }
+
+    @Test
+    void should_throw_exception_when_refresh_token_reused() {
+        UUID userId = UUID.randomUUID();
+        UUID currentTokenId = UUID.randomUUID();
+        String refreshTokenValue = "old-refresh-token";
+        RefreshTokenClaims claims = new RefreshTokenClaims(userId, currentTokenId, Instant.now().minusSeconds(60), Instant.now().plusSeconds(3600));
+
+        when(jwtTokenProvider.parseRefreshToken(refreshTokenValue)).thenReturn(claims);
+
+        String userKey = "auth:refresh-token:user:" + userId;
+        when(refreshTokenRedisKeyManager.userRefreshTokenKey(userId)).thenReturn(userKey);
+        when(redisTemplate.opsForValue().get(userKey)).thenReturn(refreshTokenValue);
+
+        String rotationKey = "auth:refresh-token:rotation:" + currentTokenId;
+        when(refreshTokenRedisKeyManager.rotationDetectorKey(currentTokenId.toString())).thenReturn(rotationKey);
+        when(redisTemplate.delete(rotationKey)).thenReturn(false);
+
+        assertThatThrownBy(() -> authService.refreshToken(new TokenRefreshRequest(refreshTokenValue)))
+                .isInstanceOf(AuthException.class)
+                .satisfies(exception -> {
+                    AuthException authException = (AuthException) exception;
+                    assertThat(authException.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_REUSED);
+                });
+    }
+
+    @Test
+    void should_throw_exception_when_refresh_token_parsing_fails() {
+        String refreshTokenValue = "invalid-token";
+        when(jwtTokenProvider.parseRefreshToken(refreshTokenValue)).thenThrow(new JwtException("invalid"));
+
+        assertThatThrownBy(() -> authService.refreshToken(new TokenRefreshRequest(refreshTokenValue)))
+                .isInstanceOf(AuthException.class)
+                .satisfies(exception -> {
+                    AuthException authException = (AuthException) exception;
+                    assertThat(authException.getErrorCode()).isEqualTo(AuthErrorCode.REFRESH_TOKEN_INVALID);
                 });
     }
 }

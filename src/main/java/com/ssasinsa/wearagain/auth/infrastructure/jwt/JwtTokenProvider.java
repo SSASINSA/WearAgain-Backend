@@ -2,22 +2,24 @@ package com.ssasinsa.wearagain.auth.infrastructure.jwt;
 
 import com.ssasinsa.wearagain.auth.config.JwtProperties;
 import com.ssasinsa.wearagain.auth.domain.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
-import java.security.Key;
 import java.time.Instant;
 import java.util.Date;
 import java.util.UUID;
+import javax.crypto.SecretKey;
 import org.springframework.stereotype.Component;
 
 @Component
 public class JwtTokenProvider {
 
     private final JwtProperties jwtProperties;
-    private final Key accessTokenKey;
-    private final Key refreshTokenKey;
+    private final SecretKey accessTokenKey;
+    private final SecretKey refreshTokenKey;
 
     public JwtTokenProvider(JwtProperties jwtProperties) {
         this.jwtProperties = jwtProperties;
@@ -55,8 +57,35 @@ public class JwtTokenProvider {
         return new JwtToken(token, expiresAt, tokenId);
     }
 
-    private Key createKey(String secret) {
+    private SecretKey createKey(String secret) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public RefreshTokenClaims parseRefreshToken(String refreshToken) {
+        Claims claims = Jwts.parser()
+                .verifyWith(refreshTokenKey)
+                .requireIssuer(jwtProperties.issuer())
+                .build()
+                .parseSignedClaims(refreshToken)
+                .getPayload();
+
+        UUID userId = UUID.fromString(claims.getSubject());
+        String tokenIdValue = claims.get("tokenId", String.class);
+        if (tokenIdValue == null) {
+            throw new JwtException("tokenId claim missing");
+        }
+        UUID tokenId = UUID.fromString(tokenIdValue);
+        Instant issuedAt = claims.getIssuedAt() != null ? claims.getIssuedAt().toInstant() : null;
+        Instant expiresAt = claims.getExpiration() != null ? claims.getExpiration().toInstant() : null;
+        return new RefreshTokenClaims(userId, tokenId, issuedAt, expiresAt);
+    }
+
+    public record RefreshTokenClaims(
+            UUID userId,
+            UUID tokenId,
+            Instant issuedAt,
+            Instant expiresAt
+    ) {
     }
 }

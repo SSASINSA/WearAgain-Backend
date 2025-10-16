@@ -3,8 +3,10 @@ package com.ssasinsa.wearagain.auth.controller;
 import com.ssasinsa.wearagain.auth.dto.request.AppleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
+import com.ssasinsa.wearagain.auth.dto.request.TokenRefreshRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthAuthorizationUrlResponse;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
+import com.ssasinsa.wearagain.auth.dto.response.TokenRefreshResponse;
 import com.ssasinsa.wearagain.auth.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -51,6 +53,12 @@ public class AuthController {
     @PostMapping("/apple/callback")
     public ResponseEntity<OAuthLoginResponse> loginWithApple(@Valid @RequestBody AppleOAuthLoginRequest request) {
         OAuthLoginResponse response = authService.loginWithApple(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<TokenRefreshResponse> refreshToken(@Valid @RequestBody TokenRefreshRequest request) {
+        TokenRefreshResponse response = authService.refreshToken(request);
         return ResponseEntity.ok(response);
     }
 }
