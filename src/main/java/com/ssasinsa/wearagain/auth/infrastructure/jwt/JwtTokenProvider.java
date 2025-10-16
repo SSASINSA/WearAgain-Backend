@@ -81,11 +81,32 @@ public class JwtTokenProvider {
         return new RefreshTokenClaims(userId, tokenId, issuedAt, expiresAt);
     }
 
+    public AccessTokenClaims parseAccessToken(String accessToken) {
+        Claims claims = Jwts.parser()
+                .verifyWith(accessTokenKey)
+                .requireIssuer(jwtProperties.issuer())
+                .build()
+                .parseSignedClaims(accessToken)
+                .getPayload();
+
+        UUID userId = UUID.fromString(claims.getSubject());
+        String email = claims.get("email", String.class);
+        String displayName = claims.get("displayName", String.class);
+        return new AccessTokenClaims(userId, email, displayName);
+    }
+
     public record RefreshTokenClaims(
             UUID userId,
             UUID tokenId,
             Instant issuedAt,
             Instant expiresAt
+    ) {
+    }
+
+    public record AccessTokenClaims(
+            UUID userId,
+            String email,
+            String displayName
     ) {
     }
 }

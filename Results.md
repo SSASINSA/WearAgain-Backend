@@ -52,3 +52,16 @@
 
 ## 회고/이슈
 - RTR 검증 로직은 Redis 키 존재 여부에 의존하므로 운영 환경에서 적절한 TTL 설정과 Redis 가용성을 함께 모니터링해야 합니다.
+
+# [TASK] Access Token 기반 인증 필터 구현 (#13)
+## 개요
+- Access Token을 이용해 API 요청을 인증하는 JWT 필터와 예시 엔드포인트를 추가했습니다.
+
+## 상세 내용
+- `JwtAuthenticationFilter`를 도입해 Authorization 헤더의 Bearer 토큰을 검증하고 `SecurityContext`에 사용자 정보를 주입합니다.
+- 실패 시 일관된 에러 응답을 반환하는 `JwtAuthenticationEntryPoint`를 구현하고 시큐리티 설정에 필터/엔트리포인트를 등록했습니다.
+- 인증 필요/불필요 샘플 API(`/api/v1/sample/private`, `/api/v1/sample/public`)를 작성해 동작을 검증할 수 있도록 했습니다.
+- Access Token 파싱 로직을 `JwtTokenProvider`에 확장하고 필터 단위 테스트를 추가했습니다.
+
+## 회고/이슈
+- 현재 권한(roles) 정보가 없어 기본적으로 빈 권한으로 처리되므로, 추후 역할 기반 인가가 필요하면 토큰 구조를 확장해야 합니다.
