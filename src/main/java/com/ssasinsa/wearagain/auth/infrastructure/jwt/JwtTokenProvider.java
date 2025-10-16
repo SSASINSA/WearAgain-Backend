@@ -2,6 +2,8 @@ package com.ssasinsa.wearagain.auth.infrastructure.jwt;
 
 import com.ssasinsa.wearagain.auth.config.JwtProperties;
 import com.ssasinsa.wearagain.auth.domain.User;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -58,5 +60,36 @@ public class JwtTokenProvider {
     private Key createKey(String secret) {
         byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
         return Keys.hmacShaKeyFor(keyBytes);
+    }
+
+    public RefreshTokenClaims parseRefreshToken(String refreshToken) {
+        try {
+            Claims claims = Jwts.parser()
+                    .verifyWith(refreshTokenKey)
+                    .requireIssuer(jwtProperties.issuer())
+                    .build()
+                    .parseSignedClaims(refreshToken)
+                    .getPayload();
+
+            UUID userId = UUID.fromString(claims.getSubject());
+            String tokenIdValue = claims.get("tokenId", String.class);
+            if (tokenIdValue == null) {
+                throw new JwtException("tokenId claim missing");
+            }
+            UUID tokenId = UUID.fromString(tokenIdValue);
+            Instant issuedAt = claims.getIssuedAt() != null ? claims.getIssuedAt().toInstant() : null;
+            Instant expiresAt = claims.getExpiration() != null ? claims.getExpiration().toInstant() : null;
+            return new RefreshTokenClaims(userId, tokenId, issuedAt, expiresAt);
+        } catch (JwtException | IllegalArgumentException exception) {
+            throw exception;
+        }
+    }
+
+    public record RefreshTokenClaims(
+            UUID userId,
+            UUID tokenId,
+            Instant issuedAt,
+            Instant expiresAt
+    ) {
     }
 }
