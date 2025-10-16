@@ -26,3 +26,16 @@
 ## 회고/이슈
 - Kakao 계정에서 이메일 제공 권한을 미동의한 사용자는 `A1002` 에러로 응답되므로, 프론트엔드에서 이메일 제공 동의를 유도하는 UX가 필요합니다.
 - 로컬에서 `./gradlew test` 실행 시 JDK 17 이상이 필요하므로 개발 환경 JDK 버전을 점검해야 합니다.
+
+# [TASK] Apple OAuth2 로그인/회원가입 처리 (#4)
+## 개요
+- Apple OAuth2 Authorization Code 플로우를 지원해 로그인/회원가입과 JWT 발급을 완료했습니다.
+
+## 상세 내용
+- `POST /api/v1/auth/apple/callback` 엔드포인트와 `AppleOAuthLoginRequest` DTO를 추가하고 서비스/컨트롤러에 애플 로그인을 연동했습니다.
+- 애플 토큰 요청·ID 토큰 검증을 담당하는 `AppleOAuthClient`를 구현해 클라이언트 시크릿 생성, JWKS 캐싱, ID 토큰 검증 로직을 캡슐화했습니다.
+- ID 토큰 검증 후 기존 OAuth 계정 조회/생성, JWT 발급, Redis RTR 저장까지 기존 흐름과 일관되게 통합했습니다.
+- Apple 전용 프로퍼티/에러 코드를 추가하고 README 명세에 맞춰 애플 설정을 application.yml에 반영했습니다.
+
+## 회고/이슈
+- 새로 작성한 단위 테스트는 JDK 17 이상 환경에서 `./gradlew test`가 실행되어야 하며, 현재 로컬 JVM(16)에서는 빌드가 실패하므로 환경 업데이트가 필요합니다.

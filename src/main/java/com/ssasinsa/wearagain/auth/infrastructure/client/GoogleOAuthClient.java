@@ -4,6 +4,7 @@ import com.ssasinsa.wearagain.auth.config.GoogleOAuthProperties;
 import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.auth.exception.AuthException;
 
+import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -16,6 +17,7 @@ import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
 @Component
@@ -34,17 +36,17 @@ public class GoogleOAuthClient {
     public GoogleOAuthTokenResponse requestToken(String authorizationCode) {
         try {
             String decodedCode = URLDecoder.decode(authorizationCode, StandardCharsets.UTF_8);
+            URI uri = UriComponentsBuilder
+                    .fromUriString(properties.tokenUri()) // 절대 URL
+                    .queryParam("code", decodedCode)
+                    .queryParam("client_id", properties.clientId())
+                    .queryParam("client_secret", properties.clientSecret())
+                    .queryParam("grant_type", GRANT_TYPE_AUTHORIZATION_CODE)
+                    .queryParam("redirect_uri", properties.redirectUri())
+                    .build(true) // true → 이미 인코딩된 값 유지
+                    .toUri();
             GoogleOAuthTokenResponse response = webClient.post()
-                    .uri(uriBuilder -> {
-                        return uriBuilder
-                                .path(properties.tokenUri())
-                                .queryParam("code", decodedCode)
-                                .queryParam("client_id", properties.clientId())
-                                .queryParam("client_secret", properties.clientSecret())
-                                .queryParam("grant_type", GRANT_TYPE_AUTHORIZATION_CODE)
-                                .queryParam("redirect_uri", properties.redirectUri())
-                                .build();
-                    })
+                    .uri(uri)
                     .retrieve()
                     .bodyToMono(GoogleOAuthTokenResponse.class)
                     .block();

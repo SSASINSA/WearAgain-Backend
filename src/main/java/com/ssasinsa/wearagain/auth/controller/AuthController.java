@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain.auth.controller;
 
+import com.ssasinsa.wearagain.auth.dto.request.AppleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthAuthorizationUrlResponse;
@@ -44,6 +45,12 @@ public class AuthController {
     @PostMapping("/kakao/callback")
     public ResponseEntity<OAuthLoginResponse> loginWithKakao(@Valid @RequestBody KakaoOAuthLoginRequest request) {
         OAuthLoginResponse response = authService.loginWithKakao(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/apple/callback")
+    public ResponseEntity<OAuthLoginResponse> loginWithApple(@Valid @RequestBody AppleOAuthLoginRequest request) {
+        OAuthLoginResponse response = authService.loginWithApple(request);
         return ResponseEntity.ok(response);
     }
 }

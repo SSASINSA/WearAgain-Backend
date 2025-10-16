@@ -95,3 +95,8 @@ HELP.md
 AGENTS.md
 prd/
 todolist.md
+
+# Local artifacts
+.DS_Store
+.env
+*.p8

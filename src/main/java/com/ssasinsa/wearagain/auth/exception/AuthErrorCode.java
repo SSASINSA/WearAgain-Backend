@@ -8,7 +8,9 @@ public enum AuthErrorCode implements ErrorCode {
     GOOGLE_USERINFO_REQUEST_FAILED("A1001", "Google 사용자 정보를 불러오지 못했습니다.", HttpStatus.UNAUTHORIZED.value()),
     KAKAO_TOKEN_REQUEST_FAILED("A1002", "Kakao 토큰 발급에 실패했습니다.", HttpStatus.UNAUTHORIZED.value()),
     KAKAO_USERINFO_REQUEST_FAILED("A1002", "Kakao 사용자 정보를 불러오지 못했습니다.", HttpStatus.UNAUTHORIZED.value()),
-    KAKAO_EMAIL_NOT_PROVIDED("A1002", "Kakao 계정에서 이메일을 제공하지 않았습니다.", HttpStatus.UNAUTHORIZED.value());
+    KAKAO_EMAIL_NOT_PROVIDED("A1002", "Kakao 계정에서 이메일을 제공하지 않았습니다.", HttpStatus.UNAUTHORIZED.value()),
+    APPLE_TOKEN_REQUEST_FAILED("A1003", "Apple 토큰 발급에 실패했습니다.", HttpStatus.UNAUTHORIZED.value()),
+    APPLE_USERINFO_REQUEST_FAILED("A1003", "Apple 사용자 정보를 불러오지 못했습니다.", HttpStatus.UNAUTHORIZED.value());
 
     private final String code;
     private final String message;

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Apple OAuth2 로그인 테스트</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 2rem;
+            line-height: 1.6;
+        }
+        .container {
+            max-width: 680px;
+            margin: 0 auto;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 1rem;
+            overflow-x: auto;
+        }
+        button {
+            padding: 0.5rem 1rem;
+            margin-top: 0.75rem;
+            cursor: pointer;
+        }
+        label {
+            display: block;
+            margin-top: 1rem;
+        }
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 0.5rem;
+            box-sizing: border-box;
+        }
+        textarea {
+            min-height: 140px;
+        }
+        .tip {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 0.25rem;
+        }
+        .success {
+            color: #0b7a1b;
+        }
+        .error {
+            color: #c00;
+        }
+        .section {
+            margin-bottom: 2.5rem;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Apple OAuth2 로그인 테스트 페이지</h1>
+
+    <section class="section">
+        <h2>1. Apple 로그인 페이지 열기</h2>
+        <p>
+            아래 입력값을 이용해 <code>https://appleid.apple.com/auth/authorize</code> URL을 생성합니다.
+            애플 개발자 콘솔에 등록한 서비스 식별자(클라이언트 ID)와 동일한 값을 사용해야 하며
+            <strong>response_type</strong>은 <code>code id_token</code> 조합을 권장합니다.
+        </p>
+        <label for="client-id">client_id (서비스 식별자)</label>
+        <input id="client-id" type="text" placeholder="예: com.example.service">
+
+        <label for="redirect-uri">redirect_uri</label>
+        <input id="redirect-uri" type="text" placeholder="예: https://localhost:8080/api/v1/auth/apple/callback">
+        <p class="tip">백엔드에 등록된 리다이렉트 URI와 반드시 일치해야 합니다.</p>
+
+        <label for="scope">scope</label>
+        <input id="scope" type="text" value="name email">
+
+        <label for="response-type">response_type</label>
+        <input id="response-type" type="text" value="code id_token">
+        <p class="tip">id_token을 함께 반환받아야 서버에서 검증이 가능합니다.</p>
+
+        <label for="response-mode">response_mode</label>
+        <input id="response-mode" type="text" value="form_post">
+        <p class="tip">form_post 모드를 사용하면 code/id_token이 POST 바디로 전달됩니다.</p>
+
+        <label for="state">state (선택)</label>
+        <input id="state" type="text" placeholder="임의값을 지정하면 CSRF 검증에 유용합니다.">
+
+        <button id="open-apple-login">Apple 로그인 열기</button>
+        <p id="authorize-status" class="tip"></p>
+        <pre id="authorize-preview"></pre>
+    </section>
+
+    <section class="section">
+        <h2>2. 인증 코드와 ID 토큰으로 서버 요청</h2>
+        <p>
+            Apple 로그인 이후 리다이렉트된 페이지에서 전달받은 <code>code</code>와 <code>id_token</code> 값을 아래에 입력한 뒤
+            <strong>로그인 요청</strong> 버튼을 클릭하면 백엔드의 <code>/api/v1/auth/apple/callback</code> API를 테스트할 수 있습니다.
+        </p>
+        <label for="apple-code">authorization code</label>
+        <input id="apple-code" type="text" placeholder="리다이렉트 시 전달된 code">
+
+        <label for="apple-id-token">id_token</label>
+        <textarea id="apple-id-token" placeholder="리다이렉트 시 전달된 id_token(JWT)을 그대로 붙여넣으세요."></textarea>
+
+        <button id="request-token">로그인 요청</button>
+        <p id="request-status"></p>
+        <pre id="request-result"></pre>
+    </section>
+</div>
+
+<script>
+    const openButton = document.getElementById('open-apple-login');
+    const authorizeStatus = document.getElementById('authorize-status');
+    const authorizePreview = document.getElementById('authorize-preview');
+    const requestButton = document.getElementById('request-token');
+    const requestStatus = document.getElementById('request-status');
+    const requestResult = document.getElementById('request-result');
+
+    function buildAuthorizeUrl() {
+        const clientId = document.getElementById('client-id').value.trim();
+        const redirectUri = document.getElementById('redirect-uri').value.trim();
+        const scope = document.getElementById('scope').value.trim() || 'name email';
+        const responseType = document.getElementById('response-type').value.trim() || 'code id_token';
+        const responseMode = document.getElementById('response-mode').value.trim() || 'form_post';
+        const state = document.getElementById('state').value.trim();
+
+        if (!clientId || !redirectUri) {
+            authorizeStatus.textContent = 'client_id와 redirect_uri를 반드시 입력해야 합니다.';
+            authorizeStatus.className = 'error';
+            return null;
+        }
+
+        const params = new URLSearchParams({
+            client_id: clientId,
+            redirect_uri: redirectUri,
+            scope: scope,
+            response_type: responseType,
+            response_mode: responseMode
+        });
+        if (state) {
+            params.set('state', state);
+        }
+
+        return `https://appleid.apple.com/auth/authorize?${params.toString()}`;
+    }
+
+    openButton.addEventListener('click', () => {
+        const url = buildAuthorizeUrl();
+        if (!url) {
+            authorizePreview.textContent = '';
+            return;
+        }
+        authorizePreview.textContent = url;
+        authorizeStatus.textContent = '새 창에서 Apple 로그인 화면이 열립니다.';
+        authorizeStatus.className = 'success';
+        window.open(url, '_blank', 'noopener');
+    });
+
+    requestButton.addEventListener('click', async () => {
+        const code = document.getElementById('apple-code').value.trim();
+        const idToken = document.getElementById('apple-id-token').value.trim();
+
+        if (!code || !idToken) {
+            requestStatus.textContent = 'code와 id_token을 모두 입력해 주세요.';
+            requestStatus.className = 'error';
+            return;
+        }
+
+        requestStatus.textContent = '서버에 로그인 요청 중입니다...';
+        requestStatus.className = '';
+        requestResult.textContent = '';
+
+        try {
+            const response = await fetch('/api/v1/auth/apple/callback', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code, id_token: idToken })
+            });
+            const resultJson = await response.json();
+            if (!response.ok) {
+                requestStatus.textContent = '요청이 실패했습니다.';
+                requestStatus.className = 'error';
+            } else {
+                requestStatus.textContent = '요청이 성공했습니다.';
+                requestStatus.className = 'success';
+            }
+            requestResult.textContent = JSON.stringify(resultJson, null, 2);
+        } catch (error) {
+            requestStatus.textContent = `요청 중 오류가 발생했습니다: ${error}`;
+            requestStatus.className = 'error';
+        }
+    });
+</script>
+</body>
+</html>
