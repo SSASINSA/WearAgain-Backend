@@ -179,7 +179,7 @@ class AuthServiceImplTest {
 
         String rotationKey = "auth:refresh-token:rotation:" + currentTokenId;
         when(refreshTokenRedisKeyManager.rotationDetectorKey(currentTokenId.toString())).thenReturn(rotationKey);
-        when(redisTemplate.hasKey(rotationKey)).thenReturn(true);
+        when(redisTemplate.delete(rotationKey)).thenReturn(true);
 
         UUID newTokenId = UUID.randomUUID();
         JwtToken newAccessToken = new JwtToken("new-access", Instant.now().plusSeconds(900), null);
