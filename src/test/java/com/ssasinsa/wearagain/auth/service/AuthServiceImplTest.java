@@ -217,7 +217,7 @@ class AuthServiceImplTest {
 
         String rotationKey = "auth:refresh-token:rotation:" + currentTokenId;
         when(refreshTokenRedisKeyManager.rotationDetectorKey(currentTokenId.toString())).thenReturn(rotationKey);
-        when(redisTemplate.hasKey(rotationKey)).thenReturn(false);
+        when(redisTemplate.delete(rotationKey)).thenReturn(false);
 
         assertThatThrownBy(() -> authService.refreshToken(new TokenRefreshRequest(refreshTokenValue)))
                 .isInstanceOf(AuthException.class)
