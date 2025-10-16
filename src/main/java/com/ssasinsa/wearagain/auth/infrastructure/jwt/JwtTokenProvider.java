@@ -63,26 +63,22 @@ public class JwtTokenProvider {
     }
 
     public RefreshTokenClaims parseRefreshToken(String refreshToken) {
-        try {
-            Claims claims = Jwts.parser()
-                    .verifyWith(refreshTokenKey)
-                    .requireIssuer(jwtProperties.issuer())
-                    .build()
-                    .parseSignedClaims(refreshToken)
-                    .getPayload();
+        Claims claims = Jwts.parser()
+                .verifyWith(refreshTokenKey)
+                .requireIssuer(jwtProperties.issuer())
+                .build()
+                .parseSignedClaims(refreshToken)
+                .getPayload();
 
-            UUID userId = UUID.fromString(claims.getSubject());
-            String tokenIdValue = claims.get("tokenId", String.class);
-            if (tokenIdValue == null) {
-                throw new JwtException("tokenId claim missing");
-            }
-            UUID tokenId = UUID.fromString(tokenIdValue);
-            Instant issuedAt = claims.getIssuedAt() != null ? claims.getIssuedAt().toInstant() : null;
-            Instant expiresAt = claims.getExpiration() != null ? claims.getExpiration().toInstant() : null;
-            return new RefreshTokenClaims(userId, tokenId, issuedAt, expiresAt);
-        } catch (JwtException | IllegalArgumentException exception) {
-            throw exception;
+        UUID userId = UUID.fromString(claims.getSubject());
+        String tokenIdValue = claims.get("tokenId", String.class);
+        if (tokenIdValue == null) {
+            throw new JwtException("tokenId claim missing");
         }
+        UUID tokenId = UUID.fromString(tokenIdValue);
+        Instant issuedAt = claims.getIssuedAt() != null ? claims.getIssuedAt().toInstant() : null;
+        Instant expiresAt = claims.getExpiration() != null ? claims.getExpiration().toInstant() : null;
+        return new RefreshTokenClaims(userId, tokenId, issuedAt, expiresAt);
     }
 
     public record RefreshTokenClaims(

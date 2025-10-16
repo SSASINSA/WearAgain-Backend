@@ -183,11 +183,10 @@ public class AuthServiceImpl implements AuthService {
         }
 
         String rotationKey = refreshTokenRedisKeyManager.rotationDetectorKey(tokenId.toString());
-        Boolean rotationExists = redisTemplate.hasKey(rotationKey);
-        if (!Boolean.TRUE.equals(rotationExists)) {
+        Boolean deleted = redisTemplate.delete(rotationKey);
+        if (!Boolean.TRUE.equals(deleted)) {
             throw new AuthException(AuthErrorCode.REFRESH_TOKEN_REUSED);
         }
-        redisTemplate.delete(rotationKey);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID));
