@@ -1,0 +1,10 @@
+name: Runner check
+on: workflow_dispatch
+jobs:
+  ping:
+    runs-on: self-hosted
+    steps:
+      - run: |
+          echo "HOST ====="; uname -a; hostname; whoami; id
+      - run: |
+          echo "DOCKER ====="; docker --version; docker ps; groups | grep docker || true
