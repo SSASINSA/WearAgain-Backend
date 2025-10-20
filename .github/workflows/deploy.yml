@@ -2,8 +2,8 @@ name: 빌드 및 배포 (GHCR + Compose)
 
 on:
   push:
-    branches: [ "develop" ]
-  workflow_dispatch:
+    branches: [ "develop" ]     # develop 푸시 시 자동 실행
+  workflow_dispatch:            # 수동 실행 버튼
 
 permissions:
   contents: read
@@ -21,14 +21,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ secrets.GHCR_USERNAME }}
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }} 
+
       - name: Build & Push to GHCR
         uses: docker/build-push-action@v6
         with:
@@ -37,6 +40,9 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.repository }}
 
   deploy:
     runs-on: self-hosted
@@ -50,7 +56,8 @@ jobs:
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Ensure deploy dir
-        run: mkdir -p /opt/wearagain
+        run: |
+          mkdir -p /opt/wearagain
 
       - name: Write .env from secret (0600)
         working-directory: /opt/wearagain
@@ -58,9 +65,8 @@ jobs:
           umask 077
           printf '%s' "${{ secrets.ENV }}" > .env
 
-      - name: Pull & Up (Compose)
+      - name: Up with Compose (pull latest & recreate)
         working-directory: /opt/wearagain
         run: |
-          docker compose pull
-          docker compose up -d
+          docker compose up -d --pull always --force-recreate
           docker image prune -f
