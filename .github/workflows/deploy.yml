@@ -1,14 +1,9 @@
-name: "빌드 및 배포 (GHCR + Compose)"
+name: 빌드 및 배포 (GHCR + Compose)
 
 on:
-  # push:
-  #   branches: [ "develop" ] 
+  push:
+    branches: [ "develop" ]
   workflow_dispatch:
-    inputs:
-      ref:
-        description: "빌드/배포할 브랜치/태그/커밋SHA (예: feature/foo, develop, v1.0.0)"
-        required: true
-        default: "develop"
 
 permissions:
   contents: read
@@ -18,7 +13,7 @@ env:
   IMAGE_NAME: ghcr.io/ssasinsa/wearagain-backend
 
 concurrency:
-  group: deploy-${{ github.ref_name || inputs.ref }}
+  group: deploy-develop
   cancel-in-progress: true
 
 jobs:
@@ -26,25 +21,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ inputs.ref }}
-
-      - name: Debug refs
-        run: |
-          echo "REF=${{ inputs.ref }}"
-          echo "IMAGE_NAME=${{ env.IMAGE_NAME }}"
-
       - name: Set up Buildx
         uses: docker/setup-buildx-action@v3
-
-      # 개인 PAT로 GHCR 로그인 (Org로 퍼블리시)
-      - name: Login to GHCR (via PAT)
+      - name: Login to GHCR
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}   
-          password: ${{ secrets.GHCR_TOKEN }}      
-
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
       - name: Build & Push to GHCR
         uses: docker/build-push-action@v6
         with:
@@ -53,23 +37,20 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.source=${{ github.repository }}
 
   deploy:
     runs-on: self-hosted
     needs: build
     steps:
-      - name: Login to GHCR (runner via PAT)
+      - name: Login to GHCR (runner)
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ secrets.GHCR_USERNAME }}   # seungsang
-          password: ${{ secrets.GHCR_TOKEN }}      # PAT: read:packages 이상
+          username: ${{ secrets.GHCR_USERNAME }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Ensure deploy dir
-        run: sudo mkdir -p /opt/wearagain && sudo chown $USER:$USER /opt/wearagain
+        run: mkdir -p /opt/wearagain
 
       - name: Write .env from secret (0600)
         working-directory: /opt/wearagain
