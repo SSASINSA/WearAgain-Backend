@@ -29,7 +29,8 @@ public class SecurityConfig {
             "/resources/**",
             "/static/**",           // 추가
             "/public/**",           // 추가
-            "/*.html"
+            "/*.html",
+            "/"
     };
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
