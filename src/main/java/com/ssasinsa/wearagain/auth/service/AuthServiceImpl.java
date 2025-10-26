@@ -10,6 +10,7 @@ import com.ssasinsa.wearagain.auth.domain.repository.UserOAuthAccountRepository;
 import com.ssasinsa.wearagain.auth.domain.repository.UserRepository;
 import com.ssasinsa.wearagain.auth.dto.request.AppleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
+import com.ssasinsa.wearagain.auth.dto.request.KakaoIdTokenLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.TokenRefreshRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthLoginResponse;
@@ -124,6 +125,28 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     @Transactional
+    public OAuthLoginResponse loginWithKakaoIdToken(KakaoIdTokenLoginRequest request) {
+        if (!StringUtils.hasText(request.idToken())) {
+            throw new AuthException(AuthErrorCode.KAKAO_USERINFO_REQUEST_FAILED);
+        }
+        KakaoOAuthClient.KakaoIdTokenPayload payload = kakaoOAuthClient.parseIdToken(request.idToken());
+        if (!StringUtils.hasText(payload.email())) {
+            throw new AuthException(AuthErrorCode.KAKAO_EMAIL_NOT_PROVIDED);
+        }
+
+        User user = findOrCreateOAuthUser(
+                AuthProvider.KAKAO,
+                payload.providerUserId(),
+                payload.email(),
+                payload.nickname(),
+                payload.profileImageUrl()
+        );
+
+        return issueTokens(user);
+    }
+
+    @Override
+    @Transactional
     public OAuthLoginResponse loginWithApple(AppleOAuthLoginRequest request) {
         if (!StringUtils.hasText(request.code()) || !StringUtils.hasText(request.idToken())) {
             throw new AuthException(AuthErrorCode.AUTHORIZATION_CODE_REQUIRED);
@@ -216,7 +239,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public String generateKakaoAuthorizationUrl() {
-        List<String> scopes = List.of("profile_nickname", "account_email");
+        List<String> scopes = List.of("openid", "profile_nickname", "account_email");
         String encodedScope = URLEncoder.encode(String.join(" ", scopes), StandardCharsets.UTF_8);
         return UriComponentsBuilder
                 .fromUriString("https://kauth.kakao.com/oauth/authorize")
