@@ -4,6 +4,7 @@
 ## 환경 변수 설정
 - `.env.example` 파일을 참고해 루트 경로에 `.env`를 생성합니다.
 - 애플리케이션은 `application.yml`을 통해 MySQL, Redis, JWT, OAuth2 Provider 정보를 환경 변수에서 주입받습니다.
+- Kakao idToken 흐름을 사용하는 경우 `OAUTH_KAKAO_APP_CLIENT_ID`(모바일 앱 키)를 별도로 설정해야 합니다.
 
 ## 실행 전 준비
 - MySQL 8.x 인스턴스를 준비하고 UTF-8 환경으로 `wearagain` 데이터베이스를 생성합니다.
@@ -50,6 +51,7 @@
       "authorizationUrl": "https://kauth.kakao.com/oauth/authorize?..."
     }
     ```
+  - Scope: `openid profile_nickname account_email`
 - **POST** `/api/v1/auth/kakao/callback`
 - 요청
   ```json
@@ -59,6 +61,19 @@
   ```
 - 성공 응답: Google과 동일 구조 (`userId`는 UUID 문자열)
 - 실패 시 `A1002`(토큰/사용자 정보 조회 또는 이메일 미제공) 또는 `A1004`(인가 코드 누락) 에러 코드 사용
+- **POST** `/api/v1/auth/kakao/id-token`
+- 요청
+  ```json
+  {
+    "idToken": "KAKAO_ID_TOKEN"
+  }
+  ```
+- 처리
+  - 전달된 `idToken`으로 카카오 사용자 정보를 검증 및 조회한다.
+  - 사용자 정보가 존재하지 않으면 자동 회원가입을 수행하고 JWT를 발급한다.
+  - RTR 정책에 따라 Refresh Token을 회전시킨다.
+- 성공 응답: Google과 동일 구조 (`userId`는 UUID 문자열)
+- 실패 시 `A1002`(카카오 idToken 검증 실패/사용자 정보 조회 실패) 또는 `A1004`(입력 파라미터 누락) 에러 코드 사용
 
 ### 3. Apple 로그인/회원가입
 - **POST** `/api/v1/auth/apple/callback`

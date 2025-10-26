@@ -6,8 +6,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 public record KakaoOAuthProperties(
         String clientId,
         String clientSecret,
+        String appClientId,
         String redirectUri,
         String tokenUri,
-        String userInfoUri
+        String userInfoUri,
+        String issuer,
+        String keyUri
 ) {
 }

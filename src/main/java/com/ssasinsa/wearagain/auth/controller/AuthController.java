@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.auth.controller;
 
 import com.ssasinsa.wearagain.auth.dto.request.AppleOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.GoogleOAuthLoginRequest;
+import com.ssasinsa.wearagain.auth.dto.request.KakaoIdTokenLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.KakaoOAuthLoginRequest;
 import com.ssasinsa.wearagain.auth.dto.request.TokenRefreshRequest;
 import com.ssasinsa.wearagain.auth.dto.response.OAuthAuthorizationUrlResponse;
@@ -47,6 +48,12 @@ public class AuthController {
     @PostMapping("/kakao/callback")
     public ResponseEntity<OAuthLoginResponse> loginWithKakao(@Valid @RequestBody KakaoOAuthLoginRequest request) {
         OAuthLoginResponse response = authService.loginWithKakao(request);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/kakao/id-token")
+    public ResponseEntity<OAuthLoginResponse> loginWithKakaoIdToken(@Valid @RequestBody KakaoIdTokenLoginRequest request) {
+        OAuthLoginResponse response = authService.loginWithKakaoIdToken(request);
         return ResponseEntity.ok(response);
     }
 
