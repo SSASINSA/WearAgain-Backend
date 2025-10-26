@@ -39,6 +39,8 @@ public class KakaoOAuthClient {
 
     private static final String GRANT_TYPE_AUTHORIZATION_CODE = "authorization_code";
     private static final Duration JWKS_CACHE_TTL = Duration.ofMinutes(15);
+    private static final long EXPIRATION_CLOCK_SKEW_SECONDS = 60; // Aligns with Kakao OIDC doc tolerance for token expiry validation
+    private static final long AUTH_TIME_FUTURE_TOLERANCE_MINUTES = 5; // Grace window for client clock skew on auth_time
 
     private final WebClient webClient;
     private final KakaoOAuthProperties properties;
@@ -131,14 +133,14 @@ public class KakaoOAuthClient {
             if (issuedAt == null || expiresAt == null) {
                 throw new AuthException(AuthErrorCode.KAKAO_USERINFO_REQUEST_FAILED);
             }
-            if (expiresAt != null && issuedAt != null && expiresAt.isBefore(issuedAt)) {
+            if (expiresAt.isBefore(issuedAt)) {
                 throw new AuthException(AuthErrorCode.KAKAO_USERINFO_REQUEST_FAILED);
             }
             Instant now = Instant.now();
-            if (expiresAt.isBefore(now.minusSeconds(60))) {
+            if (expiresAt.isBefore(now.minusSeconds(EXPIRATION_CLOCK_SKEW_SECONDS))) {
                 throw new AuthException(AuthErrorCode.KAKAO_USERINFO_REQUEST_FAILED);
             }
-            if (authTime != null && authTime.isAfter(now.plus(5, ChronoUnit.MINUTES))) {
+            if (authTime != null && authTime.isAfter(now.plus(AUTH_TIME_FUTURE_TOLERANCE_MINUTES, ChronoUnit.MINUTES))) {
                 throw new AuthException(AuthErrorCode.KAKAO_USERINFO_REQUEST_FAILED);
             }
 
@@ -314,8 +316,10 @@ public class KakaoOAuthClient {
             PublicKey publicKey = createPublicKey(key);
             refreshed.put(key.kid(), new CachedKey(publicKey, now.plus(JWKS_CACHE_TTL)));
         }
-        publicKeyCache.clear();
-        publicKeyCache.putAll(refreshed);
+        synchronized (publicKeyCache) {
+            publicKeyCache.clear();
+            publicKeyCache.putAll(refreshed);
+        }
     }
 
     private KakaoPublicKeysResponse fetchPublicKeys() {
