@@ -63,18 +63,52 @@ jobs:
           username: ${{ secrets.GHCR_USERNAME }}
           password: ${{ secrets.GHCR_TOKEN }}
 
-      - name: Ensure deploy dir & .env
+      - name: Ensure deploy dir
+        run: mkdir -p /opt/wearagain
+
+      - name: Update .env and detect changes
+        id: env
+        working-directory: /opt/wearagain
+        shell: bash
         run: |
-          mkdir -p /opt/wearagain
-          if [ ! -f /opt/wearagain/.env ]; then
+          set -e
+          TMP_ENV="$(mktemp)"
+          printf '%s' "${{ secrets.ENV }}" > "$TMP_ENV"
+          if [ -f .env ] && cmp -s "$TMP_ENV" .env; then
+            echo "env_changed=false" >> $GITHUB_OUTPUT
+            rm -f "$TMP_ENV"
+            echo "No .env change"
+          else
             umask 077
-            printf '%s' "${{ secrets.ENV }}" > /opt/wearagain/.env
+            mv -f "$TMP_ENV" .env
+            echo "env_changed=true" >> $GITHUB_OUTPUT
+            echo ".env updated"
           fi
 
-      - name: Deploy app service only (ensure nginx)
+      - name: Ensure nginx up
+        working-directory: /opt/wearagain
+        run: docker compose up -d nginx
+
+      - name: Pull latest images
         working-directory: /opt/wearagain
         run: |
-          docker compose up -d nginx
-          docker compose pull app
-          docker compose up -d --no-deps app
+          docker compose pull app || true
+          docker compose pull admin || true
+
+      - name: Recreate services if needed
+        working-directory: /opt/wearagain
+        shell: bash
+        run: |
+          set -e
+          FORCE=""
+          if [ "${{ steps.env.outputs.env_changed }}" = "true" ]; then
+            FORCE="--force-recreate"
+          fi
+
+          docker compose up -d $FORCE --no-deps app
+
+          if docker compose config --services | grep -q '^admin$'; then
+            docker compose up -d $FORCE --no-deps admin
+          fi
+
           docker image prune -f
