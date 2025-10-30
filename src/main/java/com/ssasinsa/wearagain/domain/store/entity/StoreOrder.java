@@ -1,0 +1,99 @@
+package com.ssasinsa.wearagain.domain.store.entity;
+
+import com.ssasinsa.wearagain.auth.domain.User;
+import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
+import jakarta.persistence.AttributeOverride;
+import jakarta.persistence.AttributeOverrides;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Getter
+@Entity
+@Table(name = "store_orders")
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AttributeOverrides({
+        @AttributeOverride(name = "createdAt", column = @Column(name = "purchased_at", updatable = false)),
+        @AttributeOverride(name = "updatedAt", column = @Column(name = "canceled_at"))
+})
+public class StoreOrder extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "store_orders_id", nullable = false, updatable = false)
+    private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "users_id", nullable = false)
+    private User user;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "store_items_id", nullable = false)
+    private StoreItem item;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private StoreOrderStatus status;
+
+    @Column(nullable = false)
+    private int price;
+
+    @Column(name = "refunded_amount")
+    private Integer refundedAmount;
+
+    @Builder(access = AccessLevel.PRIVATE)
+    private StoreOrder(User user, StoreItem item, StoreOrderStatus status, int price, Integer refundedAmount) {
+        this.user = user;
+        this.item = item;
+        this.status = status == null ? StoreOrderStatus.PURCHASED : status;
+        this.price = price;
+        this.refundedAmount = refundedAmount == null ? 0 : refundedAmount;
+    }
+
+    public static StoreOrder create(User user, StoreItem item, int price) {
+        return StoreOrder.builder()
+                .user(user)
+                .item(item)
+                .price(price)
+                .build();
+    }
+
+    public void cancel(int refundedAmount) {
+        this.status = StoreOrderStatus.CANCELED;
+        this.refundedAmount = refundedAmount;
+    }
+
+    public void markFailed() {
+        this.status = StoreOrderStatus.FAILED;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) {
+            return true;
+        }
+        if (!(o instanceof StoreOrder)) {
+            return false;
+        }
+        StoreOrder other = (StoreOrder) o;
+        return id != null && id.equals(other.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
+}
