@@ -196,7 +196,7 @@ public class AuthServiceImpl implements AuthService {
             throw new AuthException(AuthErrorCode.REFRESH_TOKEN_INVALID, exception);
         }
 
-        UUID userId = claims.userId();
+        Long userId = claims.userId();
         UUID tokenId = claims.tokenId();
 
         String userKey = refreshTokenRedisKeyManager.userRefreshTokenKey(userId);
@@ -294,7 +294,7 @@ public class AuthServiceImpl implements AuthService {
         return OAuthLoginResponse.of(user, accessToken, refreshToken);
     }
 
-    private void storeRefreshToken(UUID userId, JwtToken refreshToken) {
+    private void storeRefreshToken(Long userId, JwtToken refreshToken) {
         Duration validity = Duration.ofMillis(jwtProperties.refreshToken().validity());
         String userKey = refreshTokenRedisKeyManager.userRefreshTokenKey(userId);
         redisTemplate.opsForValue().set(userKey, refreshToken.value(), validity);
