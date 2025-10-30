@@ -58,9 +58,11 @@ public class CommunityPost extends BaseTimeEntity {
     private boolean active;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<PostLike> likes = new ArrayList<>();
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<PostComment> comments = new ArrayList<>();
 
     @Builder(access = AccessLevel.PRIVATE)

@@ -52,9 +52,11 @@ public class EventOption extends BaseTimeEntity {
     private Integer remaining = 0;
 
     @OneToMany(mappedBy = "parentOption", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<EventOption> childOptions = new ArrayList<>();
 
     @OneToMany(mappedBy = "eventOption", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<EventApplication> applications = new ArrayList<>();
 
     @Builder(access = AccessLevel.PRIVATE)

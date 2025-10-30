@@ -66,9 +66,11 @@ public class Event extends BaseTimeEntity {
     private EventStatus status;
 
     @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<EventOption> options = new ArrayList<>();
 
     @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
+    @Builder.Default
     private List<EventApplication> applications = new ArrayList<>();
 
     @Builder(access = AccessLevel.PRIVATE)
