@@ -65,3 +65,26 @@
 
 ## 회고/이슈
 - 현재 권한(roles) 정보가 없어 기본적으로 빈 권한으로 처리되므로, 추후 역할 기반 인가가 필요하면 토큰 구조를 확장해야 합니다.
+
+# [TASK] 도메인 엔티티 초기 구성 (#26)
+## 개요
+- 관리자, 커뮤니티, 이벤트, 재무, 마스코트, 알림, 상점 도메인의 핵심 엔티티를 일괄 정의해 이후 기능 구현의 공통 기반을 마련했습니다.
+
+## 상세 내용
+- 엔티티 공통 규칙(엔티티 팩토리 메서드, `@NoArgsConstructor(access = PROTECTED)`, `BaseTimeEntity` 상속)을 준수하며 각 도메인의 핵심 테이블과 필드를 매핑했습니다.
+- `Admin`, `AdminRole`을 통해 관리자 계정과 권한 롤 구조를 정의하고 비밀번호/권한 변경 도메인 메서드를 포함했습니다.
+- `CommunityPost`, `PostComment`, `PostLike`, `Report`, `ReportStatus` 등 커뮤니티 상호작용 엔티티를 설정하고 좋아요/댓글 컬렉션을 LAZY로 구성했습니다.
+- `Event`, `EventApplication`, `EventOption`과 상태 Enum(`EventStatus`, `EventApplicationStatus`)을 도입해 이벤트 신청과 옵션 선택 흐름을 표현했습니다.
+- `CreditHistory`, `TicketHistory`, `ImpactAnalytics`로 포인트·티켓·임팩트 통계를 기록하고, 비즈니스 요구에 맞는 Enum/컬럼을 정의했습니다.
+- `UserMascot`, `MascotRewardRule`로 마스코트 성장/보상 로직을 표현하고, `Notification` 엔티티로 사용자별 알림을 관리하도록 설계했습니다.
+- `StoreItem`, `StoreOrder` 및 각 상태 Enum을 추가해 상점 재화/주문 상태 추적을 위한 스키마를 구성했습니다.
+
+## 근거 및 설계 선택
+- AGENTS.md의 엔티티 규칙(지연 로딩, PK Long + IDENTITY, 정적 팩토리 메서드)을 일관 적용해 추후 서비스 계층에서의 사용성을 확보했습니다.
+- 도메인별 패키지 구조를 맞추기 위해 `domain/{도메인}/entity` 경로에 엔티티를 배치해 모듈화와 CQRS 확장성을 고려했습니다.
+- 상태값은 모두 Enum + `@Enumerated(EnumType.STRING)`으로 관리해 가독성과 변경 안정성을 확보했습니다.
+- 컬렉션 필드는 `new ArrayList<>()`로 초기화하고 편의 메서드(`addLike`, `removeLike`, `addComment`)를 제공해 양방향 관계 정합성을 유지하도록 했습니다.
+
+## 회고/이슈
+- 현재는 엔티티 정의만 포함되어 있어 마이그레이션 스크립트와 테스트 작성이 필요하며, 이 단계에서 비즈니스 규칙 검증은 추후 서비스 계층 구현과 함께 진행해야 합니다.
+- 여러 도메인이 동시에 추가되었기 때문에 향후 기능 개발 시 단계별로 마이그레이션 및 리포지토리 분리를 진행해야 합니다.
