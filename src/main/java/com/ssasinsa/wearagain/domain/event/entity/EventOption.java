@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Builder.Default;
 import lombok.Getter;
@@ -24,6 +25,8 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "event_options")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder(access = AccessLevel.PRIVATE)
 public class EventOption extends BaseTimeEntity {
 
     @Id
@@ -46,9 +49,11 @@ public class EventOption extends BaseTimeEntity {
     private String type;
 
     @Column
+    @Builder.Default
     private Integer quantity = 0;
 
     @Column
+    @Builder.Default
     private Integer remaining = 0;
 
     @OneToMany(mappedBy = "parentOption", fetch = FetchType.LAZY)
@@ -58,16 +63,6 @@ public class EventOption extends BaseTimeEntity {
     @OneToMany(mappedBy = "eventOption", fetch = FetchType.LAZY)
     @Builder.Default
     private List<EventApplication> applications = new ArrayList<>();
-
-    @Builder(access = AccessLevel.PRIVATE)
-    private EventOption(Event event, EventOption parentOption, String name, String type, Integer quantity, Integer remaining) {
-        this.event = event;
-        this.parentOption = parentOption;
-        this.name = name;
-        this.type = type;
-        this.quantity = quantity == null ? 0 : quantity;
-        this.remaining = remaining == null ? 0 : remaining;
-    }
 
     public static EventOption create(Event event, EventOption parentOption, String name, String type, Integer quantity, Integer remaining) {
         EventOption option = EventOption.builder()

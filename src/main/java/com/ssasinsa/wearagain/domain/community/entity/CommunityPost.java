@@ -16,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Builder.Default;
 import lombok.Getter;
@@ -25,6 +26,8 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "community_posts")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder(access = AccessLevel.PRIVATE)
 public class CommunityPost extends BaseTimeEntity {
 
     @Id
@@ -52,10 +55,12 @@ public class CommunityPost extends BaseTimeEntity {
     private String tag;
 
     @Column(name = "like_count", nullable = false)
-    private int likeCount;
+    @Builder.Default
+    private int likeCount = 0;
 
     @Column(name = "is_active", nullable = false)
-    private boolean active;
+    @Builder.Default
+    private boolean active = true;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
     @Builder.Default
@@ -64,18 +69,6 @@ public class CommunityPost extends BaseTimeEntity {
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
     @Builder.Default
     private List<PostComment> comments = new ArrayList<>();
-
-    @Builder(access = AccessLevel.PRIVATE)
-    private CommunityPost(User user, String title, String content, String thumbnailUrl, String imageUrl, String tag, Integer likeCount, Boolean active) {
-        this.user = user;
-        this.title = title;
-        this.content = content;
-        this.thumbnailUrl = thumbnailUrl;
-        this.imageUrl = imageUrl;
-        this.tag = tag;
-        this.likeCount = likeCount == null ? 0 : likeCount;
-        this.active = active == null || active;
-    }
 
     public static CommunityPost create(User user, String title, String content, String thumbnailUrl, String imageUrl, String tag) {
         return CommunityPost.builder()

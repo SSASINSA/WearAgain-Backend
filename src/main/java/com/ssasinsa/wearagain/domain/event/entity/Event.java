@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Builder.Default;
 import lombok.Getter;
@@ -27,6 +28,8 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "events")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder(access = AccessLevel.PRIVATE)
 public class Event extends BaseTimeEntity {
 
     @Id
@@ -63,7 +66,8 @@ public class Event extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private EventStatus status;
+    @Builder.Default
+    private EventStatus status = EventStatus.UPCOMING;
 
     @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
     @Builder.Default
@@ -72,31 +76,6 @@ public class Event extends BaseTimeEntity {
     @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
     @Builder.Default
     private List<EventApplication> applications = new ArrayList<>();
-
-    @Builder(access = AccessLevel.PRIVATE)
-    private Event(
-            String title,
-            String shortDescription,
-            String longDescription,
-            String thumbnailUrl,
-            String imageUrl,
-            String staffCode,
-            LocalDate startDate,
-            LocalDate endDate,
-            String location,
-            EventStatus status
-    ) {
-        this.title = title;
-        this.shortDescription = shortDescription;
-        this.longDescription = longDescription;
-        this.thumbnailUrl = thumbnailUrl;
-        this.imageUrl = imageUrl;
-        this.staffCode = staffCode;
-        this.startDate = startDate;
-        this.endDate = endDate;
-        this.location = location;
-        this.status = status == null ? EventStatus.UPCOMING : status;
-    }
 
     public static Event create(
             String title,
