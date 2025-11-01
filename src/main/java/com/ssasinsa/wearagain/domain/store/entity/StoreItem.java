@@ -12,11 +12,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -24,6 +29,8 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "store_items")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder(access = AccessLevel.PRIVATE)
 public class StoreItem extends BaseTimeEntity {
 
     @Id
@@ -37,9 +44,6 @@ public class StoreItem extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "thumbnail_url", length = 512)
-    private String thumbnailUrl;
-
     @Column(length = 50)
     private String category;
 
@@ -47,11 +51,13 @@ public class StoreItem extends BaseTimeEntity {
     private int price;
 
     @Column(nullable = false)
-    private int stock;
+    @Builder.Default
+    private int stock = 0;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private StoreItemStatus status;
+    @Builder.Default
+    private StoreItemStatus status = StoreItemStatus.ACTIVE;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -60,27 +66,31 @@ public class StoreItem extends BaseTimeEntity {
     @JoinColumn(name = "deleted_by")
     private Admin deletedBy;
 
-    @Builder(access = AccessLevel.PRIVATE)
-    private StoreItem(String name, String description, String thumbnailUrl, String category, int price, Integer stock, StoreItemStatus status) {
-        this.name = name;
-        this.description = description;
-        this.thumbnailUrl = thumbnailUrl;
-        this.category = category;
-        this.price = price;
-        this.stock = stock == null ? 0 : stock;
-        this.status = status == null ? StoreItemStatus.ACTIVE : status;
-    }
+    @OneToMany(mappedBy = "storeItem", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<StoreItemImage> images = new ArrayList<>();
 
-    public static StoreItem create(String name, String description, String thumbnailUrl, String category, int price, Integer stock, StoreItemStatus status) {
-        return StoreItem.builder()
+    public static StoreItem create(String name, String description, String category, int price, Integer stock, StoreItemStatus status, List<String> imageUrls) {
+        int resolvedStock = stock == null ? 0 : stock;
+        StoreItemStatus resolvedStatus = status == null ? StoreItemStatus.ACTIVE : status;
+
+        StoreItem item = StoreItem.builder()
                 .name(name)
                 .description(description)
-                .thumbnailUrl(thumbnailUrl)
                 .category(category)
                 .price(price)
-                .stock(stock)
-                .status(status)
+                .stock(resolvedStock)
+                .status(resolvedStatus)
                 .build();
+
+        if (imageUrls != null) {
+            int order = 0;
+            for (String imageUrl : imageUrls) {
+                StoreItemImage.create(item, imageUrl, order++);
+            }
+        }
+
+        return item;
     }
 
     public void markDeleted(LocalDateTime deletedAt, Admin admin) {
@@ -91,6 +101,10 @@ public class StoreItem extends BaseTimeEntity {
 
     public void changeStatus(StoreItemStatus status) {
         this.status = status;
+    }
+
+    void addImage(StoreItemImage image) {
+        images.add(image);
     }
 
     @Override

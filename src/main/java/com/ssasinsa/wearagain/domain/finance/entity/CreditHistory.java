@@ -3,8 +3,6 @@ package com.ssasinsa.wearagain.domain.finance.entity;
 import com.ssasinsa.wearagain.auth.domain.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import com.ssasinsa.wearagain.domain.store.entity.StoreOrder;
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -24,10 +22,6 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "credit_histories")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AttributeOverrides({
-        @AttributeOverride(name = "createdAt", column = @Column(name = "created_at", updatable = false)),
-        @AttributeOverride(name = "updatedAt", column = @Column(name = "created_at", insertable = false, updatable = false))
-})
 public class CreditHistory extends BaseTimeEntity {
 
     @Id

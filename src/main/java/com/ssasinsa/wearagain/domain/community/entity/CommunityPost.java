@@ -45,14 +45,9 @@ public class CommunityPost extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(name = "thumbnail_url", length = 512)
-    private String thumbnailUrl;
-
-    @Column(name = "image_url", length = 512)
-    private String imageUrl;
-
-    @Column(length = 50)
-    private String tag;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "community_categories_id", nullable = false)
+    private CommunityCategory category;
 
     @Column(name = "like_count", nullable = false)
     @Builder.Default
@@ -70,15 +65,26 @@ public class CommunityPost extends BaseTimeEntity {
     @Builder.Default
     private List<PostComment> comments = new ArrayList<>();
 
-    public static CommunityPost create(User user, String title, String content, String thumbnailUrl, String imageUrl, String tag) {
-        return CommunityPost.builder()
+    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<CommunityPostImage> images = new ArrayList<>();
+
+    public static CommunityPost create(User user, CommunityCategory category, String title, String content, List<String> imageUrls) {
+        CommunityPost post = CommunityPost.builder()
                 .user(user)
                 .title(title)
                 .content(content)
-                .thumbnailUrl(thumbnailUrl)
-                .imageUrl(imageUrl)
-                .tag(tag)
+                .category(category)
                 .build();
+
+        if (imageUrls != null) {
+            int order = 0;
+            for (String imageUrl : imageUrls) {
+                CommunityPostImage.create(post, imageUrl, order++);
+            }
+        }
+
+        return post;
     }
 
     void addLike(PostLike like) {
@@ -92,6 +98,14 @@ public class CommunityPost extends BaseTimeEntity {
 
     void addComment(PostComment comment) {
         comments.add(comment);
+    }
+
+    void addImage(CommunityPostImage image) {
+        images.add(image);
+    }
+
+    public void assignCategory(CommunityCategory category) {
+        this.category = category;
     }
 
     public void deactivate() {

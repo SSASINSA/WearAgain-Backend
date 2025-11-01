@@ -9,8 +9,6 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
@@ -40,17 +38,8 @@ public class Event extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String title;
 
-    @Column(name = "short_description", length = 512)
-    private String shortDescription;
-
-    @Column(name = "long_description", columnDefinition = "TEXT")
-    private String longDescription;
-
-    @Column(name = "thumbnail_url", length = 512)
-    private String thumbnailUrl;
-
-    @Column(name = "image_url", length = 512)
-    private String imageUrl;
+    @Column(columnDefinition = "TEXT")
+    private String description;
 
     @Column(name = "staff_code", length = 64)
     private String staffCode;
@@ -77,30 +66,38 @@ public class Event extends BaseTimeEntity {
     @Builder.Default
     private List<EventApplication> applications = new ArrayList<>();
 
+    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
+    @Builder.Default
+    private List<EventImage> images = new ArrayList<>();
+
     public static Event create(
             String title,
-            String shortDescription,
-            String longDescription,
-            String thumbnailUrl,
-            String imageUrl,
+            String description,
             String staffCode,
             LocalDate startDate,
             LocalDate endDate,
             String location,
-            EventStatus status
+            EventStatus status,
+            List<String> imageUrls
     ) {
-        return Event.builder()
+        Event event = Event.builder()
                 .title(title)
-                .shortDescription(shortDescription)
-                .longDescription(longDescription)
-                .thumbnailUrl(thumbnailUrl)
-                .imageUrl(imageUrl)
+                .description(description)
                 .staffCode(staffCode)
                 .startDate(startDate)
                 .endDate(endDate)
                 .location(location)
                 .status(status)
                 .build();
+
+        if (imageUrls != null) {
+            int order = 0;
+            for (String imageUrl : imageUrls) {
+                EventImage.create(event, imageUrl, order++);
+            }
+        }
+
+        return event;
     }
 
     void addOption(EventOption option) {
@@ -109,6 +106,10 @@ public class Event extends BaseTimeEntity {
 
     void addApplication(EventApplication application) {
         applications.add(application);
+    }
+
+    void addImage(EventImage image) {
+        images.add(image);
     }
 
     public void changeStatus(EventStatus status) {

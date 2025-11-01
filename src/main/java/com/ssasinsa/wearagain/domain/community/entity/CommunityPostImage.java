@@ -1,6 +1,5 @@
 package com.ssasinsa.wearagain.domain.community.entity;
 
-import com.ssasinsa.wearagain.auth.domain.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -13,57 +12,44 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Objects;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "comments")
+@Table(name = "community_post_images")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class PostComment extends BaseTimeEntity {
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@Builder(access = AccessLevel.PRIVATE)
+public class CommunityPostImage extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "comments_id", nullable = false, updatable = false)
+    @Column(name = "community_post_images_id", nullable = false, updatable = false)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "community_posts_id", nullable = false)
     private CommunityPost post;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "users_id", nullable = false)
-    private User user;
+    @Column(name = "image_url", nullable = false, length = 512)
+    private String imageUrl;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
-    private String content;
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean active;
-
-    @Builder(access = AccessLevel.PRIVATE)
-    private PostComment(CommunityPost post, User user, String content, Boolean active) {
-        this.post = post;
-        this.user = user;
-        this.content = content;
-        this.active = active == null || active;
-    }
-
-    public static PostComment create(CommunityPost post, User user, String content) {
-        PostComment comment = PostComment.builder()
+    public static CommunityPostImage create(CommunityPost post, String imageUrl, int sortOrder) {
+        CommunityPostImage image = CommunityPostImage.builder()
                 .post(post)
-                .user(user)
-                .content(content)
+                .imageUrl(imageUrl)
+                .sortOrder(sortOrder)
                 .build();
         if (post != null) {
-            post.addComment(comment);
+            post.addImage(image);
         }
-        return comment;
-    }
-
-    public void deactivate() {
-        this.active = false;
+        return image;
     }
 
     @Override
@@ -71,10 +57,10 @@ public class PostComment extends BaseTimeEntity {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof PostComment)) {
+        if (!(o instanceof CommunityPostImage)) {
             return false;
         }
-        PostComment other = (PostComment) o;
+        CommunityPostImage other = (CommunityPostImage) o;
         return id != null && id.equals(other.id);
     }
 

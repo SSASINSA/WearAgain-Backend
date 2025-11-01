@@ -94,3 +94,17 @@
 - 이벤트 도메인: 썸네일 컬럼 삭제, 짧은/긴 설명을 하나의 필드로 통합하고 이미지 정보도 별도 테이블(또는 리스트)로 분리하는 방안을 요청했습니다.
 - 재무 이력 엔티티: `BaseTimeEntity`와 중복되는 `@AttributeOverrides` 제거 등 감사 필드 중복 여부를 재검토할 것을 권고했습니다.
 - 마스코트 도메인: `UserMascot` ↔ `User` 연관관계를 실사용 구조에 맞게 일대일로 재검토하라고 피드백했습니다.
+
+# [TASK] AGENTS.md 수정사항 반영한 엔티티 리팩토링 (#26)
+## 개요
+- 최신 AGENTS.md 지침(이미지 테이블 분리, 카테고리 구조, 빌더 규칙 등)에 맞춰 커뮤니티·이벤트·스토어 등 주요 엔티티를 전면 정비했습니다.
+
+## 상세 내용
+- `community`: 카테고리 전용 엔티티(`CommunityCategory`), 게시글 이미지 엔티티(`CommunityPostImage`)를 추가하고 `CommunityPost`에 일대다 연관관계를 도입했습니다 (`src/main/java/com/ssasinsa/wearagain/domain/community/entity/CommunityPost.java:1`).
+- `event`: 이벤트 이미지 엔티티(`EventImage`)를 신설하고 `Event`의 설명 필드를 단일 `description`으로 통합했습니다 (`src/main/java/com/ssasinsa/wearagain/domain/event/entity/Event.java:1`).
+- `store`: 상점 아이템 이미지를 `StoreItemImage`로 분리하고 `StoreItem`에 이미지 컬렉션 및 기본값을 설정했습니다 (`src/main/java/com/ssasinsa/wearagain/domain/store/entity/StoreItem.java:1`).
+- `mascot`: `UserMascot`과 `User`의 연관관계를 일대일로 조정해 유저당 마스코트 단일 소유를 보장합니다 (`src/main/java/com/ssasinsa/wearagain/domain/mascot/entity/UserMascot.java:1`).
+- 공통 규칙: `@AttributeOverrides` 중복 선언을 제거하고, 모든 클래스에서 `@Builder` + `@AllArgsConstructor(access = PRIVATE)` 구조로 통일했습니다 (`src/main/java/com/ssasinsa/wearagain/domain/finance/entity/CreditHistory.java:1`).
+
+## 테스트
+- `./gradlew test`

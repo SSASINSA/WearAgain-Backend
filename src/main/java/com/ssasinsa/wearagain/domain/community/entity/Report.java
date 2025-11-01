@@ -2,8 +2,6 @@ package com.ssasinsa.wearagain.domain.community.entity;
 
 import com.ssasinsa.wearagain.auth.domain.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -25,10 +23,6 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "reports")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AttributeOverrides({
-        @AttributeOverride(name = "createdAt", column = @Column(name = "created_at", updatable = false)),
-        @AttributeOverride(name = "updatedAt", column = @Column(name = "created_at", insertable = false, updatable = false))
-})
 public class Report extends BaseTimeEntity {
 
     @Id

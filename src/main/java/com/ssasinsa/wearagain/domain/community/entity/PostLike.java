@@ -2,8 +2,6 @@ package com.ssasinsa.wearagain.domain.community.entity;
 
 import com.ssasinsa.wearagain.auth.domain.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
-import jakarta.persistence.AttributeOverride;
-import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -27,10 +25,6 @@ import lombok.NoArgsConstructor;
         uniqueConstraints = @UniqueConstraint(name = "uk_likes_unique", columnNames = {"community_posts_id", "users_id"})
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-@AttributeOverrides({
-        @AttributeOverride(name = "createdAt", column = @Column(name = "created_at", updatable = false)),
-        @AttributeOverride(name = "updatedAt", column = @Column(name = "created_at", insertable = false, updatable = false))
-})
 public class PostLike extends BaseTimeEntity {
 
     @Id
