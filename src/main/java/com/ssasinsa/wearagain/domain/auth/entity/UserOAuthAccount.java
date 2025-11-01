@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.auth.domain;
+package com.ssasinsa.wearagain.domain.auth.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;

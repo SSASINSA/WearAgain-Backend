@@ -1,7 +1,7 @@
 package com.ssasinsa.wearagain.global.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
+import com.ssasinsa.wearagain.domain.auth.exception.AuthErrorCode;
 import com.ssasinsa.wearagain.global.exception.ErrorResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -26,7 +26,6 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     ) throws IOException {
         AuthErrorCode errorCode = AuthErrorCode.ACCESS_TOKEN_EXPIRED;
         ErrorResponse errorResponse = ErrorResponse.of(errorCode, errorCode.getMessage(), request.getRequestURI());
-
         response.setStatus(errorCode.getStatus());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding("UTF-8");

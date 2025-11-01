@@ -107,3 +107,19 @@ auth:
     token-uri: https://appleid.apple.com/auth/token
     key-uri: https://appleid.apple.com/auth/keys
 
+admin:
+  jwt:
+    issuer: ${ADMIN_JWT_ISSUER:wearagain-admin}
+    access-token:
+      secret: ${ADMIN_JWT_ACCESS_TOKEN_SECRET:change-me-admin-secret-key-32-bytes}
+      validity: ${ADMIN_JWT_ACCESS_TOKEN_VALIDITY:1800000}
+    refresh-token:
+      secret: ${ADMIN_JWT_REFRESH_TOKEN_SECRET:change-me-admin-refresh-secret-key-64-bytes}
+      validity: ${ADMIN_JWT_REFRESH_TOKEN_VALIDITY:604800000}
+  super:
+    email: ${ADMIN_SUPER_EMAIL:}
+    password: ${ADMIN_SUPER_PASSWORD:}
+    name: ${ADMIN_SUPER_NAME:Super Admin}
+logging:
+  level:
+    org.springframework.security.web.FilterChainProxy: DEBUG

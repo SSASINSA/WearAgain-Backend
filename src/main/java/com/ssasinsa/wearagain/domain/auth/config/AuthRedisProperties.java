@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.auth.config;
+package com.ssasinsa.wearagain.domain.auth.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 

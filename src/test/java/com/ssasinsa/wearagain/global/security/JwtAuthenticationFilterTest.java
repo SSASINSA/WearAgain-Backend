@@ -5,10 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import com.ssasinsa.wearagain.auth.domain.User;
-import com.ssasinsa.wearagain.auth.domain.repository.UserRepository;
-import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
-import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider.AccessTokenClaims;
+import com.ssasinsa.wearagain.domain.auth.entity.User;
+import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider.AccessTokenClaims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
