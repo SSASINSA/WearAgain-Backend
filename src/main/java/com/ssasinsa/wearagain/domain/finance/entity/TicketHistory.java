@@ -1,6 +1,6 @@
 package com.ssasinsa.wearagain.domain.finance.entity;
 
-import com.ssasinsa.wearagain.auth.domain.User;
+import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import jakarta.persistence.Column;
