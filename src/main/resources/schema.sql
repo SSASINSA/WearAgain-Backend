@@ -60,25 +60,51 @@ DROP TABLE IF EXISTS community_categories;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS user_mascots;
 DROP TABLE IF EXISTS mascot_reward_rules;
-DROP TABLE IF EXISTS admins;
+DROP TABLE IF EXISTS admin_signup_requests;
+DROP TABLE IF EXISTS admin_users;
 
 -- ===========================================================
 -- 🧑‍💼 Admin Domain
 -- ===========================================================
 
-CREATE TABLE admins (
-    admins_id BIGINT NOT NULL AUTO_INCREMENT,
-    name VARCHAR(255) NOT NULL,
+CREATE TABLE admin_users (
+    admin_users_id BIGINT NOT NULL AUTO_INCREMENT,
     email VARCHAR(255) NOT NULL,
     password VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'ADMIN',
+    name VARCHAR(100) NOT NULL,
+    role VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+    last_login_at DATETIME(6),
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT pk_admins PRIMARY KEY (admins_id),
-    CONSTRAINT uk_admins_email UNIQUE (email)
+    CONSTRAINT pk_admin_users PRIMARY KEY (admin_users_id),
+    CONSTRAINT uk_admin_users_email UNIQUE (email)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE TABLE admin_signup_requests (
+    admin_signup_requests_id BIGINT NOT NULL AUTO_INCREMENT,
+    email VARCHAR(255) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    requested_role VARCHAR(20) NOT NULL,
+    reason VARCHAR(500),
+    rejection_reason VARCHAR(500),
+    status VARCHAR(20) NOT NULL,
+    reviewed_by BIGINT,
+    reviewed_at DATETIME(6),
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_admin_signup_requests PRIMARY KEY (admin_signup_requests_id),
+    CONSTRAINT fk_admin_signup_requests_reviewer FOREIGN KEY (reviewed_by) REFERENCES admin_users (admin_users_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_admin_signup_requests_status ON admin_signup_requests (status);
+CREATE INDEX idx_admin_signup_requests_email ON admin_signup_requests (email);
 
 -- ===========================================================
 -- 🎪 Event Domain
@@ -179,7 +205,7 @@ CREATE TABLE store_items (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_store_items PRIMARY KEY (store_items_id),
-    CONSTRAINT fk_store_items_deleted_by FOREIGN KEY (deleted_by) REFERENCES admins (admins_id)
+    CONSTRAINT fk_store_items_deleted_by FOREIGN KEY (deleted_by) REFERENCES admin_users (admin_users_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
