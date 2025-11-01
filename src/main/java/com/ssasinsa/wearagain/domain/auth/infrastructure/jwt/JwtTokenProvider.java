@@ -1,7 +1,7 @@
-package com.ssasinsa.wearagain.auth.infrastructure.jwt;
+package com.ssasinsa.wearagain.domain.auth.infrastructure.jwt;
 
-import com.ssasinsa.wearagain.auth.config.JwtProperties;
-import com.ssasinsa.wearagain.auth.domain.User;
+import com.ssasinsa.wearagain.domain.auth.config.JwtProperties;
+import com.ssasinsa.wearagain.domain.auth.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;

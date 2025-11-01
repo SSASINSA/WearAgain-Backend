@@ -1,24 +1,20 @@
-package com.ssasinsa.wearagain.auth.infrastructure.client;
+package com.ssasinsa.wearagain.domain.auth.infrastructure.client;
 
-import com.ssasinsa.wearagain.auth.config.GoogleOAuthProperties;
-import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
-import com.ssasinsa.wearagain.auth.exception.AuthException;
+import com.ssasinsa.wearagain.domain.auth.config.GoogleOAuthProperties;
+import com.ssasinsa.wearagain.domain.auth.exception.AuthErrorCode;
+import com.ssasinsa.wearagain.domain.auth.exception.AuthException;
 
 import java.net.URI;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
-import org.springframework.web.reactive.function.BodyInserters;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Mono;
 
 @Component
 public class GoogleOAuthClient {

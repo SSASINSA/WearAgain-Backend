@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.auth.infrastructure.jwt;
+package com.ssasinsa.wearagain.domain.auth.infrastructure.jwt;
 
 import java.time.Instant;
 import java.util.UUID;

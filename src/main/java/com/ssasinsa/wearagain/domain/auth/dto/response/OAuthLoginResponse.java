@@ -1,7 +1,7 @@
-package com.ssasinsa.wearagain.auth.dto.response;
+package com.ssasinsa.wearagain.domain.auth.dto.response;
 
-import com.ssasinsa.wearagain.auth.domain.User;
-import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
+import com.ssasinsa.wearagain.domain.auth.entity.User;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import java.time.Duration;
 import java.time.Instant;
 

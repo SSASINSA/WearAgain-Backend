@@ -1,7 +1,7 @@
 package com.ssasinsa.wearagain.domain.store.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
-import com.ssasinsa.wearagain.domain.admin.entity.Admin;
+import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -64,7 +64,7 @@ public class StoreItem extends BaseTimeEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "deleted_by")
-    private Admin deletedBy;
+    private AdminUser deletedBy;
 
     @OneToMany(mappedBy = "storeItem", fetch = FetchType.LAZY)
     @Builder.Default
@@ -93,7 +93,7 @@ public class StoreItem extends BaseTimeEntity {
         return item;
     }
 
-    public void markDeleted(LocalDateTime deletedAt, Admin admin) {
+    public void markDeleted(LocalDateTime deletedAt, AdminUser admin) {
         this.status = StoreItemStatus.DELETED;
         this.deletedAt = deletedAt;
         this.deletedBy = admin;

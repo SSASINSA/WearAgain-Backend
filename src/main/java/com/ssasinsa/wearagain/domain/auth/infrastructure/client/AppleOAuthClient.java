@@ -1,8 +1,8 @@
-package com.ssasinsa.wearagain.auth.infrastructure.client;
+package com.ssasinsa.wearagain.domain.auth.infrastructure.client;
 
-import com.ssasinsa.wearagain.auth.config.AppleOAuthProperties;
-import com.ssasinsa.wearagain.auth.exception.AuthErrorCode;
-import com.ssasinsa.wearagain.auth.exception.AuthException;
+import com.ssasinsa.wearagain.domain.auth.config.AppleOAuthProperties;
+import com.ssasinsa.wearagain.domain.auth.exception.AuthErrorCode;
+import com.ssasinsa.wearagain.domain.auth.exception.AuthException;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.JwtBuilder;

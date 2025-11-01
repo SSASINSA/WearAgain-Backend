@@ -1,6 +1,6 @@
-package com.ssasinsa.wearagain.auth.infrastructure;
+package com.ssasinsa.wearagain.domain.auth.infrastructure;
 
-import com.ssasinsa.wearagain.auth.config.AuthRedisProperties;
+import com.ssasinsa.wearagain.domain.auth.config.AuthRedisProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
