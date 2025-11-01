@@ -209,11 +209,7 @@ class AdminAuthServiceImplTest {
 
         AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(AdminSignupRequestStatus.PENDING);
 
-        assertThat(response.items()).hasSize(1);
-        var summary = response.items().get(0);
-        assertThat(summary.signupRequestId()).isEqualTo(50L);
-        assertThat(summary.status()).isEqualTo(AdminSignupRequestStatus.EXPIRED);
-        assertThat(summary.reviewer()).isNull();
+        assertThat(response.items()).isEmpty();
         assertThat(pending.getStatus()).isEqualTo(AdminSignupRequestStatus.EXPIRED);
 
         verify(adminSignupRequestRepository).findAllByStatusOrderByCreatedAtDesc(AdminSignupRequestStatus.PENDING);

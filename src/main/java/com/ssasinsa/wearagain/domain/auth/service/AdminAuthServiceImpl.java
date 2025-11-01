@@ -221,6 +221,12 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                 .filter(request -> request.isExpired(now, SIGNUP_REQUEST_EXPIRY_HOURS))
                 .forEach(AdminSignupRequest::markExpired);
 
+        if (status != null) {
+            requests = requests.stream()
+                    .filter(request -> request.getStatus() == status)
+                    .toList();
+        }
+
         List<AdminSignupRequestSummaryResponse> summaries = requests.stream()
                 .map(AdminSignupRequestSummaryResponse::from)
                 .toList();

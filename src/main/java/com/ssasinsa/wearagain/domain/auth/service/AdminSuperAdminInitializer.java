@@ -4,7 +4,8 @@ import com.ssasinsa.wearagain.domain.auth.config.AdminSuperAdminProperties;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
-import jakarta.annotation.PostConstruct;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.event.EventListener;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,7 +22,11 @@ public class AdminSuperAdminInitializer {
     private final AdminUserRepository adminUserRepository;
     private final PasswordEncoder passwordEncoder;
 
-    @PostConstruct
+    @EventListener(ApplicationReadyEvent.class)
+    public void onApplicationReady() {
+        initializeSuperAdmin();
+    }
+
     @Transactional
     public void initializeSuperAdmin() {
         if (!StringUtils.hasText(superAdminProperties.email()) || !StringUtils.hasText(superAdminProperties.password())) {
