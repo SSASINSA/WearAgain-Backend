@@ -1,7 +1,6 @@
 package com.ssasinsa.wearagain.auth.infrastructure;
 
 import com.ssasinsa.wearagain.auth.config.AuthRedisProperties;
-import java.util.UUID;
 import org.springframework.stereotype.Component;
 import org.springframework.util.Assert;
 
@@ -14,7 +13,7 @@ public class RefreshTokenRedisKeyManager {
         this.refreshTokenPrefix = properties.refreshTokenPrefix();
     }
 
-    public String userRefreshTokenKey(UUID userId) {
+    public String userRefreshTokenKey(Long userId) {
         Assert.notNull(userId, "userId must not be null");
         return refreshTokenPrefix + ":user:" + userId;
     }

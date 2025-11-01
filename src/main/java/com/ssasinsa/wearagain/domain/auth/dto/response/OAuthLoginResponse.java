@@ -4,10 +4,9 @@ import com.ssasinsa.wearagain.auth.domain.User;
 import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtToken;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
 
 public record OAuthLoginResponse(
-        UUID userId,
+        Long userId,
         String email,
         String displayName,
         String profileImageUrl,

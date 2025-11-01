@@ -70,7 +70,7 @@ public class JwtTokenProvider {
                 .parseSignedClaims(refreshToken)
                 .getPayload();
 
-        UUID userId = UUID.fromString(claims.getSubject());
+        Long userId = Long.parseLong(claims.getSubject());
         String tokenIdValue = claims.get("tokenId", String.class);
         if (tokenIdValue == null) {
             throw new JwtException("tokenId claim missing");
@@ -89,14 +89,14 @@ public class JwtTokenProvider {
                 .parseSignedClaims(accessToken)
                 .getPayload();
 
-        UUID userId = UUID.fromString(claims.getSubject());
+        Long userId = Long.parseLong(claims.getSubject());
         String email = claims.get("email", String.class);
         String displayName = claims.get("displayName", String.class);
         return new AccessTokenClaims(userId, email, displayName);
     }
 
     public record RefreshTokenClaims(
-            UUID userId,
+            Long userId,
             UUID tokenId,
             Instant issuedAt,
             Instant expiresAt
@@ -104,7 +104,7 @@ public class JwtTokenProvider {
     }
 
     public record AccessTokenClaims(
-            UUID userId,
+            Long userId,
             String email,
             String displayName
     ) {

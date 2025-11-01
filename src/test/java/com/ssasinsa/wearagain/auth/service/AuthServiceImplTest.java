@@ -133,7 +133,7 @@ class AuthServiceImplTest {
 
         when(kakaoOAuthClient.parseIdToken("kakao-id-token")).thenReturn(payload);
 
-        UUID userId = UUID.randomUUID();
+        Long userId = 1L;
         User user = org.mockito.Mockito.mock(User.class);
         when(user.getId()).thenReturn(userId);
         when(user.getEmail()).thenReturn("user@example.com");
@@ -192,7 +192,7 @@ class AuthServiceImplTest {
                 .thenReturn(Optional.empty());
         when(userRepository.findByEmail("user@example.com")).thenReturn(Optional.empty());
 
-        UUID userId = UUID.randomUUID();
+        Long userId = 2L;
         User savedUser = org.mockito.Mockito.mock(User.class);
         when(savedUser.getId()).thenReturn(userId);
         when(savedUser.getEmail()).thenReturn("user@example.com");
@@ -237,7 +237,7 @@ class AuthServiceImplTest {
 
     @Test
     void should_issue_new_tokens_when_refresh_token_valid() {
-        UUID userId = UUID.randomUUID();
+        Long userId = 3L;
         UUID currentTokenId = UUID.randomUUID();
         String refreshTokenValue = "old-refresh-token";
         TokenRefreshRequest request = new TokenRefreshRequest(refreshTokenValue);
@@ -284,7 +284,7 @@ class AuthServiceImplTest {
 
     @Test
     void should_throw_exception_when_refresh_token_reused() {
-        UUID userId = UUID.randomUUID();
+        Long userId = 4L;
         UUID currentTokenId = UUID.randomUUID();
         String refreshTokenValue = "old-refresh-token";
         RefreshTokenClaims claims = new RefreshTokenClaims(userId, currentTokenId, Instant.now().minusSeconds(60), Instant.now().plusSeconds(3600));

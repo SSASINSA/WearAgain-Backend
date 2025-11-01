@@ -14,25 +14,26 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.util.Objects;
-import java.util.UUID;
-
-import lombok.*;
+import lombok.AccessLevel;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
 @Table(
         name = "user_oauth_accounts",
         uniqueConstraints = {
-            @UniqueConstraint(name = "uk_provider_provider_user_id", columnNames = {"provider", "provider_user_id"})
+            @UniqueConstraint(name = "uk_user_oauth_accounts_provider_user", columnNames = {"provider", "provider_user_id"})
         }
 )
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class UserOAuthAccount extends BaseTimeEntity {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @Column(columnDefinition = "BINARY(16)", nullable = false, updatable = false)
-    private UUID id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "user_oauth_accounts_id", nullable = false, updatable = false)
+    private Long id;
 
 
     @Enumerated(EnumType.STRING)
@@ -42,15 +43,15 @@ public class UserOAuthAccount extends BaseTimeEntity {
     @Column(name = "provider_user_id", nullable = false, length = 64)
     private String providerUserId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 255)
     private String email;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "users_id", nullable = false)
     private User user;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private UserOAuthAccount(AuthProvider provider, String providerUserId, String email, User user){
+    private UserOAuthAccount(AuthProvider provider, String providerUserId, String email, User user) {
         this.provider = provider;
         this.providerUserId = providerUserId;
         this.email = email;
