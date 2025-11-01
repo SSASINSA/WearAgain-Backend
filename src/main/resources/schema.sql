@@ -45,14 +45,18 @@ DROP TABLE IF EXISTS ticket_histories;
 DROP TABLE IF EXISTS credit_histories;
 DROP TABLE IF EXISTS impact_analytics;
 DROP TABLE IF EXISTS store_orders;
+DROP TABLE IF EXISTS store_item_images;
 DROP TABLE IF EXISTS store_items;
 DROP TABLE IF EXISTS event_applications;
 DROP TABLE IF EXISTS event_options;
+DROP TABLE IF EXISTS event_images;
 DROP TABLE IF EXISTS events;
 DROP TABLE IF EXISTS likes;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS reports;
+DROP TABLE IF EXISTS community_post_images;
 DROP TABLE IF EXISTS community_posts;
+DROP TABLE IF EXISTS community_categories;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS user_mascots;
 DROP TABLE IF EXISTS mascot_reward_rules;
@@ -83,10 +87,7 @@ CREATE TABLE admins (
 CREATE TABLE events (
     events_id BIGINT NOT NULL AUTO_INCREMENT,
     title VARCHAR(255) NOT NULL,
-    short_description VARCHAR(512),
-    long_description TEXT,
-    thumbnail_url VARCHAR(512),
-    image_url VARCHAR(512),
+    description TEXT,
     staff_code VARCHAR(64),
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
@@ -100,6 +101,21 @@ CREATE TABLE events (
   COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE INDEX idx_events_status ON events (status);
+
+CREATE TABLE event_images (
+    event_images_id BIGINT NOT NULL AUTO_INCREMENT,
+    events_id BIGINT NOT NULL,
+    image_url VARCHAR(512) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_event_images PRIMARY KEY (event_images_id),
+    CONSTRAINT fk_event_images_event FOREIGN KEY (events_id) REFERENCES events (events_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_event_images_event ON event_images (events_id);
 
 CREATE TABLE event_options (
     event_options_id BIGINT NOT NULL AUTO_INCREMENT,
@@ -154,7 +170,6 @@ CREATE TABLE store_items (
     store_items_id BIGINT NOT NULL AUTO_INCREMENT,
     name VARCHAR(255) NOT NULL,
     description TEXT,
-    thumbnail_url VARCHAR(512),
     category VARCHAR(50),
     price INT NOT NULL,
     stock INT NOT NULL DEFAULT 0,
@@ -171,6 +186,21 @@ CREATE TABLE store_items (
 
 CREATE INDEX idx_store_items_status ON store_items (status);
 CREATE INDEX idx_store_items_deleted_by ON store_items (deleted_by);
+
+CREATE TABLE store_item_images (
+    store_item_images_id BIGINT NOT NULL AUTO_INCREMENT,
+    store_items_id BIGINT NOT NULL,
+    image_url VARCHAR(512) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_store_item_images PRIMARY KEY (store_item_images_id),
+    CONSTRAINT fk_store_item_images_item FOREIGN KEY (store_items_id) REFERENCES store_items (store_items_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_store_item_images_item ON store_item_images (store_items_id);
 
 CREATE TABLE store_orders (
     store_orders_id BIGINT NOT NULL AUTO_INCREMENT,
@@ -284,26 +314,52 @@ CREATE UNIQUE INDEX uk_user_mascots_user ON user_mascots (users_id);
 -- 💬 Community Domain
 -- ===========================================================
 
+CREATE TABLE community_categories (
+    community_categories_id BIGINT NOT NULL AUTO_INCREMENT,
+    name VARCHAR(100) NOT NULL,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_community_categories PRIMARY KEY (community_categories_id),
+    CONSTRAINT uk_community_categories_name UNIQUE (name)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
 CREATE TABLE community_posts (
     community_posts_id BIGINT NOT NULL AUTO_INCREMENT,
     users_id BIGINT NOT NULL,
+    community_categories_id BIGINT NOT NULL,
     title VARCHAR(255),
     content TEXT NOT NULL,
-    thumbnail_url VARCHAR(512),
-    image_url VARCHAR(512),
-    tag VARCHAR(50),
     like_count INT NOT NULL DEFAULT 0,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_community_posts PRIMARY KEY (community_posts_id),
-    CONSTRAINT fk_community_posts_user FOREIGN KEY (users_id) REFERENCES users (users_id)
+    CONSTRAINT fk_community_posts_user FOREIGN KEY (users_id) REFERENCES users (users_id),
+    CONSTRAINT fk_community_posts_category FOREIGN KEY (community_categories_id) REFERENCES community_categories (community_categories_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE INDEX idx_community_posts_user ON community_posts (users_id);
 CREATE INDEX idx_community_posts_active ON community_posts (is_active, created_at);
+CREATE INDEX idx_community_posts_category ON community_posts (community_categories_id);
+
+CREATE TABLE community_post_images (
+    community_post_images_id BIGINT NOT NULL AUTO_INCREMENT,
+    community_posts_id BIGINT NOT NULL,
+    image_url VARCHAR(512) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_community_post_images PRIMARY KEY (community_post_images_id),
+    CONSTRAINT fk_community_post_images_post FOREIGN KEY (community_posts_id) REFERENCES community_posts (community_posts_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_community_post_images_post ON community_post_images (community_posts_id);
 
 CREATE TABLE likes (
     likes_id BIGINT NOT NULL AUTO_INCREMENT,
