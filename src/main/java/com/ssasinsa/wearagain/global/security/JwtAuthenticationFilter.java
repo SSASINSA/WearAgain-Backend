@@ -1,9 +1,9 @@
 package com.ssasinsa.wearagain.global.security;
 
-import com.ssasinsa.wearagain.auth.domain.User;
-import com.ssasinsa.wearagain.auth.domain.repository.UserRepository;
-import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider;
-import com.ssasinsa.wearagain.auth.infrastructure.jwt.JwtTokenProvider.AccessTokenClaims;
+import com.ssasinsa.wearagain.domain.auth.entity.User;
+import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider.AccessTokenClaims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -77,5 +77,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return null;
         }
         return authorization.substring(BEARER_PREFIX.length());
+    }
+
+    @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+        return requestUri != null && requestUri.startsWith("/api/v1/admin");
     }
 }

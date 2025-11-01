@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.auth.infrastructure.client;
+package com.ssasinsa.wearagain.domain.auth.infrastructure.client;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

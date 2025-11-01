@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.auth.dto.response;
+package com.ssasinsa.wearagain.domain.auth.dto.response;
 
 public record OAuthAuthorizationUrlResponse(String authorizationUrl) {
 }

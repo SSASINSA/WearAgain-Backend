@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.auth.dto.request;
+package com.ssasinsa.wearagain.domain.auth.dto.request;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;

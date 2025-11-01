@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.auth.exception;
+package com.ssasinsa.wearagain.domain.auth.exception;
 import com.ssasinsa.wearagain.global.exception.ErrorCode;
 import org.springframework.http.HttpStatus;
 
