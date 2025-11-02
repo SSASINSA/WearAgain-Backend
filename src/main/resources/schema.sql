@@ -48,9 +48,9 @@ DROP TABLE IF EXISTS store_orders;
 DROP TABLE IF EXISTS store_item_images;
 DROP TABLE IF EXISTS store_items;
 DROP TABLE IF EXISTS event_applications;
-DROP TABLE IF EXISTS event_options;
-DROP TABLE IF EXISTS event_images;
-DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS event_option;
+DROP TABLE IF EXISTS event_image;
+DROP TABLE IF EXISTS event;
 DROP TABLE IF EXISTS likes;
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS reports;
@@ -110,64 +110,65 @@ CREATE INDEX idx_admin_signup_requests_email ON admin_signup_requests (email);
 -- 🎪 Event Domain
 -- ===========================================================
 
-CREATE TABLE events (
-    events_id BIGINT NOT NULL AUTO_INCREMENT,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    staff_code VARCHAR(64),
+CREATE TABLE event (
+    event_id BIGINT NOT NULL AUTO_INCREMENT,
+    title VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+    location VARCHAR(255) NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    location VARCHAR(255),
-    status ENUM('UPCOMING','OPEN','CLOSED','DEACTIVATED') NOT NULL DEFAULT 'UPCOMING',
+    apply_url VARCHAR(255),
+    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT pk_events PRIMARY KEY (events_id)
+    CONSTRAINT pk_event PRIMARY KEY (event_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE INDEX idx_events_status ON events (status);
+CREATE INDEX idx_event_status ON event (status);
 
-CREATE TABLE event_images (
-    event_images_id BIGINT NOT NULL AUTO_INCREMENT,
-    events_id BIGINT NOT NULL,
-    image_url VARCHAR(512) NOT NULL,
-    sort_order INT NOT NULL DEFAULT 0,
+CREATE TABLE event_image (
+    event_image_id BIGINT NOT NULL AUTO_INCREMENT,
+    event_id BIGINT NOT NULL,
+    url VARCHAR(1024) NOT NULL,
+    alt_text VARCHAR(255),
+    display_order INT NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT pk_event_images PRIMARY KEY (event_images_id),
-    CONSTRAINT fk_event_images_event FOREIGN KEY (events_id) REFERENCES events (events_id)
+    CONSTRAINT pk_event_image PRIMARY KEY (event_image_id),
+    CONSTRAINT fk_event_image_event FOREIGN KEY (event_id) REFERENCES event (event_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE INDEX idx_event_images_event ON event_images (events_id);
+CREATE INDEX idx_event_image_event ON event_image (event_id);
 
-CREATE TABLE event_options (
-    event_options_id BIGINT NOT NULL AUTO_INCREMENT,
-    events_id BIGINT NOT NULL,
-    parent_event_options_id BIGINT,
-    name VARCHAR(255) NOT NULL,
-    type VARCHAR(20),
-    quantity INT DEFAULT 0,
-    remaining INT DEFAULT 0,
+CREATE TABLE event_option (
+    event_option_id BIGINT NOT NULL AUTO_INCREMENT,
+    event_id BIGINT NOT NULL,
+    parent_event_option_id BIGINT,
+    name VARCHAR(100) NOT NULL,
+    type VARCHAR(20) NOT NULL,
+    display_order INT NOT NULL,
+    capacity INT,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT pk_event_options PRIMARY KEY (event_options_id),
-    CONSTRAINT fk_event_options_event FOREIGN KEY (events_id) REFERENCES events (events_id),
-    CONSTRAINT fk_event_options_parent FOREIGN KEY (parent_event_options_id) REFERENCES event_options (event_options_id)
+    CONSTRAINT pk_event_option PRIMARY KEY (event_option_id),
+    CONSTRAINT fk_event_option_event FOREIGN KEY (event_id) REFERENCES event (event_id),
+    CONSTRAINT fk_event_option_parent FOREIGN KEY (parent_event_option_id) REFERENCES event_option (event_option_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE INDEX idx_event_options_event ON event_options (events_id);
-CREATE INDEX idx_event_options_parent ON event_options (parent_event_options_id);
+CREATE INDEX idx_event_option_event ON event_option (event_id);
+CREATE INDEX idx_event_option_parent ON event_option (parent_event_option_id);
 
 CREATE TABLE event_applications (
     event_applications_id BIGINT NOT NULL AUTO_INCREMENT,
     users_id BIGINT NOT NULL,
-    events_id BIGINT NOT NULL,
-    event_options_id BIGINT NOT NULL,
+    event_id BIGINT NOT NULL,
+    event_option_id BIGINT NOT NULL,
     status ENUM('APPLIED','CANCELED','REJECTED','CHECKED_IN') NOT NULL DEFAULT 'APPLIED',
     reason VARCHAR(255),
     qr_token VARCHAR(64),
@@ -177,15 +178,15 @@ CREATE TABLE event_applications (
     checked_in_at DATETIME(6),
     CONSTRAINT pk_event_applications PRIMARY KEY (event_applications_id),
     CONSTRAINT fk_event_applications_user FOREIGN KEY (users_id) REFERENCES users (users_id),
-    CONSTRAINT fk_event_applications_event FOREIGN KEY (events_id) REFERENCES events (events_id),
-    CONSTRAINT fk_event_applications_option FOREIGN KEY (event_options_id) REFERENCES event_options (event_options_id)
+    CONSTRAINT fk_event_applications_event FOREIGN KEY (event_id) REFERENCES event (event_id),
+    CONSTRAINT fk_event_applications_option FOREIGN KEY (event_option_id) REFERENCES event_option (event_option_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE INDEX idx_event_applications_user ON event_applications (users_id);
-CREATE INDEX idx_event_applications_event ON event_applications (events_id);
-CREATE INDEX idx_event_applications_option ON event_applications (event_options_id);
+CREATE INDEX idx_event_applications_event ON event_applications (event_id);
+CREATE INDEX idx_event_applications_option ON event_applications (event_option_id);
 CREATE INDEX idx_event_applications_status ON event_applications (status);
 
 -- ===========================================================

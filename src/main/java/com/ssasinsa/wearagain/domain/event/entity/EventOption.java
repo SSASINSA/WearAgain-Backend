@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.event.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -23,7 +24,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "event_options")
+@Table(name = "event_option")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
@@ -31,47 +32,52 @@ public class EventOption extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "event_options_id", nullable = false, updatable = false)
+    @Column(name = "event_option_id", nullable = false, updatable = false)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "events_id", nullable = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_event_options_id")
+    @JoinColumn(name = "parent_event_option_id")
     private EventOption parentOption;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(length = 20)
+    @Column(nullable = false, length = 20)
     private String type;
 
-    @Column
-    @Builder.Default
-    private Integer quantity = 0;
+    @Column(name = "display_order", nullable = false)
+    private int displayOrder;
 
     @Column
-    @Builder.Default
-    private Integer remaining = 0;
+    private Integer capacity;
 
-    @OneToMany(mappedBy = "parentOption", fetch = FetchType.LAZY)
-    @Builder.Default
+    @OneToMany(mappedBy = "parentOption", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Default
     private List<EventOption> childOptions = new ArrayList<>();
 
     @OneToMany(mappedBy = "eventOption", fetch = FetchType.LAZY)
-    @Builder.Default
+    @Default
     private List<EventApplication> applications = new ArrayList<>();
 
-    public static EventOption create(Event event, EventOption parentOption, String name, String type, Integer quantity, Integer remaining) {
+    public static EventOption create(
+            Event event,
+            EventOption parentOption,
+            String name,
+            String type,
+            int displayOrder,
+            Integer capacity
+    ) {
         EventOption option = EventOption.builder()
                 .event(event)
                 .parentOption(parentOption)
                 .name(name)
                 .type(type)
-                .quantity(quantity)
-                .remaining(remaining)
+                .displayOrder(displayOrder)
+                .capacity(capacity)
                 .build();
         if (event != null) {
             event.addOption(option);
@@ -90,15 +96,19 @@ public class EventOption extends BaseTimeEntity {
         applications.add(application);
     }
 
-    public void changeRemaining(int remaining) {
-        this.remaining = remaining;
-    }
-
     public void assignEvent(Event event) {
         this.event = event;
-        if (!event.getOptions().contains(this)) {
-            event.addOption(this);
+    }
+
+    public void assignChildren(List<EventOption> children) {
+        this.childOptions.clear();
+        if (children == null) {
+            return;
         }
+        children.forEach(child -> {
+            child.parentOption = this;
+            this.childOptions.add(child);
+        });
     }
 
     @Override

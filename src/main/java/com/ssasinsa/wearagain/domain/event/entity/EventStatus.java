@@ -1,8 +1,8 @@
 package com.ssasinsa.wearagain.domain.event.entity;
 
 public enum EventStatus {
-    UPCOMING,
+    DRAFT,
     OPEN,
     CLOSED,
-    DEACTIVATED
+    ARCHIVED
 }

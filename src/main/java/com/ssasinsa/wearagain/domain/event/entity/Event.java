@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.event.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -24,7 +25,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "events")
+@Table(name = "event")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
@@ -32,17 +33,17 @@ public class Event extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "events_id", nullable = false, updatable = false)
+    @Column(name = "event_id", nullable = false, updatable = false)
     private Long id;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false, length = 100)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "staff_code", length = 64)
-    private String staffCode;
+    @Column(nullable = false, length = 255)
+    private String location;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -50,70 +51,80 @@ public class Event extends BaseTimeEntity {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column(length = 255)
-    private String location;
+    @Column(name = "apply_url", length = 255)
+    private String applyUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    @Builder.Default
-    private EventStatus status = EventStatus.UPCOMING;
+    @Default
+    private EventStatus status = EventStatus.DRAFT;
 
-    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-    @Builder.Default
+    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Default
     private List<EventOption> options = new ArrayList<>();
 
-    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-    @Builder.Default
+    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Default
     private List<EventApplication> applications = new ArrayList<>();
 
-    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY)
-    @Builder.Default
+    @OneToMany(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @Default
     private List<EventImage> images = new ArrayList<>();
 
     public static Event create(
             String title,
             String description,
-            String staffCode,
             LocalDate startDate,
             LocalDate endDate,
             String location,
-            EventStatus status,
-            List<String> imageUrls
+            String applyUrl,
+            EventStatus status
     ) {
         Event event = Event.builder()
                 .title(title)
                 .description(description)
-                .staffCode(staffCode)
                 .startDate(startDate)
                 .endDate(endDate)
                 .location(location)
-                .status(status)
+                .applyUrl(applyUrl)
+                .status(status == null ? EventStatus.DRAFT : status)
                 .build();
-
-        if (imageUrls != null) {
-            int order = 0;
-            for (String imageUrl : imageUrls) {
-                EventImage.create(event, imageUrl, order++);
-            }
-        }
 
         return event;
     }
 
-    void addOption(EventOption option) {
+    public void addOption(EventOption option) {
         options.add(option);
+        option.assignEvent(this);
     }
 
-    void addApplication(EventApplication application) {
+    public void addApplication(EventApplication application) {
         applications.add(application);
     }
 
-    void addImage(EventImage image) {
+    public void addImage(EventImage image) {
         images.add(image);
+        image.assignEvent(this);
     }
 
     public void changeStatus(EventStatus status) {
         this.status = status;
+    }
+
+    public void assignImages(List<EventImage> images) {
+        this.images.clear();
+        if (images == null) {
+            return;
+        }
+        images.forEach(this::addImage);
+    }
+
+    public void assignOptions(List<EventOption> options) {
+        this.options.clear();
+        if (options == null) {
+            return;
+        }
+        options.forEach(this::addOption);
     }
 
     @Override
