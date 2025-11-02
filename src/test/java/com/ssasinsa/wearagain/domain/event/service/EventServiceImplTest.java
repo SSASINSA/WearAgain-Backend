@@ -66,7 +66,6 @@ class EventServiceImplTest {
                 LocalDate.now(),
                 LocalDate.now().minusDays(1),
                 null,
-                null,
                 List.of(new EventCreateImageRequest("https://example.com/1.png", "대표", 1)),
                 List.of()
         );
@@ -116,7 +115,6 @@ class EventServiceImplTest {
                 validRequest.location(),
                 validRequest.startDate(),
                 validRequest.endDate(),
-                validRequest.applyUrl(),
                 validRequest.status(),
                 validRequest.images(),
                 List.of(depth4Option)
@@ -172,7 +170,6 @@ class EventServiceImplTest {
                 "서울시 마포구 연남동",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
-                "https://wearagain.kr/events/1/apply",
                 EventStatus.DRAFT,
                 images,
                 options
@@ -186,7 +183,6 @@ class EventServiceImplTest {
                 validRequest.startDate(),
                 validRequest.endDate(),
                 validRequest.location(),
-                validRequest.applyUrl(),
                 EventStatus.DRAFT
         );
 

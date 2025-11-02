@@ -11,7 +11,8 @@ public enum EventErrorCode implements ErrorCode {
     INVALID_IMAGE_INFORMATION("E1005", "이미지 정보가 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value()),
     DUPLICATE_OPTION("E1006", "중복된 옵션이 존재합니다.", HttpStatus.CONFLICT.value()),
     EVENT_REGISTRATION_FORBIDDEN("E1007", "행사 등록 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
-    EVENT_REGISTRATION_FAILED("E1008", "행사 등록 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value());
+    EVENT_REGISTRATION_FAILED("E1008", "행사 등록 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()),
+    IMAGE_UPLOAD_FAILED("E1009", "이미지 업로드 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value());
 
     private final String code;
     private final String message;

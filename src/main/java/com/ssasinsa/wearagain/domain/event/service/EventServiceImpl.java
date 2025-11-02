@@ -13,8 +13,6 @@ import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -57,8 +55,6 @@ public class EventServiceImpl implements EventService {
     @Transactional
     public EventCreateResponse createEvent(EventCreateRequest request) {
         validateEventPeriod(request.startDate(), request.endDate());
-        validateApplyUrl(request.applyUrl());
-
         List<EventCreateImageRequest> imageRequests = request.images();
         validateImages(imageRequests);
 
@@ -71,7 +67,6 @@ public class EventServiceImpl implements EventService {
                 request.startDate(),
                 request.endDate(),
                 request.location().trim(),
-                normalizeApplyUrl(request.applyUrl()),
                 status
         );
 
@@ -101,27 +96,6 @@ public class EventServiceImpl implements EventService {
         long days = ChronoUnit.DAYS.between(startDate, endDate);
         if (days > MAX_EVENT_DURATION_DAYS) {
             throw new EventException(EventErrorCode.INVALID_EVENT_PERIOD);
-        }
-    }
-
-    private void validateApplyUrl(String applyUrl) {
-        if (!StringUtils.hasText(applyUrl)) {
-            return;
-        }
-        String trimmed = applyUrl.trim();
-        if (trimmed.length() > 255) {
-            throw new EventException(EventErrorCode.MISSING_REQUIRED_VALUE);
-        }
-        if (trimmed.startsWith("/")) {
-            return;
-        }
-        if (!HTTPS_URL_PATTERN.matcher(trimmed).matches()) {
-            throw new EventException(EventErrorCode.MISSING_REQUIRED_VALUE);
-        }
-        try {
-            new URI(trimmed);
-        } catch (URISyntaxException exception) {
-            throw new EventException(EventErrorCode.MISSING_REQUIRED_VALUE, exception);
         }
     }
 
@@ -298,12 +272,6 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private String normalizeApplyUrl(String applyUrl) {
-        if (!StringUtils.hasText(applyUrl)) {
-            return null;
-        }
-        return applyUrl.trim();
-    }
 
     private EventCreateResponse mapToResponse(Event event) {
         List<EventCreateImageResponse> imageResponses = event.getImages().stream()
@@ -329,7 +297,6 @@ public class EventServiceImpl implements EventService {
                 event.getStartDate(),
                 event.getEndDate(),
                 event.getStatus().name(),
-                event.getApplyUrl(),
                 imageResponses,
                 optionResponses,
                 toOffsetDateTime(event.getCreatedAt())

@@ -24,8 +24,6 @@ public record EventCreateRequest(
         LocalDate startDate,
         @NotNull
         LocalDate endDate,
-        @Size(max = 255)
-        String applyUrl,
         EventStatus status,
         @NotEmpty
         @Size(max = 10)

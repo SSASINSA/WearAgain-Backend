@@ -51,9 +51,6 @@ public class Event extends BaseTimeEntity {
     @Column(name = "end_date", nullable = false)
     private LocalDate endDate;
 
-    @Column(name = "apply_url", length = 255)
-    private String applyUrl;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     @Default
@@ -77,7 +74,6 @@ public class Event extends BaseTimeEntity {
             LocalDate startDate,
             LocalDate endDate,
             String location,
-            String applyUrl,
             EventStatus status
     ) {
         Event event = Event.builder()
@@ -86,7 +82,6 @@ public class Event extends BaseTimeEntity {
                 .startDate(startDate)
                 .endDate(endDate)
                 .location(location)
-                .applyUrl(applyUrl)
                 .status(status == null ? EventStatus.DRAFT : status)
                 .build();
 

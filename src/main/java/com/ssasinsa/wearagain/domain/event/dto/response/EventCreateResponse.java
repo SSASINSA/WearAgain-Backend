@@ -12,7 +12,6 @@ public record EventCreateResponse(
         LocalDate startDate,
         LocalDate endDate,
         String status,
-        String applyUrl,
         List<EventCreateImageResponse> images,
         List<EventCreateOptionResponse> options,
         OffsetDateTime createdAt
