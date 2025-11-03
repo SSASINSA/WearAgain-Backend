@@ -1,13 +1,17 @@
 package com.ssasinsa.wearagain.domain.auth.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 
+@Schema(description = "관리자 로그인 요청")
 public record AdminLoginRequest(
+        @Schema(description = "관리자 이메일", example = "admin@wearagain.kr")
         @NotBlank(message = "이메일을 입력해 주세요.")
         @Email(message = "이메일 형식이 올바르지 않습니다.")
         String email,
 
+        @Schema(description = "관리자 비밀번호", example = "AdminPassw0rd!")
         @NotBlank(message = "비밀번호를 입력해 주세요.")
         String password
 ) {

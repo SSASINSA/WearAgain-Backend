@@ -2,6 +2,8 @@ server:
   forward-headers-strategy: native
 
 spring:
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:local}
   config:
     import: optional:file:.env[.properties]
   application:
@@ -127,3 +129,19 @@ logging:
 app:
   upload:
     event-image-root: ${EVENT_IMAGE_UPLOAD_ROOT:/data/uploads}
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
