@@ -93,9 +93,8 @@ jobs:
         working-directory: /opt/wearagain
         run: |
           docker compose pull app || true
-          docker compose pull admin || true
 
-      - name: Recreate services if needed
+      - name: Recreate app if needed
         working-directory: /opt/wearagain
         shell: bash
         run: |
@@ -104,11 +103,6 @@ jobs:
           if [ "${{ steps.env.outputs.env_changed }}" = "true" ]; then
             FORCE="--force-recreate"
           fi
-
-          docker compose up -d $FORCE --no-deps app
-
-          if docker compose config --services | grep -q '^admin$'; then
-            docker compose up -d $FORCE --no-deps admin
-          fi
-
+          
+          docker compose up -d $FORCE --no-deps --pull always app
           docker image prune -f
