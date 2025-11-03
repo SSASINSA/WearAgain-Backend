@@ -21,7 +21,7 @@ spring:
 
   servlet:
     multipart:
-      location: /data/uploads
+      location: ${EVENT_IMAGE_UPLOAD_ROOT:/data/uploads}
       max-file-size: 20MB
       max-request-size: 20MB
 
@@ -123,3 +123,7 @@ admin:
 logging:
   level:
     org.springframework.security.web.FilterChainProxy: DEBUG
+
+app:
+  upload:
+    event-image-root: ${EVENT_IMAGE_UPLOAD_ROOT:/data/uploads}

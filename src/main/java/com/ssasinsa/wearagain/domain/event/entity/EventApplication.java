@@ -42,11 +42,11 @@ public class EventApplication extends BaseTimeEntity {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "events_id", nullable = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "event_options_id", nullable = false)
+    @JoinColumn(name = "event_option_id", nullable = false)
     private EventOption eventOption;
 
     @Enumerated(EnumType.STRING)

@@ -19,7 +19,7 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "event_images")
+@Table(name = "event_image")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @Builder(access = AccessLevel.PRIVATE)
@@ -27,29 +27,37 @@ public class EventImage extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "event_images_id", nullable = false, updatable = false)
+    @Column(name = "event_image_id", nullable = false, updatable = false)
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "events_id", nullable = false)
+    @JoinColumn(name = "event_id", nullable = false)
     private Event event;
 
-    @Column(name = "image_url", nullable = false, length = 512)
-    private String imageUrl;
+    @Column(name = "url", nullable = false, length = 1024)
+    private String url;
 
-    @Column(name = "sort_order", nullable = false)
-    private int sortOrder;
+    @Column(name = "alt_text", length = 255)
+    private String altText;
 
-    public static EventImage create(Event event, String imageUrl, int sortOrder) {
+    @Column(name = "display_order", nullable = false)
+    private int displayOrder;
+
+    public static EventImage create(Event event, String url, String altText, int displayOrder) {
         EventImage image = EventImage.builder()
                 .event(event)
-                .imageUrl(imageUrl)
-                .sortOrder(sortOrder)
+                .url(url)
+                .altText(altText)
+                .displayOrder(displayOrder)
                 .build();
         if (event != null) {
             event.addImage(image);
         }
         return image;
+    }
+
+    public void assignEvent(Event event) {
+        this.event = event;
     }
 
     @Override
