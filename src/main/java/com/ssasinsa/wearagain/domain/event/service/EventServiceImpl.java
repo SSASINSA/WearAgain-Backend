@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
@@ -36,18 +35,10 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class EventServiceImpl implements EventService {
 
-    private static final String OPTION_TYPE_DATE = "DATE";
-    private static final String OPTION_TYPE_TIME = "TIME";
-    private static final String OPTION_TYPE_GROUP = "GROUP";
-    private static final Set<String> ALLOWED_OPTION_TYPES = Set.of(
-            OPTION_TYPE_DATE,
-            OPTION_TYPE_TIME,
-            OPTION_TYPE_GROUP
-    );
     private static final Pattern HTTPS_URL_PATTERN = Pattern.compile("^https://.+", Pattern.CASE_INSENSITIVE);
     private static final int MAX_EVENT_DURATION_DAYS = 365;
     private static final int MAX_IMAGE_COUNT = 10;
-    private static final int MAX_GROUP_CAPACITY = 999;
+    private static final int MAX_OPTION_CAPACITY = 999;
 
     private final EventRepository eventRepository;
 
@@ -142,7 +133,7 @@ public class EventServiceImpl implements EventService {
         if (CollectionUtils.isEmpty(optionRequests)) {
             return List.of();
         }
-        validateSiblingConstraints(optionRequests, null, 1);
+        validateSiblingConstraints(optionRequests, 1);
 
         List<EventOption> options = new ArrayList<>();
         for (EventCreateOptionRequest optionRequest : optionRequests) {
@@ -159,13 +150,11 @@ public class EventServiceImpl implements EventService {
             EventCreateOptionRequest request,
             int depth
     ) {
-        String normalizedType = ensureOptionTypeValid(request.type());
+        String normalizedType = normalizeType(request.type());
+        Integer normalizedCapacity = normalizeCapacity(request.capacity());
         if (depth > 3) {
             throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
         }
-        String parentType = parent == null ? null : parent.getType();
-        validateParentChildRelationship(parentType, normalizedType);
-        validateOptionCapacity(normalizedType, request.capacity());
 
         EventOption option = EventOption.create(
                 event,
@@ -173,15 +162,12 @@ public class EventServiceImpl implements EventService {
                 request.name().trim(),
                 normalizedType,
                 request.displayOrder(),
-                request.capacity()
+                normalizedCapacity
         );
 
         List<EventCreateOptionRequest> children = request.children();
         if (!CollectionUtils.isEmpty(children)) {
-            validateSiblingConstraints(children, normalizedType, depth + 1);
-            if (OPTION_TYPE_GROUP.equals(normalizedType)) {
-                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-            }
+            validateSiblingConstraints(children, depth + 1);
             List<EventOption> childOptions = new ArrayList<>();
             for (EventCreateOptionRequest child : children) {
                 EventOption childOption = createOption(event, option, child, depth + 1);
@@ -195,7 +181,6 @@ public class EventServiceImpl implements EventService {
 
     private void validateSiblingConstraints(
             List<EventCreateOptionRequest> requests,
-            String parentType,
             int depth
     ) {
         if (depth > 3) {
@@ -204,8 +189,8 @@ public class EventServiceImpl implements EventService {
         Set<Integer> orders = new HashSet<>();
         Set<String> names = new HashSet<>();
         for (EventCreateOptionRequest request : requests) {
-            String normalizedType = ensureOptionTypeValid(request.type());
-            validateParentChildRelationship(parentType, normalizedType);
+            normalizeType(request.type());
+            normalizeCapacity(request.capacity());
             String normalizedName = request.name().trim();
             if (!names.add(normalizedName)) {
                 throw new EventException(EventErrorCode.DUPLICATE_OPTION);
@@ -227,49 +212,21 @@ public class EventServiceImpl implements EventService {
         }
     }
 
-    private String ensureOptionTypeValid(String type) {
-        String normalized = normalizeType(type);
-        if (!ALLOWED_OPTION_TYPES.contains(normalized)) {
-            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-        }
-        return normalized;
-    }
-
     private String normalizeType(String type) {
         if (!StringUtils.hasText(type)) {
             throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
         }
-        return type.trim().toUpperCase(Locale.ROOT);
+        return type.trim();
     }
 
-    private void validateParentChildRelationship(String parentType, String childType) {
-        if (parentType == null) {
-            if (!OPTION_TYPE_DATE.equals(childType)) {
-                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-            }
-            return;
+    private Integer normalizeCapacity(Integer capacity) {
+        if (capacity == null) {
+            return null;
         }
-        if (OPTION_TYPE_DATE.equals(parentType) && !OPTION_TYPE_TIME.equals(childType)) {
+        if (capacity <= 0 || capacity > MAX_OPTION_CAPACITY) {
             throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
         }
-        if (OPTION_TYPE_TIME.equals(parentType) && !OPTION_TYPE_GROUP.equals(childType)) {
-            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-        }
-        if (OPTION_TYPE_GROUP.equals(parentType)) {
-            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-        }
-    }
-
-    private void validateOptionCapacity(String normalizedType, Integer capacity) {
-        if (OPTION_TYPE_GROUP.equals(normalizedType)) {
-            if (capacity == null || capacity <= 0 || capacity > MAX_GROUP_CAPACITY) {
-                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-            }
-            return;
-        }
-        if (capacity != null) {
-            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-        }
+        return capacity;
     }
 
 

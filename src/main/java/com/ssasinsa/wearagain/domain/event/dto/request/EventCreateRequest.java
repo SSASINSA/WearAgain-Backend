@@ -47,7 +47,7 @@ public record EventCreateRequest(
             @Size(min = 1, max = 100)
             String name,
             @NotBlank
-            @Size(min = 1, max = 20)
+            @Size(min = 1, max = 50)
             String type,
             @Positive
             int displayOrder,

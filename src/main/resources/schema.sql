@@ -148,7 +148,7 @@ CREATE TABLE event_option (
     event_id BIGINT NOT NULL,
     parent_event_option_id BIGINT,
     name VARCHAR(100) NOT NULL,
-    type VARCHAR(20) NOT NULL,
+    type VARCHAR(50) NOT NULL,
     display_order INT NOT NULL,
     capacity INT,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),

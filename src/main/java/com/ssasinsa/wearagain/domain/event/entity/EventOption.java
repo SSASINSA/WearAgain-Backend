@@ -46,7 +46,7 @@ public class EventOption extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 50)
     private String type;
 
     @Column(name = "display_order", nullable = false)
