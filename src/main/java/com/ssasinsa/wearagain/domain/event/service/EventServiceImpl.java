@@ -38,6 +38,7 @@ public class EventServiceImpl implements EventService {
     private static final Pattern HTTPS_URL_PATTERN = Pattern.compile("^https://.+", Pattern.CASE_INSENSITIVE);
     private static final int MAX_EVENT_DURATION_DAYS = 365;
     private static final int MAX_IMAGE_COUNT = 10;
+    private static final int MAX_OPTION_DEPTH = 3;
     private static final int MAX_OPTION_CAPACITY = 999;
 
     private final EventRepository eventRepository;
@@ -120,7 +121,7 @@ public class EventServiceImpl implements EventService {
             EventImage image = EventImage.create(
                     event,
                     imageRequest.url().trim(),
-                    imageRequest.altText(),
+                    imageRequest.altText() == null ? null : imageRequest.altText().trim(),
                     imageRequest.displayOrder()
             );
             images.add(image);
@@ -152,7 +153,7 @@ public class EventServiceImpl implements EventService {
     ) {
         String normalizedType = normalizeType(request.type());
         Integer normalizedCapacity = normalizeCapacity(request.capacity());
-        if (depth > 3) {
+        if (depth > MAX_OPTION_DEPTH) {
             throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
         }
 
@@ -183,7 +184,7 @@ public class EventServiceImpl implements EventService {
             List<EventCreateOptionRequest> requests,
             int depth
     ) {
-        if (depth > 3) {
+        if (depth > MAX_OPTION_DEPTH) {
             throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
         }
         Set<Integer> orders = new HashSet<>();
