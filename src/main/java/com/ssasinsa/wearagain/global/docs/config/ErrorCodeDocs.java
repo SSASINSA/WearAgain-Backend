@@ -71,6 +71,14 @@ final class ErrorCodeDocs {
             "| E1007 | 403 Forbidden | 행사 등록 권한이 없습니다. |",
             "| E1008 | 500 Internal Server Error | 행사 등록 처리 중 오류가 발생했습니다. |",
             "| E1009 | 500 Internal Server Error | 이미지 업로드 처리 중 오류가 발생했습니다. |",
+            "| E1010 | 404 Not Found | 행사를 찾을 수 없습니다. |",
+            "| E1011 | 400 Bad Request | 행사를 신청할 수 없는 상태입니다. |",
+            "| E1012 | 404 Not Found | 행사 옵션을 찾을 수 없습니다. |",
+            "| E1013 | 409 Conflict | 이미 신청한 행사입니다. |",
+            "| E1014 | 409 Conflict | 신청 가능 인원이 초과되었습니다. |",
+            "| E1015 | 404 Not Found | 신청 정보를 찾을 수 없습니다. |",
+            "| E1016 | 409 Conflict | 취소할 수 없는 신청 상태입니다. |",
+            "| E1017 | 400 Bad Request | 행사 조회 요청이 올바르지 않습니다. |",
             "",
             "</details>"
     );

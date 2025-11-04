@@ -12,7 +12,15 @@ public enum EventErrorCode implements ErrorCode {
     DUPLICATE_OPTION("E1006", "중복된 옵션이 존재합니다.", HttpStatus.CONFLICT.value()),
     EVENT_REGISTRATION_FORBIDDEN("E1007", "행사 등록 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
     EVENT_REGISTRATION_FAILED("E1008", "행사 등록 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()),
-    IMAGE_UPLOAD_FAILED("E1009", "이미지 업로드 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value());
+    IMAGE_UPLOAD_FAILED("E1009", "이미지 업로드 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()),
+    EVENT_NOT_FOUND("E1010", "행사를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
+    EVENT_NOT_OPEN("E1011", "행사를 신청할 수 없는 상태입니다.", HttpStatus.BAD_REQUEST.value()),
+    EVENT_OPTION_NOT_FOUND("E1012", "행사 옵션을 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
+    EVENT_ALREADY_APPLIED("E1013", "이미 신청한 행사입니다.", HttpStatus.CONFLICT.value()),
+    EVENT_CAPACITY_EXCEEDED("E1014", "신청 가능 인원이 초과되었습니다.", HttpStatus.CONFLICT.value()),
+    EVENT_APPLICATION_NOT_FOUND("E1015", "신청 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
+    EVENT_APPLICATION_NOT_CANCELABLE("E1016", "취소할 수 없는 신청 상태입니다.", HttpStatus.CONFLICT.value()),
+    INVALID_EVENT_QUERY("E1017", "행사 조회 요청이 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value());
 
     private final String code;
     private final String message;
