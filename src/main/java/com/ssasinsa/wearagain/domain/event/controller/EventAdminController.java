@@ -6,7 +6,6 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
 import com.ssasinsa.wearagain.domain.event.service.EventImageUploadService;
 import com.ssasinsa.wearagain.domain.event.service.EventService;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,6 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = EventApiDocs.TAG_NAME, description = EventApiDocs.TAG_DESCRIPTION)
-@SecurityRequirement(name = "adminJWT")
 @RestController
 @RequestMapping("/api/v1/admin/events")
 @RequiredArgsConstructor
