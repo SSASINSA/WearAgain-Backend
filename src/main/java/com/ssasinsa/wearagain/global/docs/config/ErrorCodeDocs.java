@@ -1,0 +1,77 @@
+package com.ssasinsa.wearagain.global.docs.config;
+
+/**
+ * Swagger Info.description에 렌더링하는 에러 코드 표 정의.
+ * Markdown 표를 활용해 모든 도메인의 ErrorCode를 한눈에 제공한다.
+ */
+final class ErrorCodeDocs {
+
+    private ErrorCodeDocs() {
+        throw new IllegalStateException("Utility class");
+    }
+
+    static final String DESCRIPTION = String.join("\n",
+            "도메인별 @ApiDoc 기반 자동화된 Swagger 명세",
+            "",
+            "<details>",
+            "<summary><strong>공통 (CommonErrorCode)</strong></summary>",
+            "",
+            "| 코드 | HTTP Status | 메시지 |",
+            "|------|-------------|--------|",
+            "| C1000 | 500 Internal Server Error | 서버 내부 오류가 발생했습니다. |",
+            "| C1001 | 400 Bad Request | 잘못된 요청입니다. |",
+            "| C1002 | 401 Unauthorized | 인증이 필요합니다. |",
+            "| C1003 | 403 Forbidden | 접근이 거부되었습니다. |",
+            "",
+            "</details>",
+            "",
+            "<details>",
+            "<summary><strong>사용자 인증 (AuthErrorCode)</strong></summary>",
+            "",
+            "| 코드 | HTTP Status | 메시지 |",
+            "|------|-------------|--------|",
+            "| A1001 | 401 Unauthorized | Google 토큰 발급 실패 또는 사용자 정보 조회 실패 |",
+            "| A1002 | 401 Unauthorized | Kakao 토큰 발급/사용자 정보 조회 실패 또는 이메일 미제공 |",
+            "| A1003 | 401 Unauthorized | Apple 토큰 발급 또는 사용자 정보 조회 실패 |",
+            "| A1004 | 400 Bad Request | 인가 코드가 필요합니다. |",
+            "| A1005 | 401 Unauthorized | Refresh Token 만료 또는 불일치 |",
+            "| A1006 | 401 Unauthorized | Access Token이 만료되었습니다. |",
+            "| A1007 | 401 Unauthorized | 재사용된 Refresh Token 입니다. |",
+            "",
+            "</details>",
+            "",
+            "<details>",
+            "<summary><strong>관리자 인증 (AdminAuthErrorCode)</strong></summary>",
+            "",
+            "| 코드 | HTTP Status | 메시지 |",
+            "|------|-------------|--------|",
+            "| AD1001 | 400 Bad Request | 입력 값이 유효하지 않습니다. |",
+            "| AD1002 | 401 Unauthorized | 이메일 또는 비밀번호가 올바르지 않습니다. |",
+            "| AD1003 | 403 Forbidden | 승인되지 않은 계정입니다. |",
+            "| AD1004 | 403 Forbidden | SUPER_ADMIN 권한이 필요합니다. |",
+            "| AD1005 | 409 Conflict | 이미 처리된 신청입니다. |",
+            "| AD1006 | 409 Conflict | 이미 등록된 이메일입니다. |",
+            "| AD1007 | 410 Gone | 가입 신청이 만료되었습니다. |",
+            "| AD1008 | 500 Internal Server Error | 관리자 인증 처리 중 오류가 발생했습니다. |",
+            "| AD1009 | 401 Unauthorized | 관리자 인증 토큰이 유효하지 않습니다. |",
+            "",
+            "</details>",
+            "",
+            "<details>",
+            "<summary><strong>행사 도메인 (EventErrorCode)</strong></summary>",
+            "",
+            "| 코드 | HTTP Status | 메시지 |",
+            "|------|-------------|--------|",
+            "| E1001 | 400 Bad Request | 필수 입력 값이 누락되었습니다. |",
+            "| E1002 | 400 Bad Request | 행사 기간이 유효하지 않습니다. |",
+            "| E1003 | 400 Bad Request | 옵션 트리 깊이가 허용 범위를 초과했습니다. |",
+            "| E1004 | 400 Bad Request | 옵션 정보가 올바르지 않습니다. |",
+            "| E1005 | 400 Bad Request | 이미지 정보가 올바르지 않습니다. |",
+            "| E1006 | 409 Conflict | 중복된 옵션이 존재합니다. |",
+            "| E1007 | 403 Forbidden | 행사 등록 권한이 없습니다. |",
+            "| E1008 | 500 Internal Server Error | 행사 등록 처리 중 오류가 발생했습니다. |",
+            "| E1009 | 500 Internal Server Error | 이미지 업로드 처리 중 오류가 발생했습니다. |",
+            "",
+            "</details>"
+    );
+}

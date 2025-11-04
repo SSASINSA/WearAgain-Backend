@@ -1,21 +1,22 @@
 package com.ssasinsa.wearagain.domain.auth.dto.response;
 
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
+import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.Duration;
 import java.time.Instant;
 
-/**
- * Token 재발급 응답 DTO.
- *
- * @param accessToken           새로 발급된 Access Token
- * @param accessTokenExpiresIn  Access Token 만료까지 남은 시간(초)
- * @param refreshToken          새로 발급된 Refresh Token
- * @param refreshTokenExpiresIn Refresh Token 만료까지 남은 시간(초)
- */
+@Schema(description = "토큰 재발급 응답")
 public record TokenRefreshResponse(
+        @Schema(description = "새 Access Token", example = "new-access-token")
         String accessToken,
+
+        @Schema(description = "Access Token 만료까지 남은 초", example = "900")
         long accessTokenExpiresIn,
+
+        @Schema(description = "새 Refresh Token", example = "new-refresh-token")
         String refreshToken,
+
+        @Schema(description = "Refresh Token 만료까지 남은 초", example = "1209600")
         long refreshTokenExpiresIn
 ) {
 
