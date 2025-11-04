@@ -1,3 +1,44 @@
+-- ===========================================================
+-- 📄 에러 코드 요약 (Swagger와 동일한 표)
+-- -----------------------------------------------------------
+-- 공통(Common)
+--   C1000 500 INTERNAL_SERVER_ERROR  서버 내부 오류가 발생했습니다.
+--   C1001 400 BAD_REQUEST            잘못된 요청입니다.
+--   C1002 401 UNAUTHORIZED           인증이 필요합니다.
+--   C1003 403 FORBIDDEN              접근이 거부되었습니다.
+--
+-- 사용자 인증(Auth)
+--   A1001 401 UNAUTHORIZED           Google 토큰 발급 실패 또는 사용자 정보 조회 실패
+--   A1002 401 UNAUTHORIZED           Kakao 토큰 발급/사용자 정보 조회 실패 또는 이메일 미제공
+--   A1003 401 UNAUTHORIZED           Apple 토큰 발급 또는 사용자 정보 조회 실패
+--   A1004 400 BAD_REQUEST            인가 코드가 필요합니다.
+--   A1005 401 UNAUTHORIZED           Refresh Token 만료 또는 불일치
+--   A1006 401 UNAUTHORIZED           Access Token이 만료되었습니다.
+--   A1007 401 UNAUTHORIZED           재사용된 Refresh Token 입니다.
+--
+-- 관리자 인증(AdminAuth)
+--   AD1001 400 BAD_REQUEST           입력 값이 유효하지 않습니다.
+--   AD1002 401 UNAUTHORIZED          이메일 또는 비밀번호가 올바르지 않습니다.
+--   AD1003 403 FORBIDDEN             승인되지 않은 계정입니다.
+--   AD1004 403 FORBIDDEN             SUPER_ADMIN 권한이 필요합니다.
+--   AD1005 409 CONFLICT              이미 처리된 신청입니다.
+--   AD1006 409 CONFLICT              이미 등록된 이메일입니다.
+--   AD1007 410 GONE                  가입 신청이 만료되었습니다.
+--   AD1008 500 INTERNAL_SERVER_ERROR 관리자 인증 처리 중 오류가 발생했습니다.
+--   AD1009 401 UNAUTHORIZED          관리자 인증 토큰이 유효하지 않습니다.
+--
+-- 행사(Event)
+--   E1001 400 BAD_REQUEST            필수 입력 값이 누락되었습니다.
+--   E1002 400 BAD_REQUEST            행사 기간이 유효하지 않습니다.
+--   E1003 400 BAD_REQUEST            옵션 트리 깊이가 허용 범위를 초과했습니다.
+--   E1004 400 BAD_REQUEST            옵션 정보가 올바르지 않습니다.
+--   E1005 400 BAD_REQUEST            이미지 정보가 올바르지 않습니다.
+--   E1006 409 CONFLICT               중복된 옵션이 존재합니다.
+--   E1007 403 FORBIDDEN              행사 등록 권한이 없습니다.
+--   E1008 500 INTERNAL_SERVER_ERROR  행사 등록 처리 중 오류가 발생했습니다.
+--   E1009 500 INTERNAL_SERVER_ERROR  이미지 업로드 처리 중 오류가 발생했습니다.
+-- ===========================================================
+
 -- 사용자 도메인 스키마 DDL
 DROP TABLE IF EXISTS user_oauth_accounts;
 DROP TABLE IF EXISTS users;
