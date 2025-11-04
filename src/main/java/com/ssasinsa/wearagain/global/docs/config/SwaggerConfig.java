@@ -26,7 +26,7 @@ public class SwaggerConfig {
                 .components(components)
                 .info(new Info()
                         .title("WearAgain API Docs")
-                        .description("도메인별 @ApiDoc 기반 자동화된 Swagger 명세")
+                        .description(ErrorCodeDocs.DESCRIPTION)
                         .version("v1.0.0"))
                 .addSecurityItem(new SecurityRequirement().addList(USER_JWT))
                 .addSecurityItem(new SecurityRequirement().addList(ADMIN_JWT));
