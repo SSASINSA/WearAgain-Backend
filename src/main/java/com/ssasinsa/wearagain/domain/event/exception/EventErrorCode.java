@@ -26,7 +26,9 @@ public enum EventErrorCode implements ErrorCode {
     EVENT_ADMIN_NOT_FOUND("E1020", "행사 담당 관리자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     EVENT_UPDATE_FORBIDDEN("E1021", "행사 수정 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
     EVENT_STATUS_UPDATE_FORBIDDEN("E1022", "행사 상태 변경 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
-    EVENT_STATUS_UPDATE_INVALID("E1023", "허용되지 않은 상태 전환입니다.", HttpStatus.CONFLICT.value());
+    EVENT_STATUS_UPDATE_INVALID("E1023", "허용되지 않은 상태 전환입니다.", HttpStatus.CONFLICT.value()),
+    EVENT_STAFF_CODE_FORBIDDEN("E1024", "스태프 코드를 발급할 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
+    EVENT_STAFF_CODE_NOT_ISSUED("E1025", "스태프 코드가 발급되지 않았습니다.", HttpStatus.NOT_FOUND.value());
 
     private final String code;
     private final String message;

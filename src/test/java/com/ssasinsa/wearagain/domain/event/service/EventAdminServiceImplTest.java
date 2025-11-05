@@ -14,7 +14,6 @@ import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminSummaryResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
@@ -25,6 +24,8 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRespo
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateImageRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateOptionRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
@@ -41,6 +42,8 @@ import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCoun
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -202,6 +205,48 @@ class EventAdminServiceImplTest {
     }
 
     @Test
+    void should_issue_staff_code_when_request_by_organizer() {
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+
+        EventStaffCodeResponse response = eventAdminService.issueStaffCode(101L, 11L);
+
+        assertThat(response.eventId()).isEqualTo(101L);
+        assertThat(response.staffCode()).matches("\\d{6}");
+        assertThat(response.issuedAt()).isNotNull();
+        assertThat(event.getStaffCode()).isEqualTo(response.staffCode());
+        assertThat(event.getStaffCodeIssuedAt()).isNotNull();
+    }
+
+    @Test
+    void should_fail_issue_staff_code_when_not_organizer() {
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+
+        assertThatThrownBy(() -> eventAdminService.issueStaffCode(101L, 999L))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_STAFF_CODE_FORBIDDEN);
+    }
+
+    @Test
+    void should_get_staff_code_when_exists() {
+        event.updateStaffCode("123456", LocalDateTime.now(ZoneOffset.UTC));
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+
+        EventStaffCodeResponse response = eventAdminService.getStaffCode(101L, 11L);
+
+        assertThat(response.staffCode()).isEqualTo("123456");
+        assertThat(response.issuedAt()).isNotNull();
+    }
+
+    @Test
+    void should_fail_get_staff_code_when_not_issued() {
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+
+        assertThatThrownBy(() -> eventAdminService.getStaffCode(101L, 11L))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
+    }
+
+    @Test
     void should_list_events_with_statistics() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 20);
         when(eventRepository.findByStatusIn(anyCollection(), any(Pageable.class))).thenReturn(pageResult);
@@ -232,6 +277,7 @@ class EventAdminServiceImplTest {
 
     @Test
     void should_get_event_detail_with_options_and_applications() {
+        event.updateStaffCode("999888", LocalDateTime.now(ZoneOffset.UTC));
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
@@ -260,6 +306,8 @@ class EventAdminServiceImplTest {
         assertThat(response.images()).hasSize(1);
         assertThat(response.options()).hasSize(1);
         assertThat(response.applications()).hasSize(1);
+        assertThat(response.staffCode()).isEqualTo("999888");
+        assertThat(response.staffCodeIssuedAt()).isNotNull();
     }
 
     @Test

@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.event.docs;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCancelResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
@@ -102,6 +103,32 @@ public final class EventApiDocs {
             responseExample = EventExamples.ADMIN_EVENT_STATUS_UPDATE_RESPONSE
     )
     public @interface UpdateEventStatus {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "행사 스태프 코드 발급",
+            description = """
+                    행사 담당 관리자(organizerAdmin)가 현장 스태프용 6자리 숫자 코드를 발급합니다.
+                    발급 시 기존 코드는 즉시 대체되며, 응답에는 새 코드와 발급 시각이 포함됩니다.
+                    """,
+            responseSchema = EventStaffCodeResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_STAFF_CODE_RESPONSE
+    )
+    public @interface IssueStaffCode {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "행사 스태프 코드 조회",
+            description = """
+                    이미 발급된 스태프 코드를 조회합니다.
+                    organizerAdmin 본인만 접근할 수 있으며, 아직 코드가 없다면 404를 반환합니다.
+                    """,
+            responseSchema = EventStaffCodeResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_STAFF_CODE_RESPONSE
+    )
+    public @interface GetStaffCode {
     }
 
     @SecurityRequirement(name = "adminJWT")

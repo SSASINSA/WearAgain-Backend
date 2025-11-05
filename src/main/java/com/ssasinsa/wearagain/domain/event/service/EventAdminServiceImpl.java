@@ -17,6 +17,7 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.Eve
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
@@ -34,6 +35,7 @@ import com.ssasinsa.wearagain.domain.event.repository.EventCapacitySummary;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -79,6 +81,8 @@ public class EventAdminServiceImpl implements EventAdminService {
             EnumSet.of(EventApplicationStatus.APPLIED, EventApplicationStatus.CHECKED_IN);
 
     private static final Map<EventStatus, EnumSet<EventStatus>> ALLOWED_STATUS_TRANSITIONS = createStatusTransitions();
+    private static final SecureRandom STAFF_CODE_RANDOM = new SecureRandom();
+    private static final int STAFF_CODE_LENGTH = 6;
 
     private final EventRepository eventRepository;
     private final EventOptionRepository eventOptionRepository;
@@ -220,6 +224,8 @@ public class EventAdminServiceImpl implements EventAdminService {
                 totalCapacity,
                 appliedCount,
                 remaining,
+                event.getStaffCode(),
+                toOffset(event.getStaffCodeIssuedAt()),
                 toOffset(event.getCreatedAt()),
                 toOffset(event.getUpdatedAt()),
                 images,
@@ -310,6 +316,38 @@ public class EventAdminServiceImpl implements EventAdminService {
         String trimmedReason = request.reason().trim();
         application.reject(LocalDateTime.now(), trimmedReason);
         return new EventApplicationRejectResponse(application.getId(), application.getStatus().name());
+    }
+
+    @Override
+    @Transactional
+    public EventStaffCodeResponse issueStaffCode(Long eventId, Long adminId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+        enforceStaffCodePermission(event, adminId);
+
+        String staffCode = generateStaffCode();
+        LocalDateTime issuedAt = LocalDateTime.now(ZoneOffset.UTC);
+        event.updateStaffCode(staffCode, issuedAt);
+
+        return EventStaffCodeResponse.of(event.getId(), staffCode, toOffset(issuedAt));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EventStaffCodeResponse getStaffCode(Long eventId, Long adminId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+        enforceStaffCodePermission(event, adminId);
+
+        if (!StringUtils.hasText(event.getStaffCode())) {
+            throw new EventException(EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
+        }
+
+        return EventStaffCodeResponse.of(
+                event.getId(),
+                event.getStaffCode(),
+                toOffset(event.getStaffCodeIssuedAt())
+        );
     }
 
     private Map<Long, Long> loadCapacityByEventIds(Collection<Event> events) {
@@ -628,6 +666,16 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
     }
 
+    private void enforceStaffCodePermission(Event event, Long adminId) {
+        if (adminId == null) {
+            throw new EventException(EventErrorCode.EVENT_STAFF_CODE_FORBIDDEN);
+        }
+        AdminUser organizer = event.getOrganizerAdmin();
+        if (organizer == null || organizer.getId() == null || !organizer.getId().equals(adminId)) {
+            throw new EventException(EventErrorCode.EVENT_STAFF_CODE_FORBIDDEN);
+        }
+    }
+
     private void enforceUpdatePermission(Event event, Long adminId, AdminRole role) {
         if (role == null || adminId == null) {
             throw new EventException(EventErrorCode.EVENT_UPDATE_FORBIDDEN);
@@ -716,5 +764,10 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     private OffsetDateTime toOffset(LocalDateTime dateTime) {
         return dateTime == null ? null : dateTime.atOffset(ZoneOffset.UTC);
+    }
+
+    private String generateStaffCode() {
+        int value = STAFF_CODE_RANDOM.nextInt(1_000_000);
+        return String.format("%0" + STAFF_CODE_LENGTH + "d", value);
     }
 }

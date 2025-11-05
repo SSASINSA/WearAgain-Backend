@@ -105,6 +105,14 @@ public final class EventExamples {
             }
             """;
 
+    public static final String ADMIN_EVENT_STAFF_CODE_RESPONSE = """
+            {
+              "eventId": 101,
+              "staffCode": "023941",
+              "issuedAt": "2025-02-01T10:15:20Z"
+            }
+            """;
+
     public static final String ADMIN_EVENT_LIST_RESPONSE = """
             {
               "events": [
@@ -150,6 +158,8 @@ public final class EventExamples {
               "totalCapacity": 120,
               "appliedCount": 87,
               "remainingCount": 33,
+              "staffCode": "023941",
+              "staffCodeIssuedAt": "2025-02-01T10:15:20Z",
               "createdAt": "2025-10-21T11:20:05Z",
               "updatedAt": "2025-11-01T09:00:00Z",
               "images": [

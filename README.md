@@ -178,6 +178,29 @@
 | E1021 | 403 Forbidden | 행사 수정 권한이 없습니다. |
 | E1022 | 403 Forbidden | 행사 상태 변경 권한이 없습니다. |
 | E1023 | 409 Conflict | 허용되지 않은 상태 전환입니다. |
+| E1024 | 403 Forbidden | 스태프 코드를 발급할 권한이 없습니다. |
+| E1025 | 404 Not Found | 스태프 코드가 발급되지 않았습니다. |
+
+## 관리자 행사 스태프 코드 API
+
+행사 담당 관리자(organizerAdmin)는 다음 API로 현장 스태프용 6자리 숫자 코드를 관리합니다. 코드는 DB `event.staff_code` 컬럼에 저장되며 만료 시간 없이 유지됩니다.
+
+- **POST** `/api/v1/admin/events/{eventId}/staff-code`
+  - 새 6자리 숫자 코드를 발급하고 기존 코드가 있다면 즉시 대체합니다.
+  - 응답 예시
+    ```json
+    {
+      "eventId": 101,
+      "staffCode": "023941",
+      "issuedAt": "2025-02-01T10:15:20Z"
+    }
+    ```
+  - organizerAdmin이 아닌 사용자가 호출하면 `E1024`가 반환됩니다.
+- **GET** `/api/v1/admin/events/{eventId}/staff-code`
+  - 이미 발급된 스태프 코드를 조회합니다.
+  - 코드가 없다면 `E1025` 에러가 발생합니다.
+
+발급·조회는 모두 관리자 인증 토큰이 필요하며, 응답의 `issuedAt`은 UTC 기준입니다.
 
 ## 행사 API 개요
 
