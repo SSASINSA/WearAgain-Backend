@@ -145,8 +145,7 @@ public final class EventExamples {
     public static final String USER_EVENT_APPLICATION_QR_RESPONSE = """
             {
               "qrToken": "3b3f6e3456d34a84b41ce8a3f7fb16b1",
-              "expiresAt": "2025-02-10T01:00:00Z",
-              "remainingSeconds": 600
+              "expiresIn": 600
             }
             """;
 

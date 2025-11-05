@@ -251,7 +251,7 @@ public class EventUserServiceImpl implements EventUserService {
         CheckinTokenPayload payload = new CheckinTokenPayload(application.getId(), token, issuedAt, expiresAt);
         checkinTokenUtil.saveToken(userId, payload, QR_TOKEN_TTL);
 
-        return new EventApplicationQrResponse(token, expiresAt, (int) QR_TOKEN_TTL.getSeconds());
+        return new EventApplicationQrResponse(token, (int) QR_TOKEN_TTL.getSeconds());
     }
 
     private EnumSet<EventStatus> resolveStatuses(String param) {

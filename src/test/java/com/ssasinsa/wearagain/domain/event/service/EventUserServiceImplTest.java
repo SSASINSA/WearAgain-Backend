@@ -214,7 +214,7 @@ class EventUserServiceImplTest {
         EventApplicationQrResponse response = eventUserService.issueApplicationQr(5001L, 10L, new EventApplicationQrRequest(null));
 
         assertThat(response.qrToken()).isEqualTo("TOKEN-123");
-        assertThat(response.remainingSeconds()).isEqualTo(600);
+        assertThat(response.expiresIn()).isEqualTo(600);
         verify(checkinTokenUtil).saveToken(eq(10L), payloadCaptor.capture(), eq(Duration.ofMinutes(10)));
         CheckinTokenPayload payload = payloadCaptor.getValue();
         assertThat(payload.applicationId()).isEqualTo(5001L);

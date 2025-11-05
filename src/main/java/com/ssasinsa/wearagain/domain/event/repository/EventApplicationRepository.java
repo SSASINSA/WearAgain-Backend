@@ -61,7 +61,7 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
     @Query("""
             select ea from EventApplication ea
             join fetch ea.event e
-            join fetch ea.eventOption eo
+            left join fetch ea.eventOption eo
             where ea.user.id = :userId
             and ea.status in :statuses
             and (:from is null or ea.createdAt >= :from)
