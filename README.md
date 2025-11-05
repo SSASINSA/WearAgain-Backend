@@ -193,4 +193,4 @@
   - `GET /api/v1/events`: cursor 기반 행사 목록 조회
   - `GET /api/v1/events/{eventId}`: 행사 상세 조회
   - `POST /api/v1/events/{eventId}/apply`: 행사 신청
-  - `PATCH /api/v1/events/cancel/{applicationId}/cancel`: 신청 취소
+  - `PATCH /api/v1/events/applications/{applicationId}/cancel`: 신청 취소
