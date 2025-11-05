@@ -1,7 +1,7 @@
 package com.ssasinsa.wearagain.domain.event.controller;
 
 import com.ssasinsa.wearagain.domain.event.docs.EventApiDocs;
-import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.security.AdminAuthenticatedUser;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
@@ -48,7 +48,7 @@ public class EventAdminController {
     @EventApiDocs.CreateEvent
     @PostMapping("/events")
     public ResponseEntity<EventCreateResponse> createEvent(
-            @Valid @RequestBody EventCreateRequest request,
+            @Valid @RequestBody EventAdminCreateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);

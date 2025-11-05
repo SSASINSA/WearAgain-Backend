@@ -12,7 +12,6 @@ public final class EventExamples {
               "location": "서울시 마포구 연남동 223-14 2F",
               "startDate": "2025-11-10",
               "endDate": "2025-11-30",
-              "status": "DRAFT",
               "images": [
                 {
                   "url": "https://cdn.wearagain.kr/events/123/main.jpg",

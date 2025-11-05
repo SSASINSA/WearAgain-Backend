@@ -3,6 +3,9 @@ package com.ssasinsa.wearagain.domain.event.service;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateImageRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse.EventAdminApplicationResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse.EventAdminImageResponse;
@@ -14,9 +17,6 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.Eve
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
-import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest;
-import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateImageRequest;
-import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
@@ -53,6 +53,7 @@ import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -86,13 +87,13 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional
-    public EventCreateResponse createEvent(EventCreateRequest request, Long adminId) {
+    public EventCreateResponse createEvent(EventAdminCreateRequest request, Long adminId) {
         AdminUser organizer = adminUserRepository.findById(adminId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_ADMIN_NOT_FOUND));
 
         validateEventPeriod(request.startDate(), request.endDate());
 
-        EventStatus status = request.status() == null ? EventStatus.DRAFT : request.status();
+        EventStatus status = EventStatus.DRAFT;
         Event event = Event.create(
                 request.title().trim(),
                 request.description().trim(),
@@ -103,7 +104,7 @@ public class EventAdminServiceImpl implements EventAdminService {
                 organizer
         );
 
-        List<EventCreateImageRequest> createImages = request.images();
+        List<EventAdminCreateImageRequest> createImages = request.images();
         if (CollectionUtils.isEmpty(createImages)) {
             throw new EventException(EventErrorCode.INVALID_IMAGE_INFORMATION);
         }
@@ -139,7 +140,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
         EnumSet<EventStatus> statuses = resolveStatuses(status);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "startDate").and(Sort.by("id")));
-        org.springframework.data.domain.Page<Event> result = eventRepository.findByStatusIn(statuses, pageable);
+        Page<Event> result = eventRepository.findByStatusIn(statuses, pageable);
 
         List<Event> events = result.getContent();
 
@@ -506,12 +507,12 @@ public class EventAdminServiceImpl implements EventAdminService {
         return images;
     }
 
-    private List<EventAdminOptionRequest> convertCreateOptions(List<EventCreateOptionRequest> requests) {
+    private List<EventAdminOptionRequest> convertCreateOptions(List<EventAdminCreateOptionRequest> requests) {
         if (CollectionUtils.isEmpty(requests)) {
             return List.of();
         }
         List<EventAdminOptionRequest> converted = new ArrayList<>();
-        for (EventCreateOptionRequest request : requests) {
+        for (EventAdminCreateOptionRequest request : requests) {
             List<EventAdminOptionRequest> children = convertCreateOptions(request.children());
             converted.add(new EventAdminOptionRequest(
                     request.name(),

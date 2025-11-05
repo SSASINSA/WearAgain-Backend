@@ -22,9 +22,9 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.Eve
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
-import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest;
-import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateImageRequest;
-import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateOptionRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateImageRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
@@ -77,7 +77,7 @@ class EventAdminServiceImplTest {
     private Event event;
     private EventOption option;
     private AdminUser adminUser;
-    private EventCreateRequest validCreateRequest;
+    private EventAdminCreateRequest validCreateRequest;
 
     @BeforeEach
     void setUp() {
@@ -128,14 +128,13 @@ class EventAdminServiceImplTest {
 
     @Test
     void should_fail_create_when_end_date_is_before_start_date() {
-        EventCreateRequest request = new EventCreateRequest(
+        EventAdminCreateRequest request = new EventAdminCreateRequest(
                 "테스트 행사",
                 "행사 설명입니다.",
                 "서울시 마포구",
                 LocalDate.now(),
                 LocalDate.now().minusDays(1),
-                null,
-                List.of(new EventCreateImageRequest("https://example.com/1.png", "대표", 1)),
+                List.of(new EventAdminCreateRequest.EventAdminCreateImageRequest("https://example.com/1.png", "대표", 1)),
                 List.of()
         );
 
@@ -146,25 +145,25 @@ class EventAdminServiceImplTest {
 
     @Test
     void should_fail_create_when_option_depth_exceeds_limit() {
-        EventCreateOptionRequest depth4Option = new EventCreateOptionRequest(
+        EventAdminCreateRequest.EventAdminCreateOptionRequest depth4Option = new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                 "1차",
                 "DATE",
                 1,
                 null,
                 List.of(
-                        new EventCreateOptionRequest(
+                        new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                 "2차",
                                 "TIME",
                                 1,
                                 null,
                                 List.of(
-                                        new EventCreateOptionRequest(
+                                        new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                                 "3차",
                                                 "GROUP",
                                                 1,
                                                 10,
                                                 List.of(
-                                                        new EventCreateOptionRequest(
+                                                        new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                                                 "4차",
                                                                 "GROUP",
                                                                 1,
@@ -178,13 +177,12 @@ class EventAdminServiceImplTest {
                 )
         );
 
-        EventCreateRequest request = new EventCreateRequest(
+        EventAdminCreateRequest request = new EventAdminCreateRequest(
                 validCreateRequest.title(),
                 validCreateRequest.description(),
                 validCreateRequest.location(),
                 validCreateRequest.startDate(),
                 validCreateRequest.endDate(),
-                validCreateRequest.status(),
                 validCreateRequest.images(),
                 List.of(depth4Option)
         );
@@ -406,26 +404,26 @@ class EventAdminServiceImplTest {
         verify(eventApplicationRepository, never()).countActiveApplicationsByEventIds(anyCollection(), anyCollection());
     }
 
-    private EventCreateRequest createValidCreateRequest() {
-        List<EventCreateImageRequest> images = List.of(
-                new EventCreateImageRequest("https://wearagain.kr/1.jpg", "대표", 1),
-                new EventCreateImageRequest("https://wearagain.kr/2.jpg", "설명", 2)
+    private EventAdminCreateRequest createValidCreateRequest() {
+        List<EventAdminCreateRequest.EventAdminCreateImageRequest> images = List.of(
+                new EventAdminCreateRequest.EventAdminCreateImageRequest("https://wearagain.kr/1.jpg", "대표", 1),
+                new EventAdminCreateRequest.EventAdminCreateImageRequest("https://wearagain.kr/2.jpg", "설명", 2)
         );
 
-        List<EventCreateOptionRequest> options = List.of(
-                new EventCreateOptionRequest(
+        List<EventAdminCreateRequest.EventAdminCreateOptionRequest> options = List.of(
+                new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                         "11월 15일",
                         "DATE",
                         1,
                         null,
                         List.of(
-                                new EventCreateOptionRequest(
+                                new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                         "오전 세션",
                                         "TIME",
                                         1,
                                         null,
                                         List.of(
-                                                new EventCreateOptionRequest(
+                                                new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                                         "A조",
                                                         "GROUP",
                                                         1,
@@ -436,7 +434,7 @@ class EventAdminServiceImplTest {
                                 )
                         )
                 ),
-                new EventCreateOptionRequest(
+                new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                         "11월 22일",
                         "DATE",
                         2,
@@ -445,26 +443,25 @@ class EventAdminServiceImplTest {
                 )
         );
 
-        return new EventCreateRequest(
+        return new EventAdminCreateRequest(
                 "지속가능 패션 행사",
                 "재사용 패션 실습을 진행합니다.",
                 "서울시 마포구 연남동",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
-                EventStatus.DRAFT,
                 images,
                 options
         );
     }
 
-    private Event buildPersistedEvent(EventCreateRequest request) {
+    private Event buildPersistedEvent(EventAdminCreateRequest request) {
         Event event = Event.create(
                 request.title(),
                 request.description(),
                 request.startDate(),
                 request.endDate(),
                 request.location(),
-                request.status() == null ? EventStatus.DRAFT : request.status(),
+                EventStatus.DRAFT,
                 adminUser
         );
         ReflectionTestUtils.setField(event, "id", 1L);
@@ -489,7 +486,7 @@ class EventAdminServiceImplTest {
     private EventOption buildPersistedOptionTree(
             Event event,
             EventOption parent,
-            EventCreateOptionRequest request,
+            EventAdminCreateRequest.EventAdminCreateOptionRequest request,
             long baseId
     ) {
         EventOption option = EventOption.create(
