@@ -3,12 +3,13 @@ package com.ssasinsa.wearagain.domain.event.controller;
 import com.ssasinsa.wearagain.domain.event.docs.EventApiDocs;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.security.AdminAuthenticatedUser;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminStatusUpdateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
 import com.ssasinsa.wearagain.domain.event.service.EventAdminService;
@@ -104,6 +105,28 @@ public class EventAdminController {
     ) {
         ensureAuthenticated(principal);
         return ResponseEntity.ok(eventAdminService.updateEventStatus(eventId, request.status(), principal.role()));
+    }
+
+    @EventApiDocs.IssueStaffCode
+    @PostMapping("/events/{eventId}/staff-code")
+    public ResponseEntity<EventStaffCodeResponse> issueStaffCode(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        ensureAuthenticated(principal);
+        EventStaffCodeResponse response = eventAdminService.issueStaffCode(eventId, principal.adminId());
+        return ResponseEntity.ok(response);
+    }
+
+    @EventApiDocs.GetStaffCode
+    @GetMapping("/events/{eventId}/staff-code")
+    public ResponseEntity<EventStaffCodeResponse> getStaffCode(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        ensureAuthenticated(principal);
+        EventStaffCodeResponse response = eventAdminService.getStaffCode(eventId, principal.adminId());
+        return ResponseEntity.ok(response);
     }
 
     @EventApiDocs.DeleteEvent

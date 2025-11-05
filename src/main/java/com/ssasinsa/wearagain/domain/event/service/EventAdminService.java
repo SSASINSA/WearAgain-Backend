@@ -6,6 +6,7 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
@@ -25,4 +26,8 @@ public interface EventAdminService {
     void archiveEvent(Long eventId);
 
     EventApplicationRejectResponse rejectApplication(Long applicationId, EventApplicationRejectRequest request);
+
+    EventStaffCodeResponse issueStaffCode(Long eventId, Long adminId);
+
+    EventStaffCodeResponse getStaffCode(Long eventId, Long adminId);
 }

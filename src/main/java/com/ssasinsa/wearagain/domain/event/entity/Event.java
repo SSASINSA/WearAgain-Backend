@@ -16,6 +16,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -74,6 +75,12 @@ public class Event extends BaseTimeEntity {
     @OneToMany(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Default
     private List<EventImage> images = new ArrayList<>();
+
+    @Column(name = "staff_code", length = 6)
+    private String staffCode;
+
+    @Column(name = "staff_code_issued_at")
+    private LocalDateTime staffCodeIssuedAt;
 
     public static Event create(
             String title,
@@ -150,6 +157,11 @@ public class Event extends BaseTimeEntity {
 
     public void assignOrganizer(AdminUser organizerAdmin) {
         this.organizerAdmin = organizerAdmin;
+    }
+
+    public void updateStaffCode(String staffCode, LocalDateTime issuedAt) {
+        this.staffCode = staffCode;
+        this.staffCodeIssuedAt = issuedAt;
     }
 
     @Override

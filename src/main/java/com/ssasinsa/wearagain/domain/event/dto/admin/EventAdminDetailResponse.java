@@ -53,6 +53,12 @@ public record EventAdminDetailResponse(
         @Schema(description = "잔여 인원", example = "33")
         Long remainingCount,
 
+        @Schema(description = "스태프 코드", example = "023941")
+        String staffCode,
+
+        @Schema(description = "스태프 코드 발급 시각(UTC)", example = "2025-02-01T10:15:20Z")
+        OffsetDateTime staffCodeIssuedAt,
+
         @Schema(description = "생성 시각(UTC)", example = "2025-10-21T11:20:05Z")
         OffsetDateTime createdAt,
 
