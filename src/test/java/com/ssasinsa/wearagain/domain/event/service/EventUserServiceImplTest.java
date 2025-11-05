@@ -73,8 +73,6 @@ class EventUserServiceImplTest {
         openEvent = Event.create(
                 "지속가능 패션 워크숍",
                 "웨어어게인과 함께하는 리폼 클래스",
-                "웨어어게인 운영팀",
-                "02-0000-0000",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
                 "서울시 마포구 연남동",
@@ -111,8 +109,6 @@ class EventUserServiceImplTest {
         Event second = Event.create(
                 "환경 보호 토크 콘서트",
                 "지속 가능한 일상을 주제로 한 토크 콘서트입니다.",
-                "웨어어게인 운영팀",
-                "02-0000-0000",
                 LocalDate.of(2025, 11, 20),
                 LocalDate.of(2025, 11, 20),
                 "서울시 성동구",
@@ -147,8 +143,8 @@ class EventUserServiceImplTest {
         EventDetailResponse response = eventUserService.getEventDetail(101L);
 
         assertThat(response.eventId()).isEqualTo(101L);
-        assertThat(response.organizerName()).isEqualTo("웨어어게인 운영팀");
-        assertThat(response.organizerContact()).isEqualTo("02-0000-0000");
+        assertThat(response.organizerName()).isEqualTo(adminUser.getName());
+        assertThat(response.organizerContact()).isEqualTo(adminUser.getEmail());
         assertThat(response.images()).hasSize(1);
         assertThat(response.options()).hasSize(1);
         EventDetailResponse.EventDetailOptionResponse leaf = response.options().get(0).children().get(0);
@@ -161,8 +157,6 @@ class EventUserServiceImplTest {
         Event draft = Event.create(
                 "Draft",
                 "숨김",
-                "운영자",
-                "02-0000-0000",
                 LocalDate.now(),
                 LocalDate.now().plusDays(1),
                 "서울시",

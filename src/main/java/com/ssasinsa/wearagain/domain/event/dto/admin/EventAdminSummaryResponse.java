@@ -32,10 +32,10 @@ public record EventAdminSummaryResponse(
         @Schema(description = "잔여 인원", example = "33")
         Long remainingCount,
 
-        @Schema(description = "행사 운영 담당자 이름", example = "웨어어게인 운영팀")
+        @Schema(description = "행사 운영 담당자 이름", example = "운영자")
         String organizerName,
 
-        @Schema(description = "행사 운영 담당자 연락처", example = "02-1234-5678")
+        @Schema(description = "행사 운영 담당자 이메일", example = "admin@wearagain.kr")
         String organizerContact,
 
         @Schema(description = "행사 담당 관리자 ID", example = "11")

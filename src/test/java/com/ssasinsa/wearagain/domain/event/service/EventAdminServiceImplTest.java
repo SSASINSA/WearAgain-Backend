@@ -88,8 +88,6 @@ class EventAdminServiceImplTest {
         event = Event.create(
                 "지속가능 패션 워크숍",
                 "웨어어게인과 함께하는 리폼 클래스",
-                "웨어어게인 운영팀",
-                "02-0000-0000",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
                 "서울시 마포구 연남동 223-14 2F",
@@ -121,8 +119,8 @@ class EventAdminServiceImplTest {
         assertThat(response.organizerAdminId()).isEqualTo(11L);
         assertThat(response.organizerAdminEmail()).isEqualTo("admin@wearagain.kr");
         assertThat(response.organizerAdminName()).isEqualTo("운영자");
-        assertThat(response.organizerName()).isEqualTo(validCreateRequest.organizerName());
-        assertThat(response.organizerContact()).isEqualTo(validCreateRequest.organizerContact());
+        assertThat(response.organizerName()).isEqualTo(adminUser.getName());
+        assertThat(response.organizerContact()).isEqualTo(adminUser.getEmail());
         assertThat(response.images()).hasSize(2);
         assertThat(response.options()).hasSize(2);
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT.name());
@@ -134,8 +132,6 @@ class EventAdminServiceImplTest {
                 "테스트 행사",
                 "행사 설명입니다.",
                 "서울시 마포구",
-                "운영자",
-                "02-0000-0000",
                 LocalDate.now(),
                 LocalDate.now().minusDays(1),
                 null,
@@ -186,8 +182,6 @@ class EventAdminServiceImplTest {
                 validCreateRequest.title(),
                 validCreateRequest.description(),
                 validCreateRequest.location(),
-                validCreateRequest.organizerName(),
-                validCreateRequest.organizerContact(),
                 validCreateRequest.startDate(),
                 validCreateRequest.endDate(),
                 validCreateRequest.status(),
@@ -229,8 +223,8 @@ class EventAdminServiceImplTest {
         assertThat(summary.organizerAdminId()).isEqualTo(11L);
         assertThat(summary.organizerAdminEmail()).isEqualTo("admin@wearagain.kr");
         assertThat(summary.organizerAdminName()).isEqualTo("운영자");
-        assertThat(summary.organizerName()).isEqualTo("웨어어게인 운영팀");
-        assertThat(summary.organizerContact()).isEqualTo("02-0000-0000");
+        assertThat(summary.organizerName()).isEqualTo(adminUser.getName());
+        assertThat(summary.organizerContact()).isEqualTo(adminUser.getEmail());
         assertThat(response.page()).isEqualTo(0);
         assertThat(response.size()).isEqualTo(10);
         assertThat(response.totalElements()).isEqualTo(20);
@@ -257,8 +251,8 @@ class EventAdminServiceImplTest {
         EventAdminDetailResponse response = eventAdminService.getEventDetail(101L);
 
         assertThat(response.eventId()).isEqualTo(101L);
-        assertThat(response.organizerName()).isEqualTo("웨어어게인 운영팀");
-        assertThat(response.organizerContact()).isEqualTo("02-0000-0000");
+        assertThat(response.organizerName()).isEqualTo(adminUser.getName());
+        assertThat(response.organizerContact()).isEqualTo(adminUser.getEmail());
         assertThat(response.organizerAdminId()).isEqualTo(11L);
         assertThat(response.organizerAdminEmail()).isEqualTo("admin@wearagain.kr");
         assertThat(response.organizerAdminName()).isEqualTo("운영자");
@@ -284,8 +278,6 @@ class EventAdminServiceImplTest {
                 "워크숍 업데이트",
                 "설명 업데이트입니다.",
                 "서울시 성동구 왕십리로 32",
-                "웨어어게인 주최팀",
-                "02-1234-5678",
                 LocalDate.of(2025, 11, 12),
                 LocalDate.of(2025, 12, 1),
                 EventStatus.OPEN,
@@ -315,8 +307,6 @@ class EventAdminServiceImplTest {
 
         assertThat(event.getTitle()).isEqualTo("워크숍 업데이트");
         assertThat(event.getLocation()).isEqualTo("서울시 성동구 왕십리로 32");
-        assertThat(event.getOrganizerName()).isEqualTo("웨어어게인 주최팀");
-        assertThat(event.getOrganizerContact()).isEqualTo("02-1234-5678");
         assertThat(event.getStartDate()).isEqualTo(LocalDate.of(2025, 11, 12));
         assertThat(response.options()).hasSize(1);
         assertThat(response.options().get(0).children().get(0).children()).hasSize(1);
@@ -328,8 +318,6 @@ class EventAdminServiceImplTest {
 
         EventAdminUpdateRequest request = new EventAdminUpdateRequest(
                 "수정",
-                null,
-                null,
                 null,
                 null,
                 null,
@@ -461,8 +449,6 @@ class EventAdminServiceImplTest {
                 "지속가능 패션 행사",
                 "재사용 패션 실습을 진행합니다.",
                 "서울시 마포구 연남동",
-                "웨어어게인 운영팀",
-                "02-0000-0000",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
                 EventStatus.DRAFT,
@@ -475,8 +461,6 @@ class EventAdminServiceImplTest {
         Event event = Event.create(
                 request.title(),
                 request.description(),
-                request.organizerName(),
-                request.organizerContact(),
                 request.startDate(),
                 request.endDate(),
                 request.location(),

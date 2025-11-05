@@ -48,7 +48,6 @@ import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.regex.Pattern;
@@ -97,8 +96,6 @@ public class EventAdminServiceImpl implements EventAdminService {
         Event event = Event.create(
                 request.title().trim(),
                 request.description().trim(),
-                request.organizerName().trim(),
-                request.organizerContact().trim(),
                 request.startDate(),
                 request.endDate(),
                 request.location().trim(),
@@ -106,7 +103,11 @@ public class EventAdminServiceImpl implements EventAdminService {
                 organizer
         );
 
-        List<EventAdminImageRequest> imageRequests = request.images().stream()
+        List<EventCreateImageRequest> createImages = request.images();
+        if (CollectionUtils.isEmpty(createImages)) {
+            throw new EventException(EventErrorCode.INVALID_IMAGE_INFORMATION);
+        }
+        List<EventAdminImageRequest> imageRequests = createImages.stream()
                 .map(image -> new EventAdminImageRequest(
                         image.url(),
                         image.altText(),
@@ -199,14 +200,16 @@ public class EventAdminServiceImpl implements EventAdminService {
         Long appliedCount = appliedMap.getOrDefault(event.getId(), 0L);
         Long remaining = totalCapacity == null ? null : Math.max(0L, totalCapacity - appliedCount);
         AdminUser organizerAdmin = event.getOrganizerAdmin();
+        String organizerName = organizerAdmin == null ? null : organizerAdmin.getName();
+        String organizerEmail = organizerAdmin == null ? null : organizerAdmin.getEmail();
 
         return new EventAdminDetailResponse(
                 event.getId(),
                 event.getTitle(),
                 event.getDescription(),
                 event.getLocation(),
-                event.getOrganizerName(),
-                event.getOrganizerContact(),
+                organizerName,
+                organizerEmail,
                 organizerAdmin == null ? null : organizerAdmin.getId(),
                 organizerAdmin == null ? null : organizerAdmin.getEmail(),
                 organizerAdmin == null ? null : organizerAdmin.getName(),
@@ -244,11 +247,6 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
         if (StringUtils.hasText(request.location())) {
             event.updateLocation(request.location().trim());
-        }
-        if (StringUtils.hasText(request.organizerName()) || StringUtils.hasText(request.organizerContact())) {
-            String name = StringUtils.hasText(request.organizerName()) ? request.organizerName().trim() : event.getOrganizerName();
-            String contact = StringUtils.hasText(request.organizerContact()) ? request.organizerContact().trim() : event.getOrganizerContact();
-            event.updateOrganizer(name, contact);
         }
         event.updatePeriod(startDate, endDate);
 
@@ -352,6 +350,8 @@ public class EventAdminServiceImpl implements EventAdminService {
         Long applied = appliedMap.getOrDefault(event.getId(), 0L);
         Long remaining = totalCapacity == null ? null : Math.max(0L, totalCapacity - applied);
         AdminUser organizerAdmin = event.getOrganizerAdmin();
+        String organizerName = organizerAdmin == null ? null : organizerAdmin.getName();
+        String organizerEmail = organizerAdmin == null ? null : organizerAdmin.getEmail();
 
         return new EventAdminSummaryResponse(
                 event.getId(),
@@ -363,8 +363,8 @@ public class EventAdminServiceImpl implements EventAdminService {
                 totalCapacity,
                 applied,
                 remaining,
-                event.getOrganizerName(),
-                event.getOrganizerContact(),
+                organizerName,
+                organizerEmail,
                 organizerAdmin == null ? null : organizerAdmin.getId(),
                 organizerAdmin == null ? null : organizerAdmin.getEmail(),
                 organizerAdmin == null ? null : organizerAdmin.getName()
@@ -389,14 +389,16 @@ public class EventAdminServiceImpl implements EventAdminService {
                 .toList();
 
         AdminUser organizerAdmin = event.getOrganizerAdmin();
+        String organizerName = organizerAdmin == null ? null : organizerAdmin.getName();
+        String organizerEmail = organizerAdmin == null ? null : organizerAdmin.getEmail();
 
         return new EventCreateResponse(
                 event.getId(),
                 event.getTitle(),
                 event.getDescription(),
                 event.getLocation(),
-                event.getOrganizerName(),
-                event.getOrganizerContact(),
+                organizerName,
+                organizerEmail,
                 organizerAdmin == null ? null : organizerAdmin.getId(),
                 organizerAdmin == null ? null : organizerAdmin.getEmail(),
                 organizerAdmin == null ? null : organizerAdmin.getName(),

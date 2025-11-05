@@ -18,10 +18,10 @@ public record EventDetailResponse(
         @Schema(description = "행사 위치", example = "서울시 마포구 연남동 223-14 2F")
         String location,
 
-        @Schema(description = "주최자 이름", example = "웨어어게인 운영팀")
+        @Schema(description = "주최자 이름", example = "운영자")
         String organizerName,
 
-        @Schema(description = "주최자 연락처", example = "02-1234-5678")
+        @Schema(description = "주최자 이메일", example = "admin@wearagain.kr")
         String organizerContact,
 
         @Schema(description = "행사 시작일", example = "2025-11-10")

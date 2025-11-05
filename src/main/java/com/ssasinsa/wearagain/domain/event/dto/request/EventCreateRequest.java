@@ -28,16 +28,6 @@ public record EventCreateRequest(
         @Size(min = 1, max = 255)
         String location,
 
-        @Schema(description = "주최자 이름", example = "웨어어게인 운영팀")
-        @NotBlank
-        @Size(min = 1, max = 100)
-        String organizerName,
-
-        @Schema(description = "주최자 연락처", example = "02-1234-5678")
-        @NotBlank
-        @Size(min = 1, max = 255)
-        String organizerContact,
-
         @Schema(description = "행사 시작일", example = "2025-11-10")
         @NotNull
         LocalDate startDate,

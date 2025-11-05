@@ -52,12 +52,6 @@ public class Event extends BaseTimeEntity {
     @JoinColumn(name = "admin_users_id", nullable = false)
     private AdminUser organizerAdmin;
 
-    @Column(name = "organizer_name", nullable = false, length = 100)
-    private String organizerName;
-
-    @Column(name = "organizer_contact", nullable = false, length = 255)
-    private String organizerContact;
-
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
@@ -84,8 +78,6 @@ public class Event extends BaseTimeEntity {
     public static Event create(
             String title,
             String description,
-            String organizerName,
-            String organizerContact,
             LocalDate startDate,
             LocalDate endDate,
             String location,
@@ -96,8 +88,6 @@ public class Event extends BaseTimeEntity {
                 .title(title)
                 .description(description)
                 .organizerAdmin(organizerAdmin)
-                .organizerName(organizerName)
-                .organizerContact(organizerContact)
                 .startDate(startDate)
                 .endDate(endDate)
                 .location(location)
@@ -135,11 +125,6 @@ public class Event extends BaseTimeEntity {
 
     public void updateLocation(String location) {
         this.location = location;
-    }
-
-    public void updateOrganizer(String organizerName, String organizerContact) {
-        this.organizerName = organizerName;
-        this.organizerContact = organizerContact;
     }
 
     public void updatePeriod(LocalDate startDate, LocalDate endDate) {

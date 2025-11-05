@@ -170,8 +170,6 @@ CREATE TABLE event (
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     location VARCHAR(255) NOT NULL,
-    organizer_name VARCHAR(100) NOT NULL,
-    organizer_contact VARCHAR(255) NOT NULL,
     admin_users_id BIGINT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
