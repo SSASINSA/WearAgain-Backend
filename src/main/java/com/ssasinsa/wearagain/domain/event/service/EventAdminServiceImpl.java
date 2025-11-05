@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.event.service;
 
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
+import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse.EventAdminApplicationResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse.EventAdminImageResponse;
@@ -13,6 +14,12 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.Eve
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateImageRequest;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateOptionRequest;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
@@ -76,6 +83,52 @@ public class EventAdminServiceImpl implements EventAdminService {
     private final EventRepository eventRepository;
     private final EventOptionRepository eventOptionRepository;
     private final EventApplicationRepository eventApplicationRepository;
+    private final AdminUserRepository adminUserRepository;
+
+    @Override
+    @Transactional
+    public EventCreateResponse createEvent(EventCreateRequest request, Long adminId) {
+        AdminUser organizer = adminUserRepository.findById(adminId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_ADMIN_NOT_FOUND));
+
+        validateEventPeriod(request.startDate(), request.endDate());
+
+        EventStatus status = request.status() == null ? EventStatus.DRAFT : request.status();
+        Event event = Event.create(
+                request.title().trim(),
+                request.description().trim(),
+                request.organizerName().trim(),
+                request.organizerContact().trim(),
+                request.startDate(),
+                request.endDate(),
+                request.location().trim(),
+                status,
+                organizer
+        );
+
+        List<EventAdminImageRequest> imageRequests = request.images().stream()
+                .map(image -> new EventAdminImageRequest(
+                        image.url(),
+                        image.altText(),
+                        Integer.valueOf(image.displayOrder())
+                ))
+                .toList();
+        List<EventImage> images = buildEventImages(event, imageRequests);
+        event.assignImages(images);
+
+        List<EventAdminOptionRequest> optionRequests = convertCreateOptions(request.options());
+        List<EventOption> options = buildEventOptions(event, optionRequests);
+        event.assignOptions(options);
+
+        Event savedEvent;
+        try {
+            savedEvent = eventRepository.save(event);
+        } catch (Exception exception) {
+            throw new EventException(EventErrorCode.EVENT_REGISTRATION_FAILED, exception);
+        }
+
+        return mapToCreateResponse(savedEvent);
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -318,6 +371,60 @@ public class EventAdminServiceImpl implements EventAdminService {
         );
     }
 
+    private EventCreateResponse mapToCreateResponse(Event event) {
+        List<EventCreateImageResponse> imageResponses = event.getImages().stream()
+                .sorted(IMAGE_ORDER)
+                .map(image -> new EventCreateImageResponse(
+                        image.getId(),
+                        image.getUrl(),
+                        image.getAltText(),
+                        image.getDisplayOrder()
+                ))
+                .toList();
+
+        List<EventCreateOptionResponse> optionResponses = event.getOptions().stream()
+                .filter(option -> option.getParentOption() == null)
+                .sorted(OPTION_ORDER)
+                .map(this::mapOptionToCreateResponse)
+                .toList();
+
+        AdminUser organizerAdmin = event.getOrganizerAdmin();
+
+        return new EventCreateResponse(
+                event.getId(),
+                event.getTitle(),
+                event.getDescription(),
+                event.getLocation(),
+                event.getOrganizerName(),
+                event.getOrganizerContact(),
+                organizerAdmin == null ? null : organizerAdmin.getId(),
+                organizerAdmin == null ? null : organizerAdmin.getEmail(),
+                organizerAdmin == null ? null : organizerAdmin.getName(),
+                event.getStartDate(),
+                event.getEndDate(),
+                event.getStatus().name(),
+                imageResponses,
+                optionResponses,
+                toOffset(event.getCreatedAt())
+        );
+    }
+
+    private EventCreateOptionResponse mapOptionToCreateResponse(EventOption option) {
+        List<EventCreateOptionResponse> children = option.getChildOptions().stream()
+                .sorted(OPTION_ORDER)
+                .map(this::mapOptionToCreateResponse)
+                .toList();
+
+        return new EventCreateOptionResponse(
+                option.getId(),
+                option.getName(),
+                option.getType(),
+                option.getDisplayOrder(),
+                option.getCapacity(),
+                children
+        );
+    }
+
     private EventAdminOptionResponse mapOption(EventOption option, Map<Long, Long> counts) {
         Long optionId = option.getId();
         long applied = optionId == null ? 0L : counts.getOrDefault(optionId, 0L);
@@ -395,6 +502,24 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
         images.sort(Comparator.comparingInt(EventImage::getDisplayOrder));
         return images;
+    }
+
+    private List<EventAdminOptionRequest> convertCreateOptions(List<EventCreateOptionRequest> requests) {
+        if (CollectionUtils.isEmpty(requests)) {
+            return List.of();
+        }
+        List<EventAdminOptionRequest> converted = new ArrayList<>();
+        for (EventCreateOptionRequest request : requests) {
+            List<EventAdminOptionRequest> children = convertCreateOptions(request.children());
+            converted.add(new EventAdminOptionRequest(
+                    request.name(),
+                    request.type(),
+                    request.displayOrder(),
+                    request.capacity(),
+                    children
+            ));
+        }
+        return converted;
     }
 
     private List<EventOption> buildEventOptions(Event event, List<EventAdminOptionRequest> requests) {

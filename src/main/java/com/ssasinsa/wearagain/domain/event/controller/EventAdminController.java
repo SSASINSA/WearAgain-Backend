@@ -13,7 +13,6 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
 import com.ssasinsa.wearagain.domain.event.service.EventAdminService;
 import com.ssasinsa.wearagain.domain.event.service.EventImageUploadService;
-import com.ssasinsa.wearagain.domain.event.service.EventService;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -43,7 +42,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RequiredArgsConstructor
 public class EventAdminController {
 
-    private final EventService eventService;
     private final EventImageUploadService eventImageUploadService;
     private final EventAdminService eventAdminService;
 
@@ -54,7 +52,7 @@ public class EventAdminController {
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);
-        EventCreateResponse response = eventService.createEvent(request, principal.adminId());
+        EventCreateResponse response = eventAdminService.createEvent(request, principal.adminId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

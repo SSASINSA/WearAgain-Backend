@@ -13,6 +13,7 @@ import static org.mockito.Mockito.when;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
+import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminSummaryResponse;
@@ -21,6 +22,10 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.Eve
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminOptionRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateImageRequest;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateOptionRequest;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
@@ -63,17 +68,22 @@ class EventAdminServiceImplTest {
     @Mock
     private EventApplicationRepository eventApplicationRepository;
 
+    @Mock
+    private AdminUserRepository adminUserRepository;
+
     @InjectMocks
     private EventAdminServiceImpl eventAdminService;
 
     private Event event;
     private EventOption option;
     private AdminUser adminUser;
+    private EventCreateRequest validCreateRequest;
 
     @BeforeEach
     void setUp() {
         adminUser = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "운영자");
         ReflectionTestUtils.setField(adminUser, "id", 11L);
+        when(adminUserRepository.findById(11L)).thenReturn(java.util.Optional.of(adminUser));
 
         event = Event.create(
                 "지속가능 패션 워크숍",
@@ -95,6 +105,108 @@ class EventAdminServiceImplTest {
         ReflectionTestUtils.setField(option, "id", 2001L);
         EventOption child = EventOption.create(event, option, "A조", "GROUP", 1, 30);
         ReflectionTestUtils.setField(child, "id", 2003L);
+
+        validCreateRequest = createValidCreateRequest();
+    }
+
+    @Test
+    void should_create_event_when_request_is_valid() {
+        Event persisted = buildPersistedEvent(validCreateRequest);
+        when(eventRepository.save(any(Event.class))).thenReturn(persisted);
+
+        EventCreateResponse response = eventAdminService.createEvent(validCreateRequest, 11L);
+
+        verify(eventRepository).save(any(Event.class));
+        assertThat(response.eventId()).isEqualTo(1L);
+        assertThat(response.organizerAdminId()).isEqualTo(11L);
+        assertThat(response.organizerAdminEmail()).isEqualTo("admin@wearagain.kr");
+        assertThat(response.organizerAdminName()).isEqualTo("운영자");
+        assertThat(response.organizerName()).isEqualTo(validCreateRequest.organizerName());
+        assertThat(response.organizerContact()).isEqualTo(validCreateRequest.organizerContact());
+        assertThat(response.images()).hasSize(2);
+        assertThat(response.options()).hasSize(2);
+        assertThat(response.status()).isEqualTo(EventStatus.DRAFT.name());
+    }
+
+    @Test
+    void should_fail_create_when_end_date_is_before_start_date() {
+        EventCreateRequest request = new EventCreateRequest(
+                "테스트 행사",
+                "행사 설명입니다.",
+                "서울시 마포구",
+                "운영자",
+                "02-0000-0000",
+                LocalDate.now(),
+                LocalDate.now().minusDays(1),
+                null,
+                List.of(new EventCreateImageRequest("https://example.com/1.png", "대표", 1)),
+                List.of()
+        );
+
+        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_PERIOD);
+    }
+
+    @Test
+    void should_fail_create_when_option_depth_exceeds_limit() {
+        EventCreateOptionRequest depth4Option = new EventCreateOptionRequest(
+                "1차",
+                "DATE",
+                1,
+                null,
+                List.of(
+                        new EventCreateOptionRequest(
+                                "2차",
+                                "TIME",
+                                1,
+                                null,
+                                List.of(
+                                        new EventCreateOptionRequest(
+                                                "3차",
+                                                "GROUP",
+                                                1,
+                                                10,
+                                                List.of(
+                                                        new EventCreateOptionRequest(
+                                                                "4차",
+                                                                "GROUP",
+                                                                1,
+                                                                10,
+                                                                List.of()
+                                                        )
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+        EventCreateRequest request = new EventCreateRequest(
+                validCreateRequest.title(),
+                validCreateRequest.description(),
+                validCreateRequest.location(),
+                validCreateRequest.organizerName(),
+                validCreateRequest.organizerContact(),
+                validCreateRequest.startDate(),
+                validCreateRequest.endDate(),
+                validCreateRequest.status(),
+                validCreateRequest.images(),
+                List.of(depth4Option)
+        );
+
+        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+    }
+
+    @Test
+    void should_fail_create_when_admin_not_found() {
+        when(adminUserRepository.findById(999L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> eventAdminService.createEvent(validCreateRequest, 999L))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_ADMIN_NOT_FOUND);
     }
 
     @Test
@@ -304,5 +416,114 @@ class EventAdminServiceImplTest {
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_ALREADY_ARCHIVED);
         verify(eventApplicationRepository, never()).countActiveApplicationsByEventIds(anyCollection(), anyCollection());
+    }
+
+    private EventCreateRequest createValidCreateRequest() {
+        List<EventCreateImageRequest> images = List.of(
+                new EventCreateImageRequest("https://wearagain.kr/1.jpg", "대표", 1),
+                new EventCreateImageRequest("https://wearagain.kr/2.jpg", "설명", 2)
+        );
+
+        List<EventCreateOptionRequest> options = List.of(
+                new EventCreateOptionRequest(
+                        "11월 15일",
+                        "DATE",
+                        1,
+                        null,
+                        List.of(
+                                new EventCreateOptionRequest(
+                                        "오전 세션",
+                                        "TIME",
+                                        1,
+                                        null,
+                                        List.of(
+                                                new EventCreateOptionRequest(
+                                                        "A조",
+                                                        "GROUP",
+                                                        1,
+                                                        10,
+                                                        List.of()
+                                                )
+                                        )
+                                )
+                        )
+                ),
+                new EventCreateOptionRequest(
+                        "11월 22일",
+                        "DATE",
+                        2,
+                        null,
+                        List.of()
+                )
+        );
+
+        return new EventCreateRequest(
+                "지속가능 패션 행사",
+                "재사용 패션 실습을 진행합니다.",
+                "서울시 마포구 연남동",
+                "웨어어게인 운영팀",
+                "02-0000-0000",
+                LocalDate.of(2025, 11, 10),
+                LocalDate.of(2025, 11, 30),
+                EventStatus.DRAFT,
+                images,
+                options
+        );
+    }
+
+    private Event buildPersistedEvent(EventCreateRequest request) {
+        Event event = Event.create(
+                request.title(),
+                request.description(),
+                request.organizerName(),
+                request.organizerContact(),
+                request.startDate(),
+                request.endDate(),
+                request.location(),
+                request.status() == null ? EventStatus.DRAFT : request.status(),
+                adminUser
+        );
+        ReflectionTestUtils.setField(event, "id", 1L);
+
+        List<EventImage> images = request.images().stream()
+                .map(imageRequest -> {
+                    EventImage image = EventImage.create(event, imageRequest.url(), imageRequest.altText(), imageRequest.displayOrder());
+                    ReflectionTestUtils.setField(image, "id", image.getDisplayOrder() == 1 ? 1001L : 1002L);
+                    return image;
+                })
+                .toList();
+
+        List<EventOption> options = request.options().stream()
+                .map(optionRequest -> buildPersistedOptionTree(event, null, optionRequest, 2000L))
+                .toList();
+
+        event.assignImages(images);
+        event.assignOptions(options);
+        return event;
+    }
+
+    private EventOption buildPersistedOptionTree(
+            Event event,
+            EventOption parent,
+            EventCreateOptionRequest request,
+            long baseId
+    ) {
+        EventOption option = EventOption.create(
+                event,
+                parent,
+                request.name(),
+                request.type(),
+                request.displayOrder(),
+                request.capacity()
+        );
+        ReflectionTestUtils.setField(option, "id", baseId + request.displayOrder());
+
+        if (request.children() != null && !request.children().isEmpty()) {
+            List<EventOption> children = request.children().stream()
+                    .map(child -> buildPersistedOptionTree(event, option, child, baseId + 10))
+                    .toList();
+            option.assignChildren(children);
+        }
+        return option;
     }
 }

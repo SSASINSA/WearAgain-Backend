@@ -7,8 +7,12 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 
 public interface EventAdminService {
+
+    EventCreateResponse createEvent(EventCreateRequest request, Long adminId);
 
     EventAdminListResponse getEvents(String status, int page, int size);
 
