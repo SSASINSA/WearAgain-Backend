@@ -20,7 +20,13 @@ public enum EventErrorCode implements ErrorCode {
     EVENT_CAPACITY_EXCEEDED("E1014", "신청 가능 인원이 초과되었습니다.", HttpStatus.CONFLICT.value()),
     EVENT_APPLICATION_NOT_FOUND("E1015", "신청 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     EVENT_APPLICATION_NOT_CANCELABLE("E1016", "취소할 수 없는 신청 상태입니다.", HttpStatus.CONFLICT.value()),
-    INVALID_EVENT_QUERY("E1017", "행사 조회 요청이 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value());
+    INVALID_EVENT_QUERY("E1017", "행사 조회 요청이 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value()),
+    EVENT_ALREADY_ARCHIVED("E1018", "이미 보관 처리된 행사입니다.", HttpStatus.CONFLICT.value()),
+    EVENT_APPLICATION_ALREADY_PROCESSED("E1019", "이미 처리된 신청입니다.", HttpStatus.CONFLICT.value()),
+    EVENT_ADMIN_NOT_FOUND("E1020", "행사 담당 관리자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
+    EVENT_UPDATE_FORBIDDEN("E1021", "행사 수정 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
+    EVENT_STATUS_UPDATE_FORBIDDEN("E1022", "행사 상태 변경 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
+    EVENT_STATUS_UPDATE_INVALID("E1023", "허용되지 않은 상태 전환입니다.", HttpStatus.CONFLICT.value());
 
     private final String code;
     private final String message;

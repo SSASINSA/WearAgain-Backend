@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain.domain.event.service;
 
+import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
@@ -249,11 +250,17 @@ public class EventUserServiceImpl implements EventUserService {
                 .map(option -> mapOption(option, counts))
                 .toList();
 
+        AdminUser organizerAdmin = event.getOrganizerAdmin();
+        String organizerName = organizerAdmin == null ? null : organizerAdmin.getName();
+        String organizerEmail = organizerAdmin == null ? null : organizerAdmin.getEmail();
+
         return new EventDetailResponse(
                 event.getId(),
                 event.getTitle(),
                 event.getDescription(),
                 event.getLocation(),
+                organizerName,
+                organizerEmail,
                 event.getStartDate(),
                 event.getEndDate(),
                 event.getStatus().name(),

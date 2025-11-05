@@ -10,6 +10,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
@@ -62,16 +63,21 @@ class EventUserServiceImplTest {
 
     private Event openEvent;
     private EventOption groupOption;
+    private AdminUser adminUser;
 
     @BeforeEach
     void setUp() {
+        adminUser = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "운영자");
+        ReflectionTestUtils.setField(adminUser, "id", 9L);
+
         openEvent = Event.create(
                 "지속가능 패션 워크숍",
                 "웨어어게인과 함께하는 리폼 클래스",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
                 "서울시 마포구 연남동",
-                EventStatus.OPEN
+                EventStatus.OPEN,
+                adminUser
         );
         ReflectionTestUtils.setField(openEvent, "id", 101L);
 
@@ -106,7 +112,8 @@ class EventUserServiceImplTest {
                 LocalDate.of(2025, 11, 20),
                 LocalDate.of(2025, 11, 20),
                 "서울시 성동구",
-                EventStatus.OPEN
+                EventStatus.OPEN,
+                adminUser
         );
         ReflectionTestUtils.setField(second, "id", 150L);
 
@@ -136,6 +143,8 @@ class EventUserServiceImplTest {
         EventDetailResponse response = eventUserService.getEventDetail(101L);
 
         assertThat(response.eventId()).isEqualTo(101L);
+        assertThat(response.organizerName()).isEqualTo(adminUser.getName());
+        assertThat(response.organizerContact()).isEqualTo(adminUser.getEmail());
         assertThat(response.images()).hasSize(1);
         assertThat(response.options()).hasSize(1);
         EventDetailResponse.EventDetailOptionResponse leaf = response.options().get(0).children().get(0);
@@ -151,7 +160,8 @@ class EventUserServiceImplTest {
                 LocalDate.now(),
                 LocalDate.now().plusDays(1),
                 "서울시",
-                EventStatus.DRAFT
+                EventStatus.DRAFT,
+                adminUser
         );
         ReflectionTestUtils.setField(draft, "id", 999L);
         when(eventRepository.findById(999L)).thenReturn(Optional.of(draft));

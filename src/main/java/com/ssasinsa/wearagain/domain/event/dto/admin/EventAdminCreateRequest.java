@@ -1,6 +1,5 @@
-package com.ssasinsa.wearagain.domain.event.dto.request;
+package com.ssasinsa.wearagain.domain.event.dto.admin;
 
-import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -12,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Schema(description = "관리자 행사 생성 요청")
-public record EventCreateRequest(
+public record EventAdminCreateRequest(
         @Schema(description = "행사 제목", example = "지속가능 패션 워크숍")
         @NotBlank
         @Size(min = 1, max = 100)
@@ -36,20 +35,17 @@ public record EventCreateRequest(
         @NotNull
         LocalDate endDate,
 
-        @Schema(description = "행사 상태", example = "DRAFT")
-        EventStatus status,
-
         @Schema(description = "행사 이미지 목록")
         @NotEmpty
         @Size(max = 10)
-        List<@Valid EventCreateImageRequest> images,
+        List<@Valid EventAdminCreateImageRequest> images,
 
         @Schema(description = "행사 옵션 트리")
-        List<@Valid EventCreateOptionRequest> options
+        List<@Valid EventAdminCreateOptionRequest> options
 ) {
 
     @Schema(description = "행사 이미지 정보")
-    public record EventCreateImageRequest(
+    public record EventAdminCreateImageRequest(
             @Schema(description = "이미지 URL", example = "https://cdn.wearagain.kr/events/123/main.jpg")
             @NotBlank
             @Size(min = 1, max = 1024)
@@ -66,7 +62,7 @@ public record EventCreateRequest(
     }
 
     @Schema(description = "행사 옵션 정보")
-    public record EventCreateOptionRequest(
+    public record EventAdminCreateOptionRequest(
             @Schema(description = "옵션 이름", example = "11월 15일 세션")
             @NotBlank
             @Size(min = 1, max = 100)
@@ -85,7 +81,7 @@ public record EventCreateRequest(
             Integer capacity,
 
             @Schema(description = "하위 옵션 목록")
-            List<@Valid EventCreateOptionRequest> children
+            List<@Valid EventAdminCreateOptionRequest> children
     ) {
     }
 }

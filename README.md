@@ -172,3 +172,25 @@
 | E1015 | 404 Not Found | 신청 정보를 찾을 수 없습니다. |
 | E1016 | 409 Conflict | 취소할 수 없는 신청 상태입니다. |
 | E1017 | 400 Bad Request | 행사 조회 요청이 올바르지 않습니다. |
+| E1018 | 409 Conflict | 이미 보관 처리된 행사입니다. |
+| E1019 | 409 Conflict | 이미 처리된 신청입니다. |
+| E1020 | 404 Not Found | 행사 담당 관리자를 찾을 수 없습니다. |
+| E1021 | 403 Forbidden | 행사 수정 권한이 없습니다. |
+| E1022 | 403 Forbidden | 행사 상태 변경 권한이 없습니다. |
+| E1023 | 409 Conflict | 허용되지 않은 상태 전환입니다. |
+
+## 행사 API 개요
+
+- **관리자(Admin)**
+  - `POST /api/v1/admin/events`: 행사 등록
+  - `GET /api/v1/admin/events`: offset 기반 목록 조회(상태 필터, 신청 통계, 담당 관리자 정보 포함)
+  - `GET /api/v1/admin/events/{eventId}`: 상세 조회(이미지, 옵션, 신청 목록, 담당 관리자 정보)
+  - `PUT /api/v1/admin/events/{eventId}`: 부분 수정(기본 정보/이미지/옵션)
+  - `PATCH /api/v1/admin/events/{eventId}/status`: 상태 변경(권한/전환 검증 포함)
+  - `DELETE /api/v1/admin/events/{eventId}`: 보관 처리(ARCHIVED)
+  - `PATCH /api/v1/admin/applications/{applicationId}/reject`: 신청 반려
+- **사용자(User)**
+  - `GET /api/v1/events`: cursor 기반 행사 목록 조회
+  - `GET /api/v1/events/{eventId}`: 행사 상세 조회
+  - `POST /api/v1/events/{eventId}/apply`: 행사 신청
+  - `PATCH /api/v1/events/applications/{applicationId}/cancel`: 신청 취소

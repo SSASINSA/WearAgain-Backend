@@ -1,8 +1,11 @@
 package com.ssasinsa.wearagain.domain.event.docs;
 
-import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCancelResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventListResponse;
@@ -44,6 +47,86 @@ public final class EventApiDocs {
             responseExample = EventExamples.ADMIN_EVENT_IMAGE_UPLOAD_RESPONSE
     )
     public @interface UploadImage {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "관리자 행사 목록 조회",
+            description = """
+                    관리자 콘솔에서 사용하는 행사 목록 API입니다.
+                    상태 필터와 offset 기반 페이지네이션(`page`, `size`)을 지원하며
+                    각 행사별 신청 통계(총 좌석/신청 수/잔여 좌석)와 행사 담당 관리자 정보를 함께 제공합니다.
+                    """,
+            responseSchema = EventAdminListResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_LIST_RESPONSE
+    )
+    public @interface ListAdminEvents {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "관리자 행사 상세 조회",
+            description = """
+                    관리자 전용 상세 정보(이미지, 옵션 트리, 신청 목록 및 통계)와 행사 담당 관리자 정보를 반환합니다.
+                    존재하지 않는 행사 ID 요청 시 404 에러를 반환합니다.
+                    """,
+            responseSchema = EventAdminDetailResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_DETAIL_RESPONSE
+    )
+    public @interface GetAdminEventDetail {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "관리자 행사 수정",
+            description = """
+                    행사 기본 정보, 이미지, 옵션 트리를 부분 갱신합니다.
+                    `null` 필드는 변경하지 않으며, 빈 배열을 전달하면 해당 목록을 모두 제거합니다.
+                    """,
+            requestExample = EventExamples.ADMIN_EVENT_UPDATE_REQUEST,
+            responseSchema = EventAdminDetailResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_UPDATE_RESPONSE
+    )
+    public @interface UpdateEvent {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "관리자 행사 상태 변경",
+            description = """
+                    행사 상태를 전환합니다. `SUPER_ADMIN`과 `ADMIN`만 호출할 수 있으며,
+                    허용되지 않은 상태 전환(예: `ARCHIVED`에서 `OPEN`) 시 409 에러를 반환합니다.
+                    """,
+            requestExample = EventExamples.ADMIN_EVENT_STATUS_UPDATE_REQUEST,
+            responseSchema = EventAdminDetailResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_STATUS_UPDATE_RESPONSE
+    )
+    public @interface UpdateEventStatus {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "관리자 행사 삭제(보관 처리)",
+            description = """
+                    행사를 물리적으로 삭제하지 않고 `ARCHIVED` 상태로 전환합니다.
+                    이미 신청자가 존재하는 경우 409 에러를 반환합니다.
+                    """
+    )
+    public @interface DeleteEvent {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @ApiDoc(
+            summary = "행사 신청 반려",
+            description = """
+                    특정 신청 건을 반려 처리하고 사유를 기록합니다.
+                    이미 반려/취소된 신청은 멱등하게 현재 상태를 반환합니다.
+                    """,
+            requestExample = EventExamples.ADMIN_EVENT_REJECT_REQUEST,
+            responseSchema = EventApplicationRejectResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_REJECT_RESPONSE
+    )
+    public @interface RejectEventApplication {
     }
 
     @ApiDoc(

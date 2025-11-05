@@ -69,7 +69,7 @@ public class EventController {
     }
 
     @EventApiDocs.CancelEvent
-    @PatchMapping("/cancel/{applicationId}/cancel")
+    @PatchMapping("/applications/{applicationId}/cancel")
     public ResponseEntity<EventCancelResponse> cancelApplication(
             @PathVariable Long applicationId,
             @Valid @RequestBody EventCancelRequest request,

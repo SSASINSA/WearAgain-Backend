@@ -45,6 +45,12 @@
 --   E1015 404 NOT_FOUND              신청 정보를 찾을 수 없습니다.
 --   E1016 409 CONFLICT               취소할 수 없는 신청 상태입니다.
 --   E1017 400 BAD_REQUEST            행사 조회 요청이 올바르지 않습니다.
+--   E1018 409 CONFLICT               이미 보관 처리된 행사입니다.
+--   E1019 409 CONFLICT               이미 처리된 신청입니다.
+--   E1020 404 NOT_FOUND              행사 담당 관리자를 찾을 수 없습니다.
+--   E1021 403 FORBIDDEN              행사 수정 권한이 없습니다.
+--   E1022 403 FORBIDDEN              행사 상태 변경 권한이 없습니다.
+--   E1023 409 CONFLICT               허용되지 않은 상태 전환입니다.
 -- ===========================================================
 
 -- 사용자 도메인 스키마 DDL
@@ -164,12 +170,14 @@ CREATE TABLE event (
     title VARCHAR(100) NOT NULL,
     description TEXT NOT NULL,
     location VARCHAR(255) NOT NULL,
+    admin_users_id BIGINT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
     status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT pk_event PRIMARY KEY (event_id)
+    CONSTRAINT pk_event PRIMARY KEY (event_id),
+    CONSTRAINT fk_event_admin_user FOREIGN KEY (admin_users_id) REFERENCES admin_users (admin_users_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
