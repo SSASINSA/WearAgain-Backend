@@ -768,6 +768,6 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     private String generateStaffCode() {
         int value = STAFF_CODE_RANDOM.nextInt(1_000_000);
-        return String.format("%0" + STAFF_CODE_LENGTH + "d", value);
+        return String.format("%06d", value);
     }
 }
