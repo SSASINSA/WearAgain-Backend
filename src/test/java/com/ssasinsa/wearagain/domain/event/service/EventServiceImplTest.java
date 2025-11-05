@@ -6,6 +6,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
+import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateImageRequest;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventCreateOptionRequest;
@@ -25,22 +27,32 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class EventServiceImplTest {
 
     @Mock
     private EventRepository eventRepository;
 
+    @Mock
+    private AdminUserRepository adminUserRepository;
+
     @InjectMocks
     private EventServiceImpl eventService;
 
     private EventCreateRequest validRequest;
+    private AdminUser adminUser;
 
     @BeforeEach
     void setUp() {
         validRequest = createValidRequest();
+        adminUser = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "운영자");
+        ReflectionTestUtils.setField(adminUser, "id", 1L);
+        when(adminUserRepository.findById(1L)).thenReturn(java.util.Optional.of(adminUser));
     }
 
     @Test
@@ -48,10 +60,15 @@ class EventServiceImplTest {
         Event event = buildPersistedEvent();
         when(eventRepository.save(any(Event.class))).thenReturn(event);
 
-        EventCreateResponse response = eventService.createEvent(validRequest);
+        EventCreateResponse response = eventService.createEvent(validRequest, 1L);
 
         verify(eventRepository).save(any(Event.class));
         assertThat(response.eventId()).isEqualTo(1L);
+        assertThat(response.organizerAdminId()).isEqualTo(1L);
+        assertThat(response.organizerAdminEmail()).isEqualTo("admin@wearagain.kr");
+        assertThat(response.organizerAdminName()).isEqualTo("운영자");
+        assertThat(response.organizerName()).isEqualTo(validRequest.organizerName());
+        assertThat(response.organizerContact()).isEqualTo(validRequest.organizerContact());
         assertThat(response.images()).hasSize(2);
         assertThat(response.options()).hasSize(2);
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT.name());
@@ -63,6 +80,8 @@ class EventServiceImplTest {
                 "테스트 행사",
                 "행사 설명입니다.",
                 "서울시 마포구",
+                "운영자",
+                "02-0000-0000",
                 LocalDate.now(),
                 LocalDate.now().minusDays(1),
                 null,
@@ -70,7 +89,7 @@ class EventServiceImplTest {
                 List.of()
         );
 
-        assertThatThrownBy(() -> eventService.createEvent(request))
+        assertThatThrownBy(() -> eventService.createEvent(request, 1L))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_PERIOD);
     }
@@ -113,6 +132,8 @@ class EventServiceImplTest {
                 validRequest.title(),
                 validRequest.description(),
                 validRequest.location(),
+                validRequest.organizerName(),
+                validRequest.organizerContact(),
                 validRequest.startDate(),
                 validRequest.endDate(),
                 validRequest.status(),
@@ -120,9 +141,18 @@ class EventServiceImplTest {
                 List.of(depth4Option)
         );
 
-        assertThatThrownBy(() -> eventService.createEvent(request))
+        assertThatThrownBy(() -> eventService.createEvent(request, 1L))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+    }
+
+    @Test
+    void should_fail_when_admin_not_found() {
+        when(adminUserRepository.findById(999L)).thenReturn(java.util.Optional.empty());
+
+        assertThatThrownBy(() -> eventService.createEvent(validRequest, 999L))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_ADMIN_NOT_FOUND);
     }
 
     private EventCreateRequest createValidRequest() {
@@ -168,6 +198,8 @@ class EventServiceImplTest {
                 "지속가능 패션 행사",
                 "재사용 패션 실습을 진행합니다.",
                 "서울시 마포구 연남동",
+                "웨어어게인 운영팀",
+                "02-0000-0000",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
                 EventStatus.DRAFT,
@@ -180,10 +212,13 @@ class EventServiceImplTest {
         Event event = Event.create(
                 validRequest.title(),
                 validRequest.description(),
+                validRequest.organizerName(),
+                validRequest.organizerContact(),
                 validRequest.startDate(),
                 validRequest.endDate(),
                 validRequest.location(),
-                EventStatus.DRAFT
+                EventStatus.DRAFT,
+                adminUser
         );
 
         ReflectionTestUtils.setField(event, "id", 1L);

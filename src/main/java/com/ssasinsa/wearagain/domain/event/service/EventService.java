@@ -5,5 +5,5 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 
 public interface EventService {
 
-    EventCreateResponse createEvent(EventCreateRequest request);
+    EventCreateResponse createEvent(EventCreateRequest request, Long adminId);
 }

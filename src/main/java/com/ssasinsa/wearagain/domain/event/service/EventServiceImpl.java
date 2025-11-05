@@ -6,6 +6,8 @@ import com.ssasinsa.wearagain.domain.event.dto.request.EventCreateRequest.EventC
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
+import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
+import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventImage;
 import com.ssasinsa.wearagain.domain.event.entity.EventOption;
@@ -42,10 +44,13 @@ public class EventServiceImpl implements EventService {
     private static final int MAX_OPTION_CAPACITY = 999;
 
     private final EventRepository eventRepository;
+    private final AdminUserRepository adminUserRepository;
 
     @Override
     @Transactional
-    public EventCreateResponse createEvent(EventCreateRequest request) {
+    public EventCreateResponse createEvent(EventCreateRequest request, Long adminId) {
+        AdminUser organizer = adminUserRepository.findById(adminId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_ADMIN_NOT_FOUND));
         validateEventPeriod(request.startDate(), request.endDate());
         List<EventCreateImageRequest> imageRequests = request.images();
         validateImages(imageRequests);
@@ -56,10 +61,13 @@ public class EventServiceImpl implements EventService {
         Event event = Event.create(
                 request.title().trim(),
                 request.description().trim(),
+                request.organizerName().trim(),
+                request.organizerContact().trim(),
                 request.startDate(),
                 request.endDate(),
                 request.location().trim(),
-                status
+                status,
+                organizer
         );
 
         List<EventImage> images = buildEventImages(event, imageRequests);
@@ -247,11 +255,18 @@ public class EventServiceImpl implements EventService {
                 .map(this::mapOptionToResponse)
                 .toList();
 
+        AdminUser organizerAdmin = event.getOrganizerAdmin();
+
         return new EventCreateResponse(
                 event.getId(),
                 event.getTitle(),
                 event.getDescription(),
                 event.getLocation(),
+                event.getOrganizerName(),
+                event.getOrganizerContact(),
+                organizerAdmin == null ? null : organizerAdmin.getId(),
+                organizerAdmin == null ? null : organizerAdmin.getEmail(),
+                organizerAdmin == null ? null : organizerAdmin.getName(),
                 event.getStartDate(),
                 event.getEndDate(),
                 event.getStatus().name(),

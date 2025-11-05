@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.event.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
+import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -10,6 +11,8 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
@@ -45,6 +48,16 @@ public class Event extends BaseTimeEntity {
     @Column(nullable = false, length = 255)
     private String location;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_users_id", nullable = false)
+    private AdminUser organizerAdmin;
+
+    @Column(name = "organizer_name", nullable = false, length = 100)
+    private String organizerName;
+
+    @Column(name = "organizer_contact", nullable = false, length = 255)
+    private String organizerContact;
+
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
 
@@ -71,14 +84,20 @@ public class Event extends BaseTimeEntity {
     public static Event create(
             String title,
             String description,
+            String organizerName,
+            String organizerContact,
             LocalDate startDate,
             LocalDate endDate,
             String location,
-            EventStatus status
+            EventStatus status,
+            AdminUser organizerAdmin
     ) {
         Event event = Event.builder()
                 .title(title)
                 .description(description)
+                .organizerAdmin(organizerAdmin)
+                .organizerName(organizerName)
+                .organizerContact(organizerContact)
                 .startDate(startDate)
                 .endDate(endDate)
                 .location(location)
@@ -106,6 +125,28 @@ public class Event extends BaseTimeEntity {
         this.status = status;
     }
 
+    public void updateTitle(String title) {
+        this.title = title;
+    }
+
+    public void updateDescription(String description) {
+        this.description = description;
+    }
+
+    public void updateLocation(String location) {
+        this.location = location;
+    }
+
+    public void updateOrganizer(String organizerName, String organizerContact) {
+        this.organizerName = organizerName;
+        this.organizerContact = organizerContact;
+    }
+
+    public void updatePeriod(LocalDate startDate, LocalDate endDate) {
+        this.startDate = startDate;
+        this.endDate = endDate;
+    }
+
     public void assignImages(List<EventImage> images) {
         this.images.clear();
         if (images == null) {
@@ -120,6 +161,10 @@ public class Event extends BaseTimeEntity {
             return;
         }
         options.forEach(this::addOption);
+    }
+
+    public void assignOrganizer(AdminUser organizerAdmin) {
+        this.organizerAdmin = organizerAdmin;
     }
 
     @Override

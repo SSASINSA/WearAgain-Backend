@@ -31,4 +31,28 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
             @Param("optionIds") Collection<Long> optionIds,
             @Param("statuses") Collection<EventApplicationStatus> statuses
     );
+
+    @Query("""
+            select new com.ssasinsa.wearagain.domain.event.repository.EventApplicationEventCount(
+                ea.event.id,
+                count(ea)
+            )
+            from EventApplication ea
+            where ea.event.id in :eventIds
+            and ea.status in :statuses
+            group by ea.event.id
+            """)
+    List<EventApplicationEventCount> countActiveApplicationsByEventIds(
+            @Param("eventIds") Collection<Long> eventIds,
+            @Param("statuses") Collection<EventApplicationStatus> statuses
+    );
+
+    @Query("""
+            select ea from EventApplication ea
+            left join fetch ea.user
+            left join fetch ea.eventOption
+            where ea.event.id = :eventId
+            order by ea.createdAt asc
+            """)
+    List<EventApplication> findAllWithUserByEventId(@Param("eventId") Long eventId);
 }
