@@ -4,6 +4,8 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCancelResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
@@ -169,6 +171,19 @@ public final class EventApiDocs {
     public @interface ListEvents {
     }
 
+    @SecurityRequirement(name = "userJWT")
+    @ApiDoc(
+            summary = "사용자 신청 내역 조회",
+            description = """
+                    사용자의 행사 신청 내역을 커서 기반 페이지네이션으로 조회합니다.
+                    상태, 기간(from/to) 필터를 지원하며 응답에 `nextCursor`가 포함됩니다.
+                    """,
+            responseSchema = EventApplicationListResponse.class,
+            responseExample = EventExamples.USER_EVENT_APPLICATION_LIST_RESPONSE
+    )
+    public @interface ListUserApplications {
+    }
+
     @ApiDoc(
             summary = "사용자 행사 상세 조회",
             description = """
@@ -207,5 +222,19 @@ public final class EventApiDocs {
             responseExample = EventExamples.USER_EVENT_CANCEL_RESPONSE
     )
     public @interface CancelEvent {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @ApiDoc(
+            summary = "체크인 QR 토큰 발급",
+            description = """
+                    사용자가 신청한 행사에 대해 체크인 QR 토큰을 발급하거나 재발급합니다.
+                    기존 토큰이 존재하는 경우 Redis에서 제거한 후 새 토큰을 저장합니다.
+                    """,
+            requestExample = EventExamples.USER_EVENT_APPLICATION_QR_REQUEST,
+            responseSchema = EventApplicationQrResponse.class,
+            responseExample = EventExamples.USER_EVENT_APPLICATION_QR_RESPONSE
+    )
+    public @interface IssueApplicationQr {
     }
 }

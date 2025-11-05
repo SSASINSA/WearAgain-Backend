@@ -113,6 +113,43 @@ public final class EventExamples {
             }
             """;
 
+    public static final String USER_EVENT_APPLICATION_LIST_RESPONSE = """
+            {
+              "items": [
+                {
+                  "applicationId": 123,
+                  "eventId": 45,
+                  "eventTitle": "업사이클링 원데이 클래스",
+                  "eventPeriod": {
+                    "startDate": "2025-02-10",
+                    "endDate": "2025-02-11"
+                  },
+                  "optionName": "1일차 오후 세션",
+                  "status": "APPLIED",
+                  "appliedAt": "2025-01-28T12:30:00Z",
+                  "qrAvailable": true,
+                  "checkedInAt": null
+                }
+              ],
+              "nextCursor": "MjAyNS0wMS0yOFQxMjozMDowMC4wMDBaOjEyMw==",
+              "hasNext": true
+            }
+            """;
+
+    public static final String USER_EVENT_APPLICATION_QR_REQUEST = """
+            {
+              "forceReissue": true
+            }
+            """;
+
+    public static final String USER_EVENT_APPLICATION_QR_RESPONSE = """
+            {
+              "qrToken": "3b3f6e3456d34a84b41ce8a3f7fb16b1",
+              "expiresAt": "2025-02-10T01:00:00Z",
+              "remainingSeconds": 600
+            }
+            """;
+
     public static final String ADMIN_EVENT_LIST_RESPONSE = """
             {
               "events": [

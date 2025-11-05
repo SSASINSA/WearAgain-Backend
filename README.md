@@ -202,6 +202,15 @@
 
 발급·조회는 모두 관리자 인증 토큰이 필요하며, 응답의 `issuedAt`은 UTC 기준입니다.
 
+## 사용자 신청 내역 & 체크인 QR API
+
+- **GET** `/api/v1/events/applications`
+  - 사용자 자신의 신청 내역을 커서 기반으로 조회합니다.
+  - `status`, `from`, `to`, `cursor`, `limit` 파라미터를 지원하며 응답에 `items`, `nextCursor`, `hasNext`가 포함됩니다.
+- **POST** `/api/v1/events/applications/{applicationId}/qr`
+  - 신청이 `APPLIED` 상태인 경우 6자리 QR 토큰을 발급하고 Redis(`event:qr:{userId}`)에 10분 TTL로 저장합니다.
+  - 토큰 발급 시 기존 토큰은 삭제되며, 응답에는 `qrToken`, `expiresAt`, `remainingSeconds(600)`이 포함됩니다.
+
 ## 행사 API 개요
 
 - **관리자(Admin)**
