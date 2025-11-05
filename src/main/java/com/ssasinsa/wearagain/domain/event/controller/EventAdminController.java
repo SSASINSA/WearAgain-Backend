@@ -103,7 +103,7 @@ public class EventAdminController {
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);
-        return ResponseEntity.ok(eventAdminService.updateEventStatus(eventId, request.status(), principal.adminId(), principal.role()));
+        return ResponseEntity.ok(eventAdminService.updateEventStatus(eventId, request.status(), principal.role()));
     }
 
     @EventApiDocs.DeleteEvent

@@ -345,7 +345,7 @@ class EventAdminServiceImplTest {
                 .thenReturn(List.of());
         when(eventApplicationRepository.findAllWithUserByEventId(101L)).thenReturn(List.<EventApplication>of());
 
-        EventAdminDetailResponse response = eventAdminService.updateEventStatus(101L, EventStatus.CLOSED, 11L, AdminRole.SUPER_ADMIN);
+        EventAdminDetailResponse response = eventAdminService.updateEventStatus(101L, EventStatus.CLOSED, AdminRole.SUPER_ADMIN);
 
         assertThat(event.getStatus()).isEqualTo(EventStatus.CLOSED);
         assertThat(response.status()).isEqualTo(EventStatus.CLOSED);
@@ -355,7 +355,7 @@ class EventAdminServiceImplTest {
     void should_forbid_manager_status_change() {
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
 
-        assertThatThrownBy(() -> eventAdminService.updateEventStatus(101L, EventStatus.CLOSED, 11L, AdminRole.MANAGER))
+        assertThatThrownBy(() -> eventAdminService.updateEventStatus(101L, EventStatus.CLOSED, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
     }
@@ -365,7 +365,7 @@ class EventAdminServiceImplTest {
         event.changeStatus(EventStatus.ARCHIVED);
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
 
-        assertThatThrownBy(() -> eventAdminService.updateEventStatus(101L, EventStatus.OPEN, 11L, AdminRole.ADMIN))
+        assertThatThrownBy(() -> eventAdminService.updateEventStatus(101L, EventStatus.OPEN, AdminRole.ADMIN))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_STATUS_UPDATE_INVALID);
     }

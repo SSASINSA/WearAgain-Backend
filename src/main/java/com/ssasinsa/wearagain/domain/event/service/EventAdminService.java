@@ -20,7 +20,7 @@ public interface EventAdminService {
 
     EventAdminDetailResponse updateEvent(Long eventId, EventAdminUpdateRequest request, Long adminId, AdminRole role);
 
-    EventAdminDetailResponse updateEventStatus(Long eventId, EventStatus status, Long adminId, AdminRole role);
+    EventAdminDetailResponse updateEventStatus(Long eventId, EventStatus status, AdminRole role);
 
     void archiveEvent(Long eventId);
 

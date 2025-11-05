@@ -269,7 +269,7 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional
-    public EventAdminDetailResponse updateEventStatus(Long eventId, EventStatus status, Long adminId, AdminRole role) {
+    public EventAdminDetailResponse updateEventStatus(Long eventId, EventStatus status, AdminRole role) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
