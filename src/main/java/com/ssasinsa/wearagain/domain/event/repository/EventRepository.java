@@ -4,6 +4,7 @@ import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -22,4 +23,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
             @Param("cursor") Long cursor,
             Pageable pageable
     );
+
+    Optional<Event> findByStaffCode(String staffCode);
 }

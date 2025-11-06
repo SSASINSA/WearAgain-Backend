@@ -231,3 +231,6 @@
   - `GET /api/v1/events/{eventId}`: 행사 상세 조회
   - `POST /api/v1/events/{eventId}/apply`: 행사 신청
   - `PATCH /api/v1/events/applications/{applicationId}/cancel`: 신청 취소
+  - `POST /api/v1/events/applications/{applicationId}/qr`: 체크인 QR 토큰 발급
+- **스태프(Staff)**
+  - `POST /api/v1/staff/events/check-in`: QR 토큰과 스태프 코드를 검증해 신청 상태를 `CHECKED_IN`으로 변경하고 Redis 토큰을 삭제합니다. 코드가 없으면 `E1025`, 코드 불일치 시 `E1026`, 토큰 만료 시 `E1027`, 토큰 위변조 시 `E1028`, 이미 처리된 신청이면 `E1019`가 반환됩니다.

@@ -15,6 +15,7 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse
 import com.ssasinsa.wearagain.domain.event.dto.response.EventListResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
 
 public final class EventApiDocs {
 
@@ -251,5 +252,18 @@ public final class EventApiDocs {
             responseExample = EventExamples.USER_EVENT_APPLICATION_QR_RESPONSE
     )
     public @interface IssueApplicationQr {
+    }
+
+    @ApiDoc(
+            summary = "행사 스태프 체크인",
+            description = """
+                    스태프가 QR 토큰과 스태프 코드를 제출하여 참가자를 체크인합니다.
+                    토큰 만료, 코드 불일치, 중복 체크인 등의 상황에서 정의된 오류 코드를 반환합니다.
+                    """,
+            requestExample = EventExamples.STAFF_EVENT_CHECK_IN_REQUEST,
+            responseSchema = EventStaffCheckInResponse.class,
+            responseExample = EventExamples.STAFF_EVENT_CHECK_IN_RESPONSE
+    )
+    public @interface StaffCheckIn {
     }
 }
