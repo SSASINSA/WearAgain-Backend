@@ -301,7 +301,7 @@ public class EventUserServiceImpl implements EventUserService {
         OffsetDateTime issuedAt = OffsetDateTime.now(ZoneOffset.UTC);
         OffsetDateTime expiresAt = issuedAt.plusSeconds(QR_TOKEN_TTL.getSeconds());
 
-        CheckinTokenPayload payload = new CheckinTokenPayload(application.getId(), token, issuedAt, expiresAt);
+        CheckinTokenPayload payload = new CheckinTokenPayload(userId, application.getId(), token, issuedAt, expiresAt);
         checkinTokenUtil.saveToken(userId, payload, QR_TOKEN_TTL);
 
         return new EventApplicationQrResponse(token, (int) QR_TOKEN_TTL.getSeconds());

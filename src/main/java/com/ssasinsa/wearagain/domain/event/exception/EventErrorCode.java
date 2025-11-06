@@ -28,7 +28,10 @@ public enum EventErrorCode implements ErrorCode {
     EVENT_STATUS_UPDATE_FORBIDDEN("E1022", "행사 상태 변경 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
     EVENT_STATUS_UPDATE_INVALID("E1023", "허용되지 않은 상태 전환입니다.", HttpStatus.CONFLICT.value()),
     EVENT_STAFF_CODE_FORBIDDEN("E1024", "스태프 코드를 발급할 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
-    EVENT_STAFF_CODE_NOT_ISSUED("E1025", "스태프 코드가 발급되지 않았습니다.", HttpStatus.NOT_FOUND.value());
+    EVENT_STAFF_CODE_NOT_ISSUED("E1025", "스태프 코드가 발급되지 않았습니다.", HttpStatus.NOT_FOUND.value()),
+    EVENT_STAFF_CODE_INVALID("E1026", "유효하지 않은 스태프 코드입니다.", HttpStatus.FORBIDDEN.value()),
+    EVENT_CHECKIN_TOKEN_NOT_FOUND("E1027", "체크인 토큰이 만료되었거나 존재하지 않습니다.", HttpStatus.GONE.value()),
+    EVENT_CHECKIN_TOKEN_INVALID("E1028", "체크인 토큰이 유효하지 않습니다.", HttpStatus.BAD_REQUEST.value());
 
     private final String code;
     private final String message;

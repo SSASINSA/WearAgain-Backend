@@ -112,6 +112,7 @@ public class EventApplication extends BaseTimeEntity {
         this.reason = null;
         this.canceledAt = null;
         this.rejectedAt = null;
+        this.qrToken = null;
     }
 
     @Override
