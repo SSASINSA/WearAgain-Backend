@@ -158,7 +158,7 @@ public final class EventApiDocs {
     public @interface RejectEventApplication {
     }
 
-    @SecurityRequirement(name = "adminJWT")
+    @SecurityRequirement(name = "userJWT")
     @ApiDoc(
             summary = "사용자 행사 목록 조회",
             description = """
