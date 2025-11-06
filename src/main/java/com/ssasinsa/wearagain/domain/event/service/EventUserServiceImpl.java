@@ -441,7 +441,4 @@ public class EventUserServiceImpl implements EventUserService {
                 .collect(Collectors.toMap(EventOptionApplicationCount::eventOptionId, EventOptionApplicationCount::appliedCount));
     }
 
-    private OffsetDateTime toOffset(LocalDateTime dateTime) {
-        return dateTime == null ? null : dateTime.atOffset(ZoneOffset.UTC);
-    }
 }
