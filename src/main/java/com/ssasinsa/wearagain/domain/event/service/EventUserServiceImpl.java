@@ -209,7 +209,7 @@ public class EventUserServiceImpl implements EventUserService {
                 : EnumSet.of(status);
 
         Pageable pageable = PageRequest.of(0, size + 1);
-        List<EventApplication> fetched = eventApplicationRepository.findApplicationsForUser(
+        List<Long> fetchedIds = eventApplicationRepository.findApplicationIdsForUser(
                 userId,
                 statuses,
                 fromDateTime,
@@ -219,15 +219,34 @@ public class EventUserServiceImpl implements EventUserService {
                 pageable
         );
 
-        boolean hasNext = fetched.size() > size;
-        List<EventApplication> limited = hasNext ? fetched.subList(0, size) : fetched;
+        boolean hasNext = fetchedIds.size() > size;
+        List<Long> limitedIds = hasNext ? fetchedIds.subList(0, size) : fetchedIds;
 
-        List<EventApplicationSummaryResponse> items = limited.stream()
-                .map(this::mapToApplicationSummary)
+        if (limitedIds.isEmpty()) {
+            return new EventApplicationListResponse(List.of(), null, false);
+        }
+
+        List<EventApplication> applications = eventApplicationRepository.findByIdsWithEventAndImages(limitedIds);
+        Map<Long, EventApplication> applicationMap = applications.stream()
+                .collect(Collectors.toMap(
+                        EventApplication::getId,
+                        application -> application,
+                        (existing, duplicate) -> existing
+                ));
+
+        List<EventApplicationSummaryResponse> items = limitedIds.stream()
+                .map(id -> {
+                    EventApplication application = applicationMap.get(id);
+                    if (application == null) {
+                        throw new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND);
+                    }
+                    return mapToApplicationSummary(application);
+                })
                 .toList();
 
-        String nextCursor = hasNext && !limited.isEmpty()
-                ? EventApplicationCursor.encode(limited.get(limited.size() - 1))
+        EventApplication lastApplication = applicationMap.get(limitedIds.get(limitedIds.size() - 1));
+        String nextCursor = hasNext && lastApplication != null
+                ? EventApplicationCursor.encode(lastApplication)
                 : null;
 
         return new EventApplicationListResponse(items, nextCursor, hasNext);

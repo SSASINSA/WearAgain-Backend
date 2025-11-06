@@ -184,7 +184,7 @@ class EventUserServiceImplTest {
         ReflectionTestUtils.setField(second, "createdAt", LocalDateTime.of(2025, 1, 20, 9, 0));
         ReflectionTestUtils.setField(second, "updatedAt", LocalDateTime.of(2025, 1, 20, 10, 0));
 
-        when(eventApplicationRepository.findApplicationsForUser(
+        when(eventApplicationRepository.findApplicationIdsForUser(
                 eq(10L),
                 anyCollection(),
                 isNull(),
@@ -192,7 +192,9 @@ class EventUserServiceImplTest {
                 isNull(),
                 isNull(),
                 any(Pageable.class)
-        )).thenReturn(List.of(first, second));
+        )).thenReturn(List.of(5002L, 5001L));
+        when(eventApplicationRepository.findByIdsWithEventAndImages(anyCollection()))
+                .thenReturn(List.of(first, second));
 
         EventApplicationListResponse response = eventUserService.getUserApplications(10L, null, null, null, null, 1);
 
