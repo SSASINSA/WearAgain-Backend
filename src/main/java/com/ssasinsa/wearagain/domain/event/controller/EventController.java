@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.event.controller;
 import com.ssasinsa.wearagain.domain.event.docs.EventApiDocs;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCancelRequest;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
@@ -80,6 +81,19 @@ public class EventController {
                 cursor,
                 limit
         );
+        return ResponseEntity.ok(response);
+    }
+
+    @EventApiDocs.GetUserApplicationDetail
+    @GetMapping("/applications/{applicationId}")
+    public ResponseEntity<EventApplicationDetailResponse> getApplicationDetail(
+            @PathVariable Long applicationId,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        if (user == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+        EventApplicationDetailResponse response = eventUserService.getUserApplicationDetail(applicationId, user.userId());
         return ResponseEntity.ok(response);
     }
 

@@ -5,6 +5,7 @@ import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCancelRequest;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationSummaryResponse;
@@ -253,6 +254,40 @@ public class EventUserServiceImpl implements EventUserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public EventApplicationDetailResponse getUserApplicationDetail(Long applicationId, Long userId) {
+        EventApplication application = eventApplicationRepository.findById(applicationId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND));
+
+        if (!Objects.equals(application.getUser().getId(), userId)) {
+            throw new CustomException(CommonErrorCode.FORBIDDEN);
+        }
+
+        Event event = application.getEvent();
+        EventApplicationDetailResponse.EventPeriod period = new EventApplicationDetailResponse.EventPeriod(
+                event.getStartDate(),
+                event.getEndDate()
+        );
+
+        List<EventApplicationDetailResponse.OptionTrailResponse> optionTrail = buildOptionTrail(
+                application.getEventOption()
+        );
+
+        return new EventApplicationDetailResponse(
+                application.getId(),
+                event.getId(),
+                event.getTitle(),
+                event.getStatus().name(),
+                period,
+                event.getLocation(),
+                event.getDescription(),
+                event.getUsageGuide(),
+                event.getPrecautions(),
+                optionTrail
+        );
+    }
+
+    @Override
     @Transactional
     public EventApplicationQrResponse issueApplicationQr(Long applicationId, Long userId) {
         EventApplication application = eventApplicationRepository.findByIdAndUserId(applicationId, userId)
@@ -314,6 +349,28 @@ public class EventUserServiceImpl implements EventUserService {
         } catch (NumberFormatException exception) {
             throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
         }
+    }
+
+    private List<EventApplicationDetailResponse.OptionTrailResponse> buildOptionTrail(EventOption option) {
+        if (option == null) {
+            return List.of();
+        }
+        Deque<EventOption> stack = new ArrayDeque<>();
+        EventOption current = option;
+        while (current != null) {
+            stack.push(current);
+            current = current.getParentOption();
+        }
+        List<EventApplicationDetailResponse.OptionTrailResponse> trail = new ArrayList<>(stack.size());
+        while (!stack.isEmpty()) {
+            EventOption step = stack.pop();
+            trail.add(new EventApplicationDetailResponse.OptionTrailResponse(
+                    step.getId(),
+                    step.getName(),
+                    step.getType()
+            ));
+        }
+        return List.copyOf(trail);
     }
 
     private EventSummaryResponse mapToSummary(Event event) {
