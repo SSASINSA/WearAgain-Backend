@@ -95,7 +95,9 @@ class EventAdminServiceImplTest {
                 LocalDate.of(2025, 11, 30),
                 "서울시 마포구 연남동 223-14 2F",
                 EventStatus.OPEN,
-                adminUser
+                adminUser,
+                "준비물은 개인 텀블러를 지참해주세요.",
+                "화재 예방을 위해 지정된 구역에서만 작업해주세요."
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
@@ -124,6 +126,8 @@ class EventAdminServiceImplTest {
         assertThat(response.organizerAdminName()).isEqualTo("운영자");
         assertThat(response.organizerName()).isEqualTo(adminUser.getName());
         assertThat(response.organizerContact()).isEqualTo(adminUser.getEmail());
+        assertThat(response.usageGuide()).isEqualTo(validCreateRequest.usageGuide());
+        assertThat(response.precautions()).isEqualTo(validCreateRequest.precautions());
         assertThat(response.images()).hasSize(2);
         assertThat(response.options()).hasSize(2);
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT.name());
@@ -134,6 +138,8 @@ class EventAdminServiceImplTest {
         EventAdminCreateRequest request = new EventAdminCreateRequest(
                 "테스트 행사",
                 "행사 설명입니다.",
+                null,
+                null,
                 "서울시 마포구",
                 LocalDate.now(),
                 LocalDate.now().minusDays(1),
@@ -183,6 +189,8 @@ class EventAdminServiceImplTest {
         EventAdminCreateRequest request = new EventAdminCreateRequest(
                 validCreateRequest.title(),
                 validCreateRequest.description(),
+                validCreateRequest.usageGuide(),
+                validCreateRequest.precautions(),
                 validCreateRequest.location(),
                 validCreateRequest.startDate(),
                 validCreateRequest.endDate(),
@@ -295,6 +303,8 @@ class EventAdminServiceImplTest {
         EventAdminDetailResponse response = eventAdminService.getEventDetail(101L);
 
         assertThat(response.eventId()).isEqualTo(101L);
+        assertThat(response.usageGuide()).isEqualTo("준비물은 개인 텀블러를 지참해주세요.");
+        assertThat(response.precautions()).isEqualTo("화재 예방을 위해 지정된 구역에서만 작업해주세요.");
         assertThat(response.organizerName()).isEqualTo(adminUser.getName());
         assertThat(response.organizerContact()).isEqualTo(adminUser.getEmail());
         assertThat(response.organizerAdminId()).isEqualTo(11L);
@@ -323,6 +333,8 @@ class EventAdminServiceImplTest {
         EventAdminUpdateRequest request = new EventAdminUpdateRequest(
                 "워크숍 업데이트",
                 "설명 업데이트입니다.",
+                "업데이트된 이용 방법",
+                "업데이트된 주의 사항",
                 "서울시 성동구 왕십리로 32",
                 LocalDate.of(2025, 11, 12),
                 LocalDate.of(2025, 12, 1),
@@ -354,6 +366,8 @@ class EventAdminServiceImplTest {
         assertThat(event.getTitle()).isEqualTo("워크숍 업데이트");
         assertThat(event.getLocation()).isEqualTo("서울시 성동구 왕십리로 32");
         assertThat(event.getStartDate()).isEqualTo(LocalDate.of(2025, 11, 12));
+        assertThat(event.getUsageGuide()).isEqualTo("업데이트된 이용 방법");
+        assertThat(event.getPrecautions()).isEqualTo("업데이트된 주의 사항");
         assertThat(response.options()).hasSize(1);
         assertThat(response.options().get(0).children().get(0).children()).hasSize(1);
     }
@@ -364,6 +378,8 @@ class EventAdminServiceImplTest {
 
         EventAdminUpdateRequest request = new EventAdminUpdateRequest(
                 "수정",
+                null,
+                null,
                 null,
                 null,
                 null,
@@ -494,6 +510,8 @@ class EventAdminServiceImplTest {
         return new EventAdminCreateRequest(
                 "지속가능 패션 행사",
                 "재사용 패션 실습을 진행합니다.",
+                "개인 텀블러를 지참해주세요.",
+                "발화성 물질 반입 금지",
                 "서울시 마포구 연남동",
                 LocalDate.of(2025, 11, 10),
                 LocalDate.of(2025, 11, 30),
@@ -510,7 +528,9 @@ class EventAdminServiceImplTest {
                 request.endDate(),
                 request.location(),
                 EventStatus.DRAFT,
-                adminUser
+                adminUser,
+                request.usageGuide(),
+                request.precautions()
         );
         ReflectionTestUtils.setField(event, "id", 1L);
 

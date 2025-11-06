@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -15,6 +16,9 @@ import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCancelRequest;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationSummaryResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCancelResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
@@ -31,9 +35,14 @@ import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
+import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
+import com.ssasinsa.wearagain.domain.event.support.CheckinTokenUtil;
+import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import org.mockito.ArgumentCaptor;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,12 +67,16 @@ class EventUserServiceImplTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private CheckinTokenUtil checkinTokenUtil;
+
     @InjectMocks
     private EventUserServiceImpl eventUserService;
 
     private Event openEvent;
     private EventOption groupOption;
     private AdminUser adminUser;
+    private User defaultUser;
 
     @BeforeEach
     void setUp() {
@@ -77,7 +90,9 @@ class EventUserServiceImplTest {
                 LocalDate.of(2025, 11, 30),
                 "서울시 마포구 연남동",
                 EventStatus.OPEN,
-                adminUser
+                adminUser,
+                "참가자는 개인 텀블러를 지참해주세요.",
+                "화재 예방을 위해 지정된 구역에서만 작업해주세요."
         );
         ReflectionTestUtils.setField(openEvent, "id", 101L);
 
@@ -88,6 +103,9 @@ class EventUserServiceImplTest {
         ReflectionTestUtils.setField(dateOption, "id", 2001L);
         groupOption = EventOption.create(openEvent, dateOption, "A조", "GROUP", 1, 10);
         ReflectionTestUtils.setField(groupOption, "id", 2003L);
+
+        defaultUser = User.create("user@wearagain.kr", "사용자", null);
+        ReflectionTestUtils.setField(defaultUser, "id", 10L);
     }
 
     @Test
@@ -113,7 +131,9 @@ class EventUserServiceImplTest {
                 LocalDate.of(2025, 11, 20),
                 "서울시 성동구",
                 EventStatus.OPEN,
-                adminUser
+                adminUser,
+                null,
+                null
         );
         ReflectionTestUtils.setField(second, "id", 150L);
 
@@ -153,6 +173,76 @@ class EventUserServiceImplTest {
     }
 
     @Test
+    void should_list_user_applications_with_cursor() {
+        EventApplication first = EventApplication.create(defaultUser, openEvent, groupOption, EventApplicationStatus.APPLIED, null, null);
+        ReflectionTestUtils.setField(first, "id", 5002L);
+        ReflectionTestUtils.setField(first, "createdAt", LocalDateTime.of(2025, 1, 28, 12, 30));
+        ReflectionTestUtils.setField(first, "updatedAt", LocalDateTime.of(2025, 1, 28, 12, 30));
+
+        EventApplication second = EventApplication.create(defaultUser, openEvent, groupOption, EventApplicationStatus.CHECKED_IN, null, null);
+        ReflectionTestUtils.setField(second, "id", 5001L);
+        ReflectionTestUtils.setField(second, "createdAt", LocalDateTime.of(2025, 1, 20, 9, 0));
+        ReflectionTestUtils.setField(second, "updatedAt", LocalDateTime.of(2025, 1, 20, 10, 0));
+
+        when(eventApplicationRepository.findApplicationsForUser(
+                eq(10L),
+                anyCollection(),
+                isNull(),
+                isNull(),
+                isNull(),
+                isNull(),
+                any(Pageable.class)
+        )).thenReturn(List.of(first, second));
+
+        EventApplicationListResponse response = eventUserService.getUserApplications(10L, null, null, null, null, 1);
+
+        assertThat(response.items()).hasSize(1);
+        EventApplicationSummaryResponse item = response.items().get(0);
+        assertThat(item.applicationId()).isEqualTo(5002L);
+        assertThat(item.thumbnailUrl()).isEqualTo("https://cdn.wearagain.kr/events/101/main.jpg");
+        assertThat(item.description()).isEqualTo("웨어어게인과 함께하는 리폼 클래스");
+        assertThat(item.location()).isEqualTo("서울시 마포구 연남동");
+        assertThat(item.eventStatus()).isEqualTo(EventStatus.OPEN.name());
+        assertThat(item.eventPeriod().startDate()).isEqualTo(openEvent.getStartDate());
+        assertThat(item.eventPeriod().endDate()).isEqualTo(openEvent.getEndDate());
+        assertThat(response.hasNext()).isTrue();
+        assertThat(response.nextCursor()).isNotBlank();
+    }
+
+    @Test
+    void should_issue_qr_token_for_application() {
+        EventApplication application = EventApplication.create(defaultUser, openEvent, groupOption, EventApplicationStatus.APPLIED, null, null);
+        ReflectionTestUtils.setField(application, "id", 5001L);
+        when(eventApplicationRepository.findByIdAndUserId(5001L, 10L)).thenReturn(Optional.of(application));
+        when(checkinTokenUtil.generateToken()).thenReturn("TOKEN-123");
+
+        ArgumentCaptor<CheckinTokenPayload> payloadCaptor = ArgumentCaptor.forClass(CheckinTokenPayload.class);
+
+        EventApplicationQrResponse response = eventUserService.issueApplicationQr(5001L, 10L);
+
+        assertThat(response.qrToken()).isEqualTo("TOKEN-123");
+        assertThat(response.expiresIn()).isEqualTo(600);
+        verify(checkinTokenUtil).saveToken(eq(10L), payloadCaptor.capture(), eq(Duration.ofMinutes(10)));
+        CheckinTokenPayload payload = payloadCaptor.getValue();
+        assertThat(payload.applicationId()).isEqualTo(5001L);
+        assertThat(payload.token()).isEqualTo("TOKEN-123");
+        assertThat(payload.issuedAt()).isNotNull();
+        assertThat(payload.expiresAt()).isNotNull();
+    }
+
+    @Test
+    void should_fail_issue_qr_when_application_not_applied() {
+        EventApplication application = EventApplication.create(defaultUser, openEvent, groupOption, EventApplicationStatus.CHECKED_IN, null, null);
+        ReflectionTestUtils.setField(application, "id", 5001L);
+        when(eventApplicationRepository.findByIdAndUserId(5001L, 10L)).thenReturn(Optional.of(application));
+
+        assertThatThrownBy(() -> eventUserService.issueApplicationQr(5001L, 10L))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
+        verify(checkinTokenUtil, never()).saveToken(anyLong(), any(CheckinTokenPayload.class), any());
+    }
+
+    @Test
     void should_throw_not_found_when_event_hidden() {
         Event draft = Event.create(
                 "Draft",
@@ -161,7 +251,9 @@ class EventUserServiceImplTest {
                 LocalDate.now().plusDays(1),
                 "서울시",
                 EventStatus.DRAFT,
-                adminUser
+                adminUser,
+                null,
+                null
         );
         ReflectionTestUtils.setField(draft, "id", 999L);
         when(eventRepository.findById(999L)).thenReturn(Optional.of(draft));

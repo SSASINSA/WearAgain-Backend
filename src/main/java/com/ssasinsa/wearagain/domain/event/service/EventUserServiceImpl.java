@@ -5,6 +5,10 @@ import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCancelRequest;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationSummaryResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationSummaryResponse.EventPeriod;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCancelResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
@@ -24,9 +28,16 @@ import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
+import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
+import com.ssasinsa.wearagain.domain.event.support.CheckinTokenUtil;
+import com.ssasinsa.wearagain.domain.event.support.EventApplicationCursor;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -56,11 +67,13 @@ public class EventUserServiceImpl implements EventUserService {
             EnumSet.of(EventApplicationStatus.APPLIED, EventApplicationStatus.CHECKED_IN);
     private static final Comparator<EventImage> IMAGE_ORDER = Comparator.comparingInt(EventImage::getDisplayOrder);
     private static final Comparator<EventOption> OPTION_ORDER = Comparator.comparingInt(EventOption::getDisplayOrder);
+    private static final Duration QR_TOKEN_TTL = Duration.ofMinutes(10);
 
     private final EventRepository eventRepository;
     private final EventOptionRepository eventOptionRepository;
     private final EventApplicationRepository eventApplicationRepository;
     private final UserRepository userRepository;
+    private final CheckinTokenUtil checkinTokenUtil;
 
     @Override
     @Transactional(readOnly = true)
@@ -170,6 +183,76 @@ public class EventUserServiceImpl implements EventUserService {
         return new EventCancelResponse(application.getId(), application.getStatus().name());
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public EventApplicationListResponse getUserApplications(
+            Long userId,
+            EventApplicationStatus status,
+            LocalDate from,
+            LocalDate to,
+            String cursor,
+            int size
+    ) {
+        if (size <= 0 || size > 50) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_QUERY);
+        }
+
+        EventApplicationCursor.Cursor decodedCursor = EventApplicationCursor.decode(cursor).orElse(null);
+        LocalDateTime cursorCreatedAt = decodedCursor == null ? null : decodedCursor.createdAt();
+        Long cursorId = decodedCursor == null ? null : decodedCursor.applicationId();
+
+        LocalDateTime fromDateTime = from == null ? null : from.atStartOfDay();
+        LocalDateTime toDateTime = to == null ? null : to.plusDays(1).atStartOfDay();
+
+        Collection<EventApplicationStatus> statuses = status == null
+                ? EnumSet.allOf(EventApplicationStatus.class)
+                : EnumSet.of(status);
+
+        Pageable pageable = PageRequest.of(0, size + 1);
+        List<EventApplication> fetched = eventApplicationRepository.findApplicationsForUser(
+                userId,
+                statuses,
+                fromDateTime,
+                toDateTime,
+                cursorCreatedAt,
+                cursorId,
+                pageable
+        );
+
+        boolean hasNext = fetched.size() > size;
+        List<EventApplication> limited = hasNext ? fetched.subList(0, size) : fetched;
+
+        List<EventApplicationSummaryResponse> items = limited.stream()
+                .map(this::mapToApplicationSummary)
+                .toList();
+
+        String nextCursor = hasNext && !limited.isEmpty()
+                ? EventApplicationCursor.encode(limited.get(limited.size() - 1))
+                : null;
+
+        return new EventApplicationListResponse(items, nextCursor, hasNext);
+    }
+
+    @Override
+    @Transactional
+    public EventApplicationQrResponse issueApplicationQr(Long applicationId, Long userId) {
+        EventApplication application = eventApplicationRepository.findByIdAndUserId(applicationId, userId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND));
+
+        if (application.getStatus() != EventApplicationStatus.APPLIED) {
+            throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
+        }
+
+        String token = checkinTokenUtil.generateToken();
+        OffsetDateTime issuedAt = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime expiresAt = issuedAt.plusSeconds(QR_TOKEN_TTL.getSeconds());
+
+        CheckinTokenPayload payload = new CheckinTokenPayload(application.getId(), token, issuedAt, expiresAt);
+        checkinTokenUtil.saveToken(userId, payload, QR_TOKEN_TTL);
+
+        return new EventApplicationQrResponse(token, (int) QR_TOKEN_TTL.getSeconds());
+    }
+
     private EnumSet<EventStatus> resolveStatuses(String param) {
         if (!StringUtils.hasText(param)) {
             return EnumSet.copyOf(DEFAULT_VISIBLE_STATUSES);
@@ -231,6 +314,30 @@ public class EventUserServiceImpl implements EventUserService {
                 event.getEndDate(),
                 event.getStatus().name(),
                 thumbnailUrl
+        );
+    }
+
+    private EventApplicationSummaryResponse mapToApplicationSummary(EventApplication application) {
+        Event event = application.getEvent();
+
+        String thumbnailUrl = event.getImages()
+                .stream()
+                .sorted(IMAGE_ORDER)
+                .map(EventImage::getUrl)
+                .findFirst()
+                .orElse(null);
+        EventPeriod period = new EventPeriod(event.getStartDate(), event.getEndDate());
+        String eventStatus = event.getStatus().name();
+
+        return new EventApplicationSummaryResponse(
+                application.getId(),
+                event.getId(),
+                event.getTitle(),
+                thumbnailUrl,
+                event.getDescription(),
+                event.getLocation(),
+                period,
+                eventStatus
         );
     }
 
@@ -332,5 +439,9 @@ public class EventUserServiceImpl implements EventUserService {
         );
         return aggregates.stream()
                 .collect(Collectors.toMap(EventOptionApplicationCount::eventOptionId, EventOptionApplicationCount::appliedCount));
+    }
+
+    private OffsetDateTime toOffset(LocalDateTime dateTime) {
+        return dateTime == null ? null : dateTime.atOffset(ZoneOffset.UTC);
     }
 }

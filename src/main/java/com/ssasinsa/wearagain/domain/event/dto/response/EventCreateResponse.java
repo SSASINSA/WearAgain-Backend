@@ -16,6 +16,12 @@ public record EventCreateResponse(
         @Schema(description = "행사 상세 설명", example = "웨어어게인과 함께하는 리폼 클래스")
         String description,
 
+        @Schema(description = "이용 방법 안내", example = "준비물은 개인 텀블러를 지참해주세요.")
+        String usageGuide,
+
+        @Schema(description = "주의 사항", example = "화재 예방을 위해 지정된 구역에서만 작업해주세요.")
+        String precautions,
+
         @Schema(description = "행사 위치", example = "서울시 마포구 연남동 223-14 2F")
         String location,
 

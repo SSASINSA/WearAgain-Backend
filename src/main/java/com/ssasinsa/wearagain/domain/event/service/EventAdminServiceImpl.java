@@ -105,7 +105,9 @@ public class EventAdminServiceImpl implements EventAdminService {
                 request.endDate(),
                 request.location().trim(),
                 status,
-                organizer
+                organizer,
+                normalizeText(request.usageGuide()),
+                normalizeText(request.precautions())
         );
 
         List<EventAdminCreateImageRequest> createImages = request.images();
@@ -212,6 +214,8 @@ public class EventAdminServiceImpl implements EventAdminService {
                 event.getId(),
                 event.getTitle(),
                 event.getDescription(),
+                event.getUsageGuide(),
+                event.getPrecautions(),
                 event.getLocation(),
                 organizerName,
                 organizerEmail,
@@ -251,6 +255,12 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
         if (StringUtils.hasText(request.description())) {
             event.updateDescription(request.description().trim());
+        }
+        if (request.usageGuide() != null) {
+            event.updateUsageGuide(normalizeText(request.usageGuide()));
+        }
+        if (request.precautions() != null) {
+            event.updatePrecautions(normalizeText(request.precautions()));
         }
         if (StringUtils.hasText(request.location())) {
             event.updateLocation(request.location().trim());
@@ -360,6 +370,13 @@ public class EventAdminServiceImpl implements EventAdminService {
                 .collect(Collectors.toMap(EventCapacitySummary::eventId, EventCapacitySummary::totalCapacity));
     }
 
+    private String normalizeText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
+    }
+
     private Map<Long, Long> loadAppliedCountByEventIds(Collection<Event> events) {
         if (events.isEmpty()) {
             return Map.of();
@@ -435,6 +452,8 @@ public class EventAdminServiceImpl implements EventAdminService {
                 event.getId(),
                 event.getTitle(),
                 event.getDescription(),
+                event.getUsageGuide(),
+                event.getPrecautions(),
                 event.getLocation(),
                 organizerName,
                 organizerEmail,
