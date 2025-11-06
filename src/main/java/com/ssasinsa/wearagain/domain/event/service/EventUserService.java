@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.event.service;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventCancelRequest;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCancelResponse;
@@ -31,4 +32,6 @@ public interface EventUserService {
     );
 
     EventApplicationQrResponse issueApplicationQr(Long applicationId, Long userId);
+
+    EventApplicationDetailResponse getUserApplicationDetail(Long applicationId, Long userId);
 }

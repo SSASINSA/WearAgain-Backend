@@ -146,6 +146,40 @@ public final class EventExamples {
             }
             """;
 
+    public static final String USER_EVENT_APPLICATION_DETAIL_RESPONSE = """
+            {
+              "applicationId": 123,
+              "eventId": 45,
+              "eventTitle": "업사이클링 원데이 클래스",
+              "eventStatus": "OPEN",
+              "eventPeriod": {
+                "startDate": "2025-02-10",
+                "endDate": "2025-02-11"
+              },
+              "location": "서울시 마포구 연남동 223-14 2F",
+              "description": "'교환'과 '수선’으로 끝까지 입는 경험과 실천을 제공하는 지속 가능한 의생활 실험 공간",
+              "usageGuide": "현장에는 개인 텀블러를 지참해주세요.",
+              "precautions": "화재 예방을 위해 지정된 구역에서만 작업해주세요.",
+              "optionTrail": [
+                {
+                  "eventOptionId": 2001,
+                  "name": "11월 15일",
+                  "type": "DATE"
+                },
+                {
+                  "eventOptionId": 2002,
+                  "name": "오전 세션",
+                  "type": "TIME"
+                },
+                {
+                  "eventOptionId": 2003,
+                  "name": "A조",
+                  "type": "GROUP"
+                }
+              ]
+            }
+            """;
+
     public static final String ADMIN_EVENT_LIST_RESPONSE = """
             {
               "events": [

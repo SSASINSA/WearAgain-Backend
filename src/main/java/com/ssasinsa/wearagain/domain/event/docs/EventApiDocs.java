@@ -4,6 +4,7 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
@@ -184,6 +185,19 @@ public final class EventApiDocs {
             responseExample = EventExamples.USER_EVENT_APPLICATION_LIST_RESPONSE
     )
     public @interface ListUserApplications {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @ApiDoc(
+            summary = "사용자 신청 상세 조회",
+            description = """
+                    사용자가 자신의 신청 건 상세 정보를 조회합니다.
+                    신청자 본인이 아니면 403 에러를 반환하고, 존재하지 않는 신청은 404 에러를 반환합니다.
+                    """,
+            responseSchema = EventApplicationDetailResponse.class,
+            responseExample = EventExamples.USER_EVENT_APPLICATION_DETAIL_RESPONSE
+    )
+    public @interface GetUserApplicationDetail {
     }
 
     @ApiDoc(
