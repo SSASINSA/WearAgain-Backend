@@ -18,6 +18,14 @@ public record EventAdminUpdateRequest(
         @Size(min = 10, max = 2000)
         String description,
 
+        @Schema(description = "이용 방법 안내", example = "준비물은 개인 텀블러를 지참해주세요.")
+        @Size(max = 4000)
+        String usageGuide,
+
+        @Schema(description = "주의 사항", example = "화재 예방을 위해 지정된 구역에서만 작업해주세요.")
+        @Size(max = 4000)
+        String precautions,
+
         @Schema(description = "행사 위치", example = "서울시 마포구 연남동 223-14 2F")
         @Size(min = 1, max = 255)
         String location,

@@ -9,6 +9,8 @@ public final class EventExamples {
             {
               "title": "지속가능 패션 워크숍",
               "description": "웨어어게인과 함께하는 리폼 클래스",
+              "usageGuide": "준비물은 개인 텀블러를 지참해주세요.",
+              "precautions": "화재 예방을 위해 지정된 구역에서만 작업해주세요.",
               "location": "서울시 마포구 연남동 223-14 2F",
               "startDate": "2025-11-10",
               "endDate": "2025-11-30",
@@ -49,6 +51,8 @@ public final class EventExamples {
               "eventId": 100,
               "title": "지속가능 패션 워크숍",
               "description": "웨어어게인과 함께하는 리폼 클래스",
+              "usageGuide": "준비물은 개인 텀블러를 지참해주세요.",
+              "precautions": "화재 예방을 위해 지정된 구역에서만 작업해주세요.",
               "location": "서울시 마포구 연남동 223-14 2F",
               "organizerName": "운영자",
               "organizerContact": "admin@wearagain.kr",
@@ -113,6 +117,35 @@ public final class EventExamples {
             }
             """;
 
+    public static final String USER_EVENT_APPLICATION_LIST_RESPONSE = """
+            {
+              "items": [
+                {
+                  "applicationId": 123,
+                  "eventId": 45,
+                  "eventTitle": "업사이클링 원데이 클래스",
+                  "thumbnailUrl": "https://cdn.wearagain.kr/events/45/main.jpg",
+                  "description": "'교환'과 '수선’으로 끝까지 입는 경험과 실천을 제공하는 지속 가능한 의생활 실험 공간",
+                  "location": "서울시 마포구 연남동 223-14 2F",
+                  "eventPeriod": {
+                    "startDate": "2025-02-10",
+                    "endDate": "2025-02-11"
+                  },
+                  "eventStatus": "OPEN"
+                }
+              ],
+              "nextCursor": "MjAyNS0wMS0yOFQxMjozMDowMC4wMDBaOjEyMw==",
+              "hasNext": true
+            }
+            """;
+
+    public static final String USER_EVENT_APPLICATION_QR_RESPONSE = """
+            {
+              "qrToken": "3b3f6e3456d34a84b41ce8a3f7fb16b1",
+              "expiresIn": 600
+            }
+            """;
+
     public static final String ADMIN_EVENT_LIST_RESPONSE = """
             {
               "events": [
@@ -146,6 +179,8 @@ public final class EventExamples {
               "eventId": 101,
               "title": "지속가능 패션 워크숍",
               "description": "웨어어게인과 함께하는 리폼 클래스",
+              "usageGuide": "준비물은 개인 텀블러를 지참해주세요.",
+              "precautions": "화재 예방을 위해 지정된 구역에서만 작업해주세요.",
               "location": "서울시 마포구 연남동 223-14 2F",
               "organizerName": "운영자",
               "organizerContact": "admin@wearagain.kr",
@@ -211,6 +246,8 @@ public final class EventExamples {
             {
               "title": "지속가능 패션 워크숍 (업데이트)",
               "description": "워크숍 일정이 업데이트되었습니다.",
+              "usageGuide": "업데이트된 이용 방법",
+              "precautions": "안전 수칙을 다시 확인해주세요.",
               "location": "서울시 마포구 연남동 223-14 3F",
               "startDate": "2025-11-12",
               "endDate": "2025-12-01",

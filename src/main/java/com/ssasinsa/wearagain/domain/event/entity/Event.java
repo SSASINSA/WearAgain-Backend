@@ -76,6 +76,12 @@ public class Event extends BaseTimeEntity {
     @Default
     private List<EventImage> images = new ArrayList<>();
 
+    @Column(name = "usage_guide", columnDefinition = "TEXT")
+    private String usageGuide;
+
+    @Column(name = "precautions", columnDefinition = "TEXT")
+    private String precautions;
+
     @Column(name = "staff_code", length = 6)
     private String staffCode;
 
@@ -89,7 +95,9 @@ public class Event extends BaseTimeEntity {
             LocalDate endDate,
             String location,
             EventStatus status,
-            AdminUser organizerAdmin
+            AdminUser organizerAdmin,
+            String usageGuide,
+            String precautions
     ) {
         Event event = Event.builder()
                 .title(title)
@@ -99,6 +107,8 @@ public class Event extends BaseTimeEntity {
                 .endDate(endDate)
                 .location(location)
                 .status(status == null ? EventStatus.DRAFT : status)
+                .usageGuide(usageGuide)
+                .precautions(precautions)
                 .build();
 
         return event;
@@ -157,6 +167,14 @@ public class Event extends BaseTimeEntity {
 
     public void assignOrganizer(AdminUser organizerAdmin) {
         this.organizerAdmin = organizerAdmin;
+    }
+
+    public void updateUsageGuide(String usageGuide) {
+        this.usageGuide = usageGuide;
+    }
+
+    public void updatePrecautions(String precautions) {
+        this.precautions = precautions;
     }
 
     public void updateStaffCode(String staffCode, LocalDateTime issuedAt) {

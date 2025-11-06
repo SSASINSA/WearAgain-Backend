@@ -2,12 +2,14 @@ package com.ssasinsa.wearagain.domain.event.repository;
 
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
+import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Pageable;
 
 public interface EventApplicationRepository extends JpaRepository<EventApplication, Long> {
 
@@ -55,4 +57,36 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
             order by ea.createdAt asc
             """)
     List<EventApplication> findAllWithUserByEventId(@Param("eventId") Long eventId);
+
+    @Query("""
+            select ea.id from EventApplication ea
+            where ea.user.id = :userId
+            and ea.status in :statuses
+            and (:from is null or ea.createdAt >= :from)
+            and (:to is null or ea.createdAt < :to)
+            and (
+                :cursorCreatedAt is null
+                or ea.createdAt < :cursorCreatedAt
+                or (ea.createdAt = :cursorCreatedAt and ea.id < :cursorId)
+            )
+            order by ea.createdAt desc, ea.id desc
+            """)
+    List<Long> findApplicationIdsForUser(
+            @Param("userId") Long userId,
+            @Param("statuses") Collection<EventApplicationStatus> statuses,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            @Param("cursorCreatedAt") LocalDateTime cursorCreatedAt,
+            @Param("cursorId") Long cursorId,
+            Pageable pageable
+    );
+
+    @Query("""
+            select distinct ea from EventApplication ea
+            join fetch ea.event e
+            left join fetch e.images
+            left join fetch ea.eventOption eo
+            where ea.id in :ids
+            """)
+    List<EventApplication> findByIdsWithEventAndImages(@Param("ids") Collection<Long> ids);
 }

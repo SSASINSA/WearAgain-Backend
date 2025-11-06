@@ -181,6 +181,11 @@
 | E1024 | 403 Forbidden | 스태프 코드를 발급할 권한이 없습니다. |
 | E1025 | 404 Not Found | 스태프 코드가 발급되지 않았습니다. |
 
+## 이벤트 신청/체크인 업데이트
+- 행사 엔티티에 이용 방법(`usageGuide`), 주의 사항(`precautions`) 텍스트 필드를 추가해 관리자 생성·수정·상세 응답에서 노출합니다.
+- 사용자 신청 내역 리스트 응답은 행사 상태(`eventStatus`) 중심으로 단순화해 커서 기반 페이징과 함께 제공합니다.
+- 체크인 QR 발급 응답은 `qrToken`, `expiresIn`(초 단위)만 반환하며, 발급 시 `CheckinTokenUtil`이 사용자별 기존 토큰을 즉시 제거합니다.
+
 ## 관리자 행사 스태프 코드 API
 
 행사 담당 관리자(organizerAdmin)는 다음 API로 현장 스태프용 6자리 숫자 코드를 관리합니다. 코드는 DB `event.staff_code` 컬럼에 저장되며 만료 시간 없이 유지됩니다.
@@ -201,6 +206,15 @@
   - 코드가 없다면 `E1025` 에러가 발생합니다.
 
 발급·조회는 모두 관리자 인증 토큰이 필요하며, 응답의 `issuedAt`은 UTC 기준입니다.
+
+## 사용자 신청 내역 & 체크인 QR API
+
+- **GET** `/api/v1/events/applications`
+  - 사용자 자신의 신청 내역을 커서 기반으로 조회합니다.
+  - `status`, `from`, `to`, `cursor`, `limit` 파라미터를 지원하며 응답에 `items`, `nextCursor`, `hasNext`가 포함됩니다.
+- **POST** `/api/v1/events/applications/{applicationId}/qr`
+  - 신청이 `APPLIED` 상태인 경우 32자리 QR 토큰(UUID, 하이픈 없는 문자열)을 발급하고 Redis(`event:qr:{userId}`)에 10분 TTL로 저장합니다.
+  - 토큰 발급 시 기존 토큰은 삭제되며, 응답에는 `qrToken`, `expiresIn(600)`이 포함됩니다.
 
 ## 행사 API 개요
 
