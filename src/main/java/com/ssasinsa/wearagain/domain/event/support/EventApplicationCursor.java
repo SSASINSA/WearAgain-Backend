@@ -32,7 +32,7 @@ public final class EventApplicationCursor {
             LocalDateTime createdAt = LocalDateTime.parse(parts[0], FORMATTER);
             Long applicationId = Long.parseLong(parts[1]);
             return Optional.of(new Cursor(createdAt, applicationId));
-        } catch (IllegalArgumentException exception) {
+        } catch (IllegalArgumentException | java.time.DateTimeException exception) {
             throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
         }
     }
