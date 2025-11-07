@@ -3,7 +3,6 @@ package com.ssasinsa.wearagain.global.docs.config;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,9 +26,7 @@ public class SwaggerConfig {
                 .info(new Info()
                         .title("WearAgain API Docs")
                         .description(ErrorCodeDocs.DESCRIPTION)
-                        .version("v1.0.0"))
-                .addSecurityItem(new SecurityRequirement().addList(USER_JWT))
-                .addSecurityItem(new SecurityRequirement().addList(ADMIN_JWT));
+                        .version("v1.0.0"));
     }
 
     private SecurityScheme bearerScheme(String description) {

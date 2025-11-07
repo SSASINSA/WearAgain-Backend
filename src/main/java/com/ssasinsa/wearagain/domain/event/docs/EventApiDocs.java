@@ -14,6 +14,10 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventListResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
 
@@ -28,6 +32,8 @@ public final class EventApiDocs {
     public static final String USER_TAG_DESCRIPTION = "사용자용 행사 조회 및 신청 API";
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 행사 등록",
             description = """
@@ -42,6 +48,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "행사 이미지 업로드",
             description = """
@@ -55,6 +63,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 행사 목록 조회",
             description = """
@@ -69,6 +79,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 행사 상세 조회",
             description = """
@@ -82,6 +94,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 행사 수정",
             description = """
@@ -96,6 +110,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 행사 상태 변경",
             description = """
@@ -110,6 +126,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "행사 스태프 코드 발급",
             description = """
@@ -123,6 +141,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "행사 스태프 코드 조회",
             description = """
@@ -136,6 +156,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 행사 삭제(보관 처리)",
             description = """
@@ -147,6 +169,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "행사 신청 반려",
             description = """
@@ -161,6 +185,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "사용자 행사 목록 조회",
             description = """
@@ -175,6 +201,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "사용자 신청 내역 조회",
             description = """
@@ -189,6 +217,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "사용자 신청 상세 조회",
             description = """
@@ -201,6 +231,8 @@ public final class EventApiDocs {
     public @interface GetUserApplicationDetail {
     }
 
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "사용자 행사 상세 조회",
             description = """
@@ -214,6 +246,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "행사 신청",
             description = """
@@ -228,6 +262,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "행사 신청 취소",
             description = """
@@ -242,6 +278,8 @@ public final class EventApiDocs {
     }
 
     @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "체크인 QR 토큰 발급",
             description = """
@@ -254,6 +292,8 @@ public final class EventApiDocs {
     public @interface IssueApplicationQr {
     }
 
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "행사 스태프 체크인",
             description = """
