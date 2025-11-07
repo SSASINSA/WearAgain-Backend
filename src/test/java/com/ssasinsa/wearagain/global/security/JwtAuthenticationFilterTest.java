@@ -37,11 +37,14 @@ class JwtAuthenticationFilterTest {
     @Mock
     private JwtAuthenticationEntryPoint entryPoint;
     @Mock
+    private SecurityWhitelist securityWhitelist;
+    @Mock
     private User user;
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthenticationFilter(jwtTokenProvider, userRepository, entryPoint);
+        when(securityWhitelist.isPublic(any())).thenReturn(false);
+        filter = new JwtAuthenticationFilter(jwtTokenProvider, userRepository, entryPoint, securityWhitelist);
     }
 
     @AfterEach
