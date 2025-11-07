@@ -20,7 +20,8 @@ public class SecurityWhitelist {
             "/",
             "/swagger-ui.html",
             "/swagger-ui/**",
-            "/v3/api-docs/**"
+            "/v3/api-docs/**",
+            "/api/v1/staff/"
     };
 
     private final RequestMatcher publicRequestMatcher;
