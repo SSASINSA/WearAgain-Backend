@@ -4,6 +4,7 @@ import com.ssasinsa.wearagain.domain.auth.infrastructure.security.AdminJwtAuthen
 import com.ssasinsa.wearagain.domain.auth.infrastructure.security.AdminJwtAuthenticationFilter;
 import com.ssasinsa.wearagain.global.security.JwtAuthenticationEntryPoint;
 import com.ssasinsa.wearagain.global.security.JwtAuthenticationFilter;
+import com.ssasinsa.wearagain.global.security.SecurityWhitelist;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -29,23 +30,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private static final String[] PUBLIC_MATCHERS = {
-            "/api/v1/auth/**",
-            "/api/v1/sample/public",
-            "/resources/**",
-            "/static/**",
-            "/public/**",
-            "/*.html",
-            "/",
-            "/swagger-ui.html",
-            "/swagger-ui/**",
-            "/v3/api-docs/**"
-    };
-
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
     private final AdminJwtAuthenticationFilter adminJwtAuthenticationFilter;
     private final AdminJwtAuthenticationEntryPoint adminJwtAuthenticationEntryPoint;
+    private final SecurityWhitelist securityWhitelist;
 
     @Bean
     @Order(1)
@@ -87,7 +76,7 @@ public class SecurityConfig {
                 .oauth2Login(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers(PUBLIC_MATCHERS).permitAll()
+                        .requestMatchers(securityWhitelist.getPublicMatchers()).permitAll()
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(configurer -> configurer.authenticationEntryPoint(jwtAuthenticationEntryPoint))
