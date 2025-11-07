@@ -14,7 +14,8 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class CheckinTokenUtil {
 
-    private static final String KEY_PREFIX = "event:qr:";
+    private static final String USER_KEY_PREFIX = "event:qr:user:";
+    private static final String TOKEN_KEY_PREFIX = "event:qr:token:";
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -24,11 +25,15 @@ public class CheckinTokenUtil {
     }
 
     public void saveToken(Long userId, CheckinTokenPayload payload, Duration ttl) {
-        String key = key(userId);
-        redisTemplate.delete(key);
+        String userKey = userKey(userId);
+        String previousToken = redisTemplate.opsForValue().get(userKey);
+        if (previousToken != null) {
+            redisTemplate.delete(tokenKey(previousToken));
+        }
         try {
             String json = objectMapper.writeValueAsString(payload);
-            redisTemplate.opsForValue().set(key, json, ttl);
+            redisTemplate.opsForValue().set(tokenKey(payload.token()), json, ttl);
+            redisTemplate.opsForValue().set(userKey, payload.token(), ttl);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to serialize check-in token payload", exception);
         } catch (DataAccessException exception) {
@@ -36,9 +41,8 @@ public class CheckinTokenUtil {
         }
     }
 
-    public Optional<CheckinTokenPayload> getToken(Long userId) {
-        String key = key(userId);
-        String json = redisTemplate.opsForValue().get(key);
+    public Optional<CheckinTokenPayload> getTokenByToken(String token) {
+        String json = redisTemplate.opsForValue().get(tokenKey(token));
         if (json == null) {
             return Optional.empty();
         }
@@ -51,10 +55,19 @@ public class CheckinTokenUtil {
     }
 
     public void deleteToken(Long userId) {
-        redisTemplate.delete(key(userId));
+        String userKey = userKey(userId);
+        String token = redisTemplate.opsForValue().get(userKey);
+        if (token != null) {
+            redisTemplate.delete(tokenKey(token));
+        }
+        redisTemplate.delete(userKey);
     }
 
-    private String key(Long userId) {
-        return KEY_PREFIX + userId;
+    private String userKey(Long userId) {
+        return USER_KEY_PREFIX + userId;
+    }
+
+    private String tokenKey(String token) {
+        return TOKEN_KEY_PREFIX + token;
     }
 }

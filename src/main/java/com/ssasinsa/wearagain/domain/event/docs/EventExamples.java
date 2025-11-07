@@ -146,6 +146,23 @@ public final class EventExamples {
             }
             """;
 
+    public static final String STAFF_EVENT_CHECK_IN_REQUEST = """
+            {
+              "qrToken": "3b3f6e3456d34a84b41ce8a3f7fb16b1",
+              "code": "023941"
+            }
+            """;
+
+    public static final String STAFF_EVENT_CHECK_IN_RESPONSE = """
+            {
+              "applicationId": 123,
+              "status": "CHECKED_IN",
+              "checkedInAt": "2025-02-10T09:05:12Z",
+              "userDisplayName": "홍길동",
+              "eventTitle": "업사이클링 원데이 클래스"
+            }
+            """;
+
     public static final String USER_EVENT_APPLICATION_DETAIL_RESPONSE = """
             {
               "applicationId": 123,
