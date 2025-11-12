@@ -58,6 +58,14 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     @Override
     @Transactional
     public AdminAuthTokenResponse login(AdminLoginRequest request) {
+        boolean pendingSignupExists = adminSignupRequestRepository.existsByEmailAndStatusIn(
+                request.email(),
+                EnumSet.of(AdminSignupRequestStatus.PENDING)
+        );
+        if (pendingSignupExists) {
+            throw new AdminAuthException(AdminAuthErrorCode.SIGNUP_PENDING);
+        }
+
         AdminUser admin = adminUserRepository.findByEmail(request.email())
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_CREDENTIAL));
 
@@ -88,34 +96,34 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     @Override
     @Transactional
     public AdminAuthTokenResponse refresh(AdminTokenRefreshRequest request) {
-        if (!StringUtils.hasText(request.refreshToken())) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
-        }
+         if (!StringUtils.hasText(request.refreshToken())) {
+             throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
+         }
 
-        RefreshTokenClaims claims;
-        try {
+         RefreshTokenClaims claims;
+         try {
             claims = adminJwtTokenProvider.parseRefreshToken(request.refreshToken());
-        } catch (JwtException | IllegalArgumentException exception) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT, exception);
-        }
+         } catch (JwtException | IllegalArgumentException exception) {
+            throw new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID, exception);
+         }
 
-        Long adminId = claims.adminId();
-        UUID tokenId = claims.tokenId();
+         Long adminId = claims.adminId();
+         UUID tokenId = claims.tokenId();
 
-        String refreshKey = adminRefreshTokenKeyManager.adminRefreshTokenKey(adminId);
-        String storedToken = redisTemplate.opsForValue().get(refreshKey);
-        if (!StringUtils.hasText(storedToken) || !Objects.equals(storedToken, request.refreshToken())) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
-        }
+         String refreshKey = adminRefreshTokenKeyManager.adminRefreshTokenKey(adminId);
+         String storedToken = redisTemplate.opsForValue().get(refreshKey);
+         if (!StringUtils.hasText(storedToken) || !Objects.equals(storedToken, request.refreshToken())) {
+            throw new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID);
+         }
 
-        String rotationKey = adminRefreshTokenKeyManager.rotationDetectorKey(tokenId.toString());
-        Boolean deleted = redisTemplate.delete(rotationKey);
-        if (!Boolean.TRUE.equals(deleted)) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
-        }
+         String rotationKey = adminRefreshTokenKeyManager.rotationDetectorKey(tokenId.toString());
+         Boolean deleted = redisTemplate.delete(rotationKey);
+         if (!Boolean.TRUE.equals(deleted)) {
+            throw new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID);
+         }
 
         AdminUser admin = adminUserRepository.findById(adminId)
-                .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT));
+                .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID));
 
         if (admin.getStatus() != AdminStatus.ACTIVE) {
             throw new AdminAuthException(AdminAuthErrorCode.ACCOUNT_NOT_APPROVED);
@@ -265,7 +273,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                 EnumSet.of(AdminSignupRequestStatus.PENDING)
         );
         if (pendingExists) {
-            throw new AdminAuthException(AdminAuthErrorCode.REQUEST_ALREADY_PROCESSED);
+            throw new AdminAuthException(AdminAuthErrorCode.SIGNUP_ALREADY_REQUESTED);
         }
 
         Optional<AdminSignupRequest> latestRequest = adminSignupRequestRepository.findTopByEmailOrderByCreatedAtDesc(request.email());

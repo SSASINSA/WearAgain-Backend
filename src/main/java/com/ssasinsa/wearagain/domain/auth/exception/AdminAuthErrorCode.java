@@ -12,7 +12,10 @@ public enum AdminAuthErrorCode implements ErrorCode {
     EMAIL_ALREADY_REGISTERED("AD1006", "이미 등록된 이메일입니다.", HttpStatus.CONFLICT.value()),
     SIGNUP_REQUEST_EXPIRED("AD1007", "가입 신청이 만료되었습니다.", HttpStatus.GONE.value()),
     AUTH_PROCESSING_ERROR("AD1008", "관리자 인증 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()),
-    TOKEN_INVALID("AD1009", "관리자 인증 토큰이 유효하지 않습니다.", HttpStatus.UNAUTHORIZED.value());
+    TOKEN_INVALID("AD1009", "관리자 인증 토큰이 유효하지 않습니다.", HttpStatus.UNAUTHORIZED.value()),
+    SIGNUP_PENDING("AD1010", "아직 가입 신청이 승인되지 않았습니다. 관리자에게 문의하세요.", HttpStatus.FORBIDDEN.value()),
+    SIGNUP_ALREADY_REQUESTED("AD1011", "이미 가입 신청된 계정입니다.", HttpStatus.CONFLICT.value()),
+    REFRESH_TOKEN_INVALID("AD1012", "리프레시 토큰이 유효하지 않거나 만료되었습니다.", HttpStatus.UNAUTHORIZED.value());
 
     private final String code;
     private final String message;
