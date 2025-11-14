@@ -2,11 +2,17 @@ package com.ssasinsa.wearagain.domain.event.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
@@ -21,6 +27,8 @@ import com.ssasinsa.wearagain.domain.event.support.CheckinTokenUtil;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -178,5 +186,95 @@ class EventUserServiceImplTest {
                 .isInstanceOf(EventException.class)
                 .extracting(throwable -> ((EventException) throwable).getErrorCode())
                 .isEqualTo(EventErrorCode.EVENT_APPLICATION_NOT_FOUND);
+    }
+
+    @Test
+    void should_include_user_application_summary_in_event_detail() {
+        // Given
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", 10L);
+
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.of(2025, 2, 10),
+                LocalDate.of(2025, 2, 11),
+                "서울시 마포구",
+                EventStatus.OPEN,
+                admin,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(event, "id", 101L);
+
+        EventOption dateOption = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        ReflectionTestUtils.setField(dateOption, "id", 2001L);
+        EventOption timeOption = EventOption.create(event, dateOption, "오전 세션", "TIME", 1, null);
+        ReflectionTestUtils.setField(timeOption, "id", 2002L);
+        EventOption groupOption = EventOption.create(event, timeOption, "A조", "GROUP", 1, 10);
+        ReflectionTestUtils.setField(groupOption, "id", 2003L);
+
+        EventApplication application = EventApplication.create(
+                User.create("user@wearagain.kr", "사용자", null),
+                event,
+                groupOption,
+                EventApplicationStatus.APPLIED,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(application, "id", 5001L);
+        LocalDateTime appliedAt = LocalDateTime.of(2025, 2, 1, 10, 0);
+        ReflectionTestUtils.setField(application, "createdAt", appliedAt);
+
+        when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
+        when(eventApplicationRepository.countActiveApplicationsByOptionIds(anySet(), any()))
+                .thenReturn(List.of());
+        when(eventApplicationRepository.findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(1L, 101L))
+                .thenReturn(Optional.of(application));
+
+        // When
+        EventDetailResponse response = eventUserService.getEventDetail(101L, 1L);
+
+        // Then
+        assertThat(response.userApplication()).isNotNull();
+        assertThat(response.userApplication().applicationId()).isEqualTo(5001L);
+        assertThat(response.userApplication().status()).isEqualTo("APPLIED");
+        assertThat(response.userApplication().appliedAt()).isEqualTo(appliedAt);
+        assertThat(response.userApplication().optionTrail())
+                .extracting(EventDetailResponse.UserApplicationSummary.OptionTrailResponse::eventOptionId)
+                .containsExactly(2001L, 2002L, 2003L);
+    }
+
+    @Test
+    void should_skip_application_lookup_when_user_is_anonymous() {
+        // Given
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", 10L);
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.of(2025, 2, 10),
+                LocalDate.of(2025, 2, 11),
+                "서울시 마포구",
+                EventStatus.OPEN,
+                admin,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(event, "id", 101L);
+        EventOption option = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        ReflectionTestUtils.setField(option, "id", 2001L);
+
+        when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
+        when(eventApplicationRepository.countActiveApplicationsByOptionIds(anySet(), any()))
+                .thenReturn(List.of());
+
+        // When
+        EventDetailResponse response = eventUserService.getEventDetail(101L, null);
+
+        // Then
+        assertThat(response.userApplication()).isNull();
+        verify(eventApplicationRepository, never())
+                .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(anyLong(), anyLong());
     }
 }
