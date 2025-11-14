@@ -30,8 +30,8 @@ import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCoun
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
-import com.ssasinsa.wearagain.domain.event.support.CheckinTokenUtil;
 import com.ssasinsa.wearagain.domain.event.support.EventApplicationCursor;
+import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.Duration;
@@ -53,6 +53,7 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -75,7 +76,8 @@ public class EventUserServiceImpl implements EventUserService {
     private final EventOptionRepository eventOptionRepository;
     private final EventApplicationRepository eventApplicationRepository;
     private final UserRepository userRepository;
-    private final CheckinTokenUtil checkinTokenUtil;
+    @Qualifier("eventQrTokenStore")
+    private final QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
 
     @Override
     @Transactional(readOnly = true)
@@ -307,12 +309,12 @@ public class EventUserServiceImpl implements EventUserService {
             throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
         }
 
-        String token = checkinTokenUtil.generateToken();
+        String token = eventQrTokenStore.generateToken();
         OffsetDateTime issuedAt = OffsetDateTime.now(ZoneOffset.UTC);
         OffsetDateTime expiresAt = issuedAt.plusSeconds(QR_TOKEN_TTL.getSeconds());
 
         CheckinTokenPayload payload = new CheckinTokenPayload(userId, application.getId(), token, issuedAt, expiresAt);
-        checkinTokenUtil.saveToken(userId, payload, QR_TOKEN_TTL);
+        eventQrTokenStore.saveToken(userId, payload, QR_TOKEN_TTL);
 
         return new EventApplicationQrResponse(token, (int) QR_TOKEN_TTL.getSeconds());
     }

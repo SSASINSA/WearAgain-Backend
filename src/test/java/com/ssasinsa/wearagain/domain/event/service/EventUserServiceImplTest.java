@@ -23,7 +23,8 @@ import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
-import com.ssasinsa.wearagain.domain.event.support.CheckinTokenUtil;
+import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
+import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.LocalDate;
@@ -53,7 +54,7 @@ class EventUserServiceImplTest {
     private com.ssasinsa.wearagain.domain.auth.repository.UserRepository userRepository;
 
     @Mock
-    private CheckinTokenUtil checkinTokenUtil;
+    private QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
 
     private EventUserServiceImpl eventUserService;
 
@@ -64,7 +65,7 @@ class EventUserServiceImplTest {
                 eventOptionRepository,
                 eventApplicationRepository,
                 userRepository,
-                checkinTokenUtil
+                eventQrTokenStore
         );
     }
 

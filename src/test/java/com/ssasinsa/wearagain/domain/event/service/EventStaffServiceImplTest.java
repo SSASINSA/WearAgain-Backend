@@ -2,7 +2,6 @@ package com.ssasinsa.wearagain.domain.event.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,7 +19,7 @@ import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
-import com.ssasinsa.wearagain.domain.event.support.CheckinTokenUtil;
+import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -46,13 +45,13 @@ class EventStaffServiceImplTest {
     private EventApplicationRepository eventApplicationRepository;
 
     @Mock
-    private CheckinTokenUtil checkinTokenUtil;
+    private QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
 
     private EventStaffService eventStaffService;
 
     @BeforeEach
     void setUp() {
-        eventStaffService = new EventStaffServiceImpl(eventRepository, eventApplicationRepository, checkinTokenUtil);
+        eventStaffService = new EventStaffServiceImpl(eventRepository, eventApplicationRepository, eventQrTokenStore);
     }
 
     @Test
@@ -101,9 +100,8 @@ class EventStaffServiceImplTest {
         );
 
         when(eventRepository.findByStaffCode(STAFF_CODE)).thenReturn(Optional.of(event));
-        when(checkinTokenUtil.getTokenByToken(QR_TOKEN)).thenReturn(Optional.of(payload));
+        when(eventQrTokenStore.getTokenByToken(QR_TOKEN)).thenReturn(Optional.of(payload));
         when(eventApplicationRepository.findById(application.getId())).thenReturn(Optional.of(application));
-        doNothing().when(checkinTokenUtil).deleteToken(user.getId());
 
         // When
         EventStaffCheckInResponse response = eventStaffService.checkIn(request);
@@ -114,7 +112,7 @@ class EventStaffServiceImplTest {
         assertThat(response.userDisplayName()).isEqualTo(user.getDisplayName());
         assertThat(application.getStatus()).isEqualTo(EventApplicationStatus.CHECKED_IN);
         assertThat(application.getQrToken()).isNull();
-        verify(checkinTokenUtil).deleteToken(user.getId());
+        verify(eventQrTokenStore).deleteToken(user.getId());
     }
 
     @Test
@@ -169,7 +167,7 @@ class EventStaffServiceImplTest {
         EventStaffCheckInRequest request = new EventStaffCheckInRequest(QR_TOKEN, STAFF_CODE);
 
         when(eventRepository.findByStaffCode(STAFF_CODE)).thenReturn(Optional.of(event));
-        when(checkinTokenUtil.getTokenByToken(QR_TOKEN)).thenReturn(Optional.empty());
+        when(eventQrTokenStore.getTokenByToken(QR_TOKEN)).thenReturn(Optional.empty());
 
         // When & Then
         assertThatThrownBy(() -> eventStaffService.checkIn(request))
@@ -224,7 +222,7 @@ class EventStaffServiceImplTest {
         );
 
         when(eventRepository.findByStaffCode(STAFF_CODE)).thenReturn(Optional.of(event));
-        when(checkinTokenUtil.getTokenByToken(QR_TOKEN)).thenReturn(Optional.of(payload));
+        when(eventQrTokenStore.getTokenByToken(QR_TOKEN)).thenReturn(Optional.of(payload));
         when(eventApplicationRepository.findById(application.getId())).thenReturn(Optional.of(application));
 
         // When & Then
