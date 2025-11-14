@@ -113,6 +113,7 @@ class EventUserServiceImplTest {
         assertThat(response.applicationId()).isEqualTo(applicationId);
         assertThat(response.eventId()).isEqualTo(event.getId());
         assertThat(response.eventTitle()).isEqualTo(event.getTitle());
+        assertThat(response.applicationStatus()).isEqualTo(application.getStatus().name());
         assertThat(response.optionTrail())
                 .extracting(EventApplicationDetailResponse.OptionTrailResponse::eventOptionId)
                 .containsExactly(rootOption.getId(), childOption.getId(), leafOption.getId());

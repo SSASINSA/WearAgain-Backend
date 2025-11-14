@@ -278,6 +278,7 @@ public class EventUserServiceImpl implements EventUserService {
                 event.getId(),
                 event.getTitle(),
                 event.getStatus().name(),
+                application.getStatus().name(),
                 period,
                 event.getLocation(),
                 event.getDescription(),
