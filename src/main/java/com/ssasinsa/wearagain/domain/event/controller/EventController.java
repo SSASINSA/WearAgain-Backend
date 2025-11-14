@@ -59,7 +59,7 @@ public class EventController {
             @PathVariable Long eventId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        EventDetailResponse response = eventUserService.getEventDetail(eventId, user.userId());
+        EventDetailResponse response = eventUserService.getEventDetail(eventId, user != null ? user.userId() : null);
         return ResponseEntity.ok(response);
     }
 
