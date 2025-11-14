@@ -18,6 +18,9 @@ public record EventApplicationDetailResponse(
         @Schema(description = "행사 상태", example = "OPEN")
         String eventStatus,
 
+        @Schema(description = "신청 상태", example = "APPLIED")
+        String applicationStatus,
+
         @Schema(description = "행사 기간 정보")
         EventPeriod eventPeriod,
 

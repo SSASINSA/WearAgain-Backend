@@ -169,6 +169,7 @@ public final class EventExamples {
               "eventId": 45,
               "eventTitle": "업사이클링 원데이 클래스",
               "eventStatus": "OPEN",
+              "applicationStatus": "APPLIED",
               "eventPeriod": {
                 "startDate": "2025-02-10",
                 "endDate": "2025-02-11"
