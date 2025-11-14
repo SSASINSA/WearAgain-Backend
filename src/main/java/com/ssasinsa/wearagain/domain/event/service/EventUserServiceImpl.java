@@ -51,6 +51,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
+import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -103,7 +104,7 @@ public class EventUserServiceImpl implements EventUserService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventDetailResponse getEventDetail(Long eventId) {
+    public EventDetailResponse getEventDetail(Long eventId, Long userId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
@@ -120,7 +121,15 @@ public class EventUserServiceImpl implements EventUserService {
         Set<Long> optionIds = collectOptionIds(rootOptions);
         Map<Long, Long> counts = loadApplicationCounts(optionIds);
 
-        return mapToDetail(event, rootOptions, counts);
+        EventDetailResponse.UserApplicationSummary userApplication = null;
+        if (userId != null) {
+            userApplication = eventApplicationRepository
+                    .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(userId, eventId)
+                    .map(this::mapToUserApplicationSummary)
+                    .orElse(null);
+        }
+
+        return mapToDetail(event, rootOptions, counts, userApplication);
     }
 
     @Override
@@ -353,6 +362,14 @@ public class EventUserServiceImpl implements EventUserService {
     }
 
     private List<EventApplicationDetailResponse.OptionTrailResponse> buildOptionTrail(EventOption option) {
+        return buildOptionTrail(option, step -> new EventApplicationDetailResponse.OptionTrailResponse(
+                step.getId(),
+                step.getName(),
+                step.getType()
+        ));
+    }
+
+    private <T> List<T> buildOptionTrail(EventOption option, Function<EventOption, T> mapper) {
         if (option == null) {
             return List.of();
         }
@@ -362,14 +379,9 @@ public class EventUserServiceImpl implements EventUserService {
             stack.push(current);
             current = current.getParentOption();
         }
-        List<EventApplicationDetailResponse.OptionTrailResponse> trail = new ArrayList<>(stack.size());
+        List<T> trail = new ArrayList<>(stack.size());
         while (!stack.isEmpty()) {
-            EventOption step = stack.pop();
-            trail.add(new EventApplicationDetailResponse.OptionTrailResponse(
-                    step.getId(),
-                    step.getName(),
-                    step.getType()
-            ));
+            trail.add(mapper.apply(stack.pop()));
         }
         return List.copyOf(trail);
     }
@@ -418,7 +430,12 @@ public class EventUserServiceImpl implements EventUserService {
         );
     }
 
-    private EventDetailResponse mapToDetail(Event event, List<EventOption> rootOptions, Map<Long, Long> counts) {
+    private EventDetailResponse mapToDetail(
+            Event event,
+            List<EventOption> rootOptions,
+            Map<Long, Long> counts,
+            EventDetailResponse.UserApplicationSummary userApplication
+    ) {
         List<EventDetailImageResponse> images = event.getImages()
                 .stream()
                 .sorted(IMAGE_ORDER)
@@ -449,7 +466,8 @@ public class EventUserServiceImpl implements EventUserService {
                 event.getEndDate(),
                 event.getStatus().name(),
                 images,
-                options
+                options,
+                userApplication
         );
     }
 
@@ -475,6 +493,23 @@ public class EventUserServiceImpl implements EventUserService {
                 remaining,
                 children
         );
+    }
+
+    private EventDetailResponse.UserApplicationSummary mapToUserApplicationSummary(EventApplication application) {
+        return new EventDetailResponse.UserApplicationSummary(
+                application.getId(),
+                application.getStatus().name(),
+                application.getCreatedAt(),
+                buildUserApplicationTrail(application.getEventOption())
+        );
+    }
+
+    private List<EventDetailResponse.UserApplicationSummary.OptionTrailResponse> buildUserApplicationTrail(EventOption option) {
+        return buildOptionTrail(option, step -> new EventDetailResponse.UserApplicationSummary.OptionTrailResponse(
+                step.getId(),
+                step.getName(),
+                step.getType()
+        ));
     }
 
     private Integer safeToInteger(long value) {

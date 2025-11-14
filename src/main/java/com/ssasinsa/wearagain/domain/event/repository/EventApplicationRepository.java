@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface EventApplicationRepository extends JpaRepository<EventApplication, Long> {
 
@@ -89,4 +90,11 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
             where ea.id in :ids
             """)
     List<EventApplication> findByIdsWithEventAndImages(@Param("ids") Collection<Long> ids);
+
+    @EntityGraph(attributePaths = {
+            "eventOption",
+            "eventOption.parentOption",
+            "eventOption.parentOption.parentOption"
+    })
+    Optional<EventApplication> findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(Long userId, Long eventId);
 }

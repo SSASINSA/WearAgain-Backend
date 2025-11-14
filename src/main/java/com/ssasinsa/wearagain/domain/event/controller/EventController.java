@@ -55,8 +55,11 @@ public class EventController {
 
     @EventApiDocs.GetEventDetail
     @GetMapping("/{eventId}")
-    public ResponseEntity<EventDetailResponse> getEventDetail(@PathVariable Long eventId) {
-        EventDetailResponse response = eventUserService.getEventDetail(eventId);
+    public ResponseEntity<EventDetailResponse> getEventDetail(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        EventDetailResponse response = eventUserService.getEventDetail(eventId, user.userId());
         return ResponseEntity.ok(response);
     }
 

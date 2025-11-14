@@ -16,7 +16,7 @@ public interface EventUserService {
 
     EventListResponse getEvents(String status, String cursor, int size);
 
-    EventDetailResponse getEventDetail(Long eventId);
+    EventDetailResponse getEventDetail(Long eventId, Long userId);
 
     EventApplyResponse apply(Long eventId, EventApplyRequest request, Long userId);
 
