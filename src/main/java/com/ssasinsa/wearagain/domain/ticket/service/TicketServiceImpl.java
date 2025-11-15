@@ -34,9 +34,6 @@ public class TicketServiceImpl implements TicketService {
                 .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
 
         int ticketCount = user.getTicketBalance();
-        if (ticketCount <= 0) {
-            throw new TicketException(TicketErrorCode.TICKET_BALANCE_EMPTY);
-        }
 
         Optional<TicketQrTokenPayload> existingPayload = getExistingPayload(userId);
         if (existingPayload.isPresent()) {

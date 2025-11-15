@@ -21,7 +21,7 @@ public final class TicketApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "교환 티켓 QR 발급",
-            description = "사용자가 보유한 교환 티켓 잔여 수량과 QR 토큰을 반환합니다. TTL 15분, TTL 30초 이상 남은 경우 기존 토큰을 재사용합니다.",
+            description = "사용자가 보유한 교환 티켓 잔여 수량과 QR 토큰을 반환합니다. TTL 15분, TTL 30초 이상 남은 경우 기존 토큰을 재사용하며, 잔여량이 0이어도 QR은 발급됩니다.",
             responseSchema = TicketQrResponse.class,
             responseExample = TicketExamples.USER_TICKET_QR_RESPONSE
     )

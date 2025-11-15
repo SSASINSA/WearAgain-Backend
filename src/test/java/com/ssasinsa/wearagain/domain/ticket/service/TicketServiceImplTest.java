@@ -92,18 +92,23 @@ class TicketServiceImplTest {
     }
 
     @Test
-    void should_throw_when_ticket_balance_is_zero() {
+    void should_issue_token_even_when_ticket_balance_is_zero() {
         // Given
         User user = User.create("user@wearagain.kr", "사용자", null);
         ReflectionTestUtils.setField(user, "id", 1L);
         ReflectionTestUtils.setField(user, "ticketBalance", 0);
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
 
-        // When & Then
-        assertThatThrownBy(() -> ticketService.getTicketQr(1L))
-                .isInstanceOf(TicketException.class)
-                .extracting(throwable -> ((TicketException) throwable).getErrorCode())
-                .isEqualTo(TicketErrorCode.TICKET_BALANCE_EMPTY);
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(ticketQrTokenStore.getTokenByUser(1L)).thenReturn(Optional.empty());
+        when(ticketQrTokenStore.generateToken()).thenReturn("new-token");
+
+        // When
+        TicketQrResponse response = ticketService.getTicketQr(1L);
+
+        // Then
+        assertThat(response.ticketCount()).isZero();
+        assertThat(response.ticketToken()).isEqualTo("new-token");
+        assertThat(response.ticketTokenExpiresIn()).isEqualTo(900);
     }
 
     @Test
