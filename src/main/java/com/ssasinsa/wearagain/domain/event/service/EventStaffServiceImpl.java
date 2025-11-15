@@ -10,7 +10,7 @@ import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
-import com.ssasinsa.wearagain.domain.event.support.CheckinTokenUtil;
+import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Objects;
@@ -26,7 +26,7 @@ public class EventStaffServiceImpl implements EventStaffService {
 
     private final EventRepository eventRepository;
     private final EventApplicationRepository eventApplicationRepository;
-    private final CheckinTokenUtil checkinTokenUtil;
+    private final QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
 
     @Override
     public EventStaffCheckInResponse checkIn(EventStaffCheckInRequest request) {
@@ -40,7 +40,7 @@ public class EventStaffServiceImpl implements EventStaffService {
             throw new EventException(EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
         }
 
-        CheckinTokenPayload payload = checkinTokenUtil.getTokenByToken(qrToken)
+        CheckinTokenPayload payload = eventQrTokenStore.getTokenByToken(qrToken)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_CHECKIN_TOKEN_NOT_FOUND));
 
         EventApplication application = eventApplicationRepository.findById(payload.applicationId())
@@ -60,7 +60,7 @@ public class EventStaffServiceImpl implements EventStaffService {
 
         OffsetDateTime checkedInAt = OffsetDateTime.now(ZoneOffset.UTC);
         application.checkIn(checkedInAt.toLocalDateTime());
-        checkinTokenUtil.deleteToken(payload.userId());
+        eventQrTokenStore.deleteToken(payload.userId());
 
         return new EventStaffCheckInResponse(
                 application.getId(),
