@@ -53,7 +53,6 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -76,7 +75,6 @@ public class EventUserServiceImpl implements EventUserService {
     private final EventOptionRepository eventOptionRepository;
     private final EventApplicationRepository eventApplicationRepository;
     private final UserRepository userRepository;
-    @Qualifier("eventQrTokenStore")
     private final QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
 
     @Override

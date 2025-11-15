@@ -14,7 +14,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.Optional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +26,6 @@ public class TicketServiceImpl implements TicketService {
     private static final long MIN_REUSE_TTL_SECONDS = 30L;
 
     private final UserRepository userRepository;
-    @Qualifier("ticketQrTokenStore")
     private final QrTokenStore<TicketQrTokenPayload> ticketQrTokenStore;
 
     @Override
