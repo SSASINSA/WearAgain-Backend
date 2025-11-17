@@ -100,7 +100,7 @@ public class TicketStaffServiceImpl implements TicketStaffService {
             return ticketQrTokenStore.getTokenByToken(qrToken)
                     .orElseThrow(() -> new TicketException(TicketErrorCode.TICKET_QR_TOKEN_NOT_FOUND));
         } catch (IllegalStateException exception) {
-            throw new TicketException(TicketErrorCode.TICKET_BALANCE_PROCESSING_FAILED, exception);
+            throw new TicketException(TicketErrorCode.TICKET_QR_TOKEN_STORE_FAILED, exception);
         }
     }
 
@@ -108,7 +108,7 @@ public class TicketStaffServiceImpl implements TicketStaffService {
         try {
             ticketQrTokenStore.deleteToken(userId);
         } catch (IllegalStateException exception) {
-            throw new TicketException(TicketErrorCode.TICKET_BALANCE_PROCESSING_FAILED, exception);
+            throw new TicketException(TicketErrorCode.TICKET_QR_TOKEN_STORE_FAILED, exception);
         }
     }
 
