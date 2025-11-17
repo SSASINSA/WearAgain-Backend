@@ -11,7 +11,7 @@ public record TicketUseResponse(
         @Schema(description = "차감 후 티켓 잔여량", example = "2")
         int ticketCountAfter,
 
-        @Schema(description = "체크인 시각(UTC)", example = "2025-02-10T09:05:12Z")
-        OffsetDateTime checkedInAt
+        @Schema(description = "사용 처리 시각(UTC)", example = "2025-02-10T09:05:12Z")
+        OffsetDateTime usedAt
 ) {
 }

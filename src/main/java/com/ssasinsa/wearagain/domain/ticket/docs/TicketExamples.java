@@ -25,7 +25,7 @@ public class TicketExamples {
             {
               \"ticketCountBefore\": 3,
               \"ticketCountAfter\": 2,
-              \"checkedInAt\": \"2025-02-10T09:05:12Z\"
+              \"usedAt\": \"2025-02-10T09:05:12Z\"
             }
             """;
 

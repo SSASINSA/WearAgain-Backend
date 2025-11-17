@@ -60,9 +60,9 @@ public class TicketStaffServiceImpl implements TicketStaffService {
         );
 
         deleteToken(payload.userId());
-        OffsetDateTime checkedInAt = OffsetDateTime.now(ZoneOffset.UTC);
+        OffsetDateTime usedAt = OffsetDateTime.now(ZoneOffset.UTC);
         log.info("Ticket used by staff code {} for user {}", code, payload.userId());
-        return new TicketUseResponse(result.ticketCountBefore(), result.ticketCountAfter(), checkedInAt);
+        return new TicketUseResponse(result.ticketCountBefore(), result.ticketCountAfter(), usedAt);
     }
 
     @Override
