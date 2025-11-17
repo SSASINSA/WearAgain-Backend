@@ -163,6 +163,30 @@ public final class EventExamples {
             }
             """;
 
+    public static final String STAFF_CODE_VERIFY_REQUEST = """
+            {
+              "code": "023941"
+            }
+            """;
+
+    public static final String STAFF_CODE_VERIFY_RESPONSE = """
+            {
+              "valid": true,
+              "event": {
+                "eventId": 123,
+                "title": "업사이클링 체험전",
+                "status": "PUBLISHED",
+                "startDate": "2025-03-01",
+                "endDate": "2025-03-02",
+                "location": "서울 성수동 123-4",
+                "usageGuide": "입장 시 QR 확인",
+                "precautions": "음식물 반입 금지",
+                "staffCodeIssuedAt": "2025-02-25T01:20:00Z",
+                "organizerName": "홍길동"
+              }
+            }
+            """;
+
     public static final String USER_EVENT_APPLICATION_DETAIL_RESPONSE = """
             {
               "applicationId": 123,

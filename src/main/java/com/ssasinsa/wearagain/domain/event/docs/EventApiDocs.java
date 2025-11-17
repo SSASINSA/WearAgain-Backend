@@ -20,6 +20,7 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
+import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCodeVerifyResponse;
 
 public final class EventApiDocs {
 
@@ -30,6 +31,8 @@ public final class EventApiDocs {
     public static final String TAG_DESCRIPTION = "관리자 행사 등록 및 이미지 업로드 API";
     public static final String USER_TAG_NAME = "Event User API";
     public static final String USER_TAG_DESCRIPTION = "사용자용 행사 조회 및 신청 API";
+    public static final String STAFF_TAG_NAME = "Event Staff API";
+    public static final String STAFF_TAG_DESCRIPTION = "현장 스태프용 행사 검증/처리 API";
 
     @SecurityRequirement(name = "adminJWT")
     @Target(ElementType.METHOD)
@@ -307,5 +310,17 @@ public final class EventApiDocs {
             responseExample = EventExamples.STAFF_EVENT_CHECK_IN_RESPONSE
     )
     public @interface StaffCheckIn {
+    }
+
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "스태프 코드 유효성 검사",
+            description = "스태프 코드 입력 시 코드 유효 여부와 행사 기본 정보를 반환합니다.",
+            requestExample = EventExamples.STAFF_CODE_VERIFY_REQUEST,
+            responseSchema = EventStaffCodeVerifyResponse.class,
+            responseExample = EventExamples.STAFF_CODE_VERIFY_RESPONSE
+    )
+    public @interface StaffVerifyCode {
     }
 }
