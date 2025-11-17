@@ -2,6 +2,8 @@ package com.ssasinsa.wearagain.domain.event.service;
 
 import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInRequest;
 import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
+import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCodeVerifyRequest;
+import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCodeVerifyResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
@@ -69,5 +71,27 @@ public class EventStaffServiceImpl implements EventStaffService {
                 application.getUser().getDisplayName(),
                 event.getTitle()
         );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EventStaffCodeVerifyResponse verifyStaffCode(EventStaffCodeVerifyRequest request) {
+        String code = request.code().trim();
+
+        return eventRepository.findByStaffCode(code)
+                .map(event -> {
+                    if (!StringUtils.hasText(event.getStaffCode())) {
+                        return EventStaffCodeVerifyResponse.invalid(EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
+                    }
+                    EventStaffCodeVerifyResponse.EventSummary summary =
+                            EventStaffCodeVerifyResponse.EventSummary.from(
+                                    event,
+                                    event.getStaffCodeIssuedAt() == null
+                                            ? null
+                                            : event.getStaffCodeIssuedAt().atOffset(ZoneOffset.UTC)
+                            );
+                    return EventStaffCodeVerifyResponse.valid(summary);
+                })
+                .orElse(EventStaffCodeVerifyResponse.invalid(EventErrorCode.EVENT_STAFF_CODE_INVALID));
     }
 }
