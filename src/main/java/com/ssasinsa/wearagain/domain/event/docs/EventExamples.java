@@ -175,7 +175,7 @@ public final class EventExamples {
               "event": {
                 "eventId": 123,
                 "title": "업사이클링 체험전",
-                "status": "PUBLISHED",
+                "status": "OPEN",
                 "startDate": "2025-03-01",
                 "endDate": "2025-03-02",
                 "location": "서울 성수동 123-4",

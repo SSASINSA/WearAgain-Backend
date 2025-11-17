@@ -77,9 +77,6 @@ public class EventStaffServiceImpl implements EventStaffService {
     @Transactional(readOnly = true)
     public EventStaffCodeVerifyResponse verifyStaffCode(EventStaffCodeVerifyRequest request) {
         String code = request.code().trim();
-        if (!StringUtils.hasText(code)) {
-            return EventStaffCodeVerifyResponse.invalid(EventErrorCode.EVENT_STAFF_CODE_INVALID);
-        }
 
         return eventRepository.findByStaffCode(code)
                 .map(event -> {
