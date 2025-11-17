@@ -88,6 +88,25 @@ public class User extends BaseTimeEntity {
         account.assignUser(this);
     }
 
+    public int increaseTicketBalance(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        this.ticketBalance += amount;
+        return this.ticketBalance;
+    }
+
+    public int decreaseTicketBalance(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        if (this.ticketBalance < amount) {
+            throw new IllegalStateException("insufficient ticket balance");
+        }
+        this.ticketBalance -= amount;
+        return this.ticketBalance;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
