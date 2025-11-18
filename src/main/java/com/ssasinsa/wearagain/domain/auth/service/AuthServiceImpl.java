@@ -7,7 +7,6 @@ import com.ssasinsa.wearagain.domain.auth.entity.AuthProvider;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.entity.UserOAuthAccount;
 import com.ssasinsa.wearagain.domain.auth.repository.UserOAuthAccountRepository;
-import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AppleOAuthLoginRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.GoogleOAuthLoginRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.KakaoIdTokenLoginRequest;
@@ -30,6 +29,8 @@ import com.ssasinsa.wearagain.domain.auth.infrastructure.client.KakaoUserInfoRes
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider.RefreshTokenClaims;
+import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.growth.service.GrowthInitializer;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -62,6 +63,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtProperties jwtProperties;
     private final GoogleOAuthProperties googleOAuthProperties;
     private final KakaoOAuthProperties kakaoOAuthProperties;
+    private final GrowthInitializer growthInitializer;
 
     @Override
     @Transactional
@@ -264,7 +266,9 @@ public class AuthServiceImpl implements AuthService {
                 providerUserId
         );
         if (existingAccount.isPresent()) {
-            return existingAccount.get().getUser();
+            User user = existingAccount.get().getUser();
+            growthInitializer.initialize(user);
+            return user;
         }
 
         Optional<User> existingUser = userRepository.findByEmail(email);
@@ -274,6 +278,7 @@ public class AuthServiceImpl implements AuthService {
 
         UserOAuthAccount account = UserOAuthAccount.create(provider, providerUserId, email, user);
         userOAuthAccountRepository.save(account);
+        growthInitializer.initialize(user);
         return user;
     }
 
