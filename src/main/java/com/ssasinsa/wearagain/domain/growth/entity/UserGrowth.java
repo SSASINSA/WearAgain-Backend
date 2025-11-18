@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.domain.mascot.entity;
+package com.ssasinsa.wearagain.domain.growth.entity;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
@@ -20,13 +20,13 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "user_mascots")
+@Table(name = "user_growths")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public class UserMascot extends BaseTimeEntity {
+public class UserGrowth extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "user_mascots_id", nullable = false, updatable = false)
+    @Column(name = "user_growths_id", nullable = false, updatable = false)
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
@@ -49,7 +49,7 @@ public class UserMascot extends BaseTimeEntity {
     private LocalDateTime lastRewardedAt;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private UserMascot(User user, int currentLevel, int exp, int repairCount, int cycles, LocalDateTime lastRewardedAt) {
+    private UserGrowth(User user, int currentLevel, int exp, int repairCount, int cycles, LocalDateTime lastRewardedAt) {
         this.user = user;
         this.currentLevel = currentLevel;
         this.exp = exp;
@@ -58,8 +58,8 @@ public class UserMascot extends BaseTimeEntity {
         this.lastRewardedAt = lastRewardedAt;
     }
 
-    public static UserMascot create(User user) {
-        return UserMascot.builder()
+    public static UserGrowth create(User user) {
+        return UserGrowth.builder()
                 .user(user)
                 .currentLevel(1)
                 .exp(0)
@@ -94,10 +94,10 @@ public class UserMascot extends BaseTimeEntity {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof UserMascot)) {
+        if (!(o instanceof UserGrowth)) {
             return false;
         }
-        UserMascot other = (UserMascot) o;
+        UserGrowth other = (UserGrowth) o;
         return id != null && id.equals(other.id);
     }
 

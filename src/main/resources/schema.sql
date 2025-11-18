@@ -113,8 +113,8 @@ DROP TABLE IF EXISTS community_post_images;
 DROP TABLE IF EXISTS community_posts;
 DROP TABLE IF EXISTS community_categories;
 DROP TABLE IF EXISTS notifications;
-DROP TABLE IF EXISTS user_mascots;
-DROP TABLE IF EXISTS mascot_reward_rules;
+DROP TABLE IF EXISTS user_growths;
+DROP TABLE IF EXISTS growth_reward_rules;
 DROP TABLE IF EXISTS admin_signup_requests;
 DROP TABLE IF EXISTS admin_users;
 
@@ -363,22 +363,22 @@ CREATE TABLE impact_analytics (
 CREATE INDEX idx_impact_analytics_user_event ON impact_analytics (users_id, events_id);
 
 -- ===========================================================
--- 🧵 Mascot Domain
+-- 🧵 Growth Domain
 -- ===========================================================
 
-CREATE TABLE mascot_reward_rules (
-    mascot_reward_rules_id BIGINT NOT NULL AUTO_INCREMENT,
+CREATE TABLE growth_reward_rules (
+    growth_reward_rules_id BIGINT NOT NULL AUTO_INCREMENT,
     level_required INT NOT NULL,
     credit_reward INT NOT NULL,
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
-    CONSTRAINT pk_mascot_reward_rules PRIMARY KEY (mascot_reward_rules_id),
-    CONSTRAINT uk_mascot_reward_rules_level UNIQUE (level_required)
+    CONSTRAINT pk_growth_reward_rules PRIMARY KEY (growth_reward_rules_id),
+    CONSTRAINT uk_growth_reward_rules_level UNIQUE (level_required)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE TABLE user_mascots (
-    user_mascots_id BIGINT NOT NULL AUTO_INCREMENT,
+CREATE TABLE user_growths (
+    user_growths_id BIGINT NOT NULL AUTO_INCREMENT,
     users_id BIGINT NOT NULL,
     current_level INT NOT NULL DEFAULT 1,
     exp INT NOT NULL DEFAULT 0,
@@ -387,13 +387,13 @@ CREATE TABLE user_mascots (
     last_rewarded_at DATETIME(6),
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
-    CONSTRAINT pk_user_mascots PRIMARY KEY (user_mascots_id),
-    CONSTRAINT fk_user_mascots_user FOREIGN KEY (users_id) REFERENCES users (users_id)
+    CONSTRAINT pk_user_growths PRIMARY KEY (user_growths_id),
+    CONSTRAINT fk_user_growths_user FOREIGN KEY (users_id) REFERENCES users (users_id)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
-CREATE UNIQUE INDEX uk_user_mascots_user ON user_mascots (users_id);
+CREATE UNIQUE INDEX uk_user_growths_user ON user_growths (users_id);
 
 -- ===========================================================
 -- 💬 Community Domain
