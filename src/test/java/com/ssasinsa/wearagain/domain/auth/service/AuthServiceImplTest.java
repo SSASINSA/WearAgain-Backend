@@ -34,6 +34,7 @@ import com.ssasinsa.wearagain.domain.auth.infrastructure.client.KakaoOAuthClient
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtTokenProvider.RefreshTokenClaims;
+import com.ssasinsa.wearagain.domain.growth.service.GrowthInitializer;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
@@ -71,6 +72,8 @@ class AuthServiceImplTest {
     private RedisTemplate<String, String> redisTemplate;
     @Mock
     private ValueOperations<String, String> valueOperations;
+    @Mock
+    private GrowthInitializer growthInitializer;
 
     private AuthServiceImpl authService;
 
@@ -108,7 +111,8 @@ class AuthServiceImplTest {
                 redisTemplate,
                 jwtProperties,
                 googleOAuthProperties,
-                kakaoOAuthProperties
+                kakaoOAuthProperties,
+                growthInitializer
         );
 
         lenient().when(redisTemplate.opsForValue()).thenReturn(valueOperations);
@@ -165,6 +169,7 @@ class AuthServiceImplTest {
 
         verify(valueOperations).set(eq(userKey), eq("refresh-token"), eq(Duration.ofMillis(jwtProperties.refreshToken().validity())));
         verify(valueOperations).set(eq(rotationKey), eq(userId.toString()), eq(Duration.ofMillis(jwtProperties.refreshToken().validity())));
+        verify(growthInitializer).initialize(user);
     }
 
     @Test
@@ -221,6 +226,7 @@ class AuthServiceImplTest {
 
         verify(valueOperations).set(eq(userKey), eq("refresh-token"), eq(Duration.ofMillis(jwtProperties.refreshToken().validity())));
         verify(valueOperations).set(eq(rotationKey), eq(userId.toString()), eq(Duration.ofMillis(jwtProperties.refreshToken().validity())));
+        verify(growthInitializer).initialize(savedUser);
     }
 
     @Test
