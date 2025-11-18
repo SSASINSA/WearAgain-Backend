@@ -7,7 +7,6 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @RequiredArgsConstructor
@@ -15,19 +14,18 @@ public class GrowthInitializer {
 
     private final UserGrowthRepository userGrowthRepository;
 
-    @Transactional
     public void initialize(User user) {
         Objects.requireNonNull(user, "user must not be null");
         Long userId = Objects.requireNonNull(user.getId(), "user id must not be null");
 
-        if (userGrowthRepository.findByUserId(userId).isPresent()) {
+        if (userGrowthRepository.existsByUserId(userId)) {
             return;
         }
 
         try {
             userGrowthRepository.save(UserGrowth.create(user));
         } catch (DataIntegrityViolationException exception) {
-            if (userGrowthRepository.findByUserId(userId).isEmpty()) {
+            if (!userGrowthRepository.existsByUserId(userId)) {
                 throw exception;
             }
         }

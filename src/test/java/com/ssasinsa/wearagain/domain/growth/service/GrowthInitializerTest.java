@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.growth.entity.UserGrowth;
 import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +34,7 @@ class GrowthInitializerTest {
     @Test
     void should_notCreate_whenGrowthAlreadyExists() {
         User user = createUser(1L);
-        when(userGrowthRepository.findByUserId(1L)).thenReturn(Optional.of(UserGrowth.create(user)));
+        when(userGrowthRepository.existsByUserId(1L)).thenReturn(true);
 
         growthInitializer.initialize(user);
 
@@ -45,7 +44,7 @@ class GrowthInitializerTest {
     @Test
     void should_createGrowth_whenMissing() {
         User user = createUser(1L);
-        when(userGrowthRepository.findByUserId(1L)).thenReturn(Optional.empty());
+        when(userGrowthRepository.existsByUserId(1L)).thenReturn(false);
         when(userGrowthRepository.save(any(UserGrowth.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         growthInitializer.initialize(user);
@@ -56,14 +55,12 @@ class GrowthInitializerTest {
     @Test
     void should_ignoreDuplicateCreation_whenConcurrentInsertOccurs() {
         User user = createUser(1L);
-        when(userGrowthRepository.findByUserId(1L))
-                .thenReturn(Optional.empty())
-                .thenReturn(Optional.of(UserGrowth.create(user)));
+        when(userGrowthRepository.existsByUserId(1L)).thenReturn(false, true);
         when(userGrowthRepository.save(any(UserGrowth.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
 
         assertThatCode(() -> growthInitializer.initialize(user)).doesNotThrowAnyException();
 
-        verify(userGrowthRepository, times(2)).findByUserId(1L);
+        verify(userGrowthRepository, times(2)).existsByUserId(1L);
     }
 
     private User createUser(Long id) {
