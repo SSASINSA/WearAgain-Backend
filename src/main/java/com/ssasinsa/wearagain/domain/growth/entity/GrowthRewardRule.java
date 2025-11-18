@@ -1,4 +1,4 @@
-package com.ssasinsa.wearagain.domain.mascot.entity;
+package com.ssasinsa.wearagain.domain.growth.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import jakarta.persistence.AttributeOverride;
@@ -17,17 +17,17 @@ import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
-@Table(name = "mascot_reward_rules")
+@Table(name = "growth_reward_rules")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AttributeOverrides({
         @AttributeOverride(name = "createdAt", column = @Column(name = "created_at", updatable = false)),
         @AttributeOverride(name = "updatedAt", column = @Column(name = "created_at", insertable = false, updatable = false))
 })
-public class MascotRewardRule extends BaseTimeEntity {
+public class GrowthRewardRule extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "mascot_reward_rules_id", nullable = false, updatable = false)
+    @Column(name = "growth_reward_rules_id", nullable = false, updatable = false)
     private Long id;
 
     @Column(name = "level_required", nullable = false, unique = true)
@@ -37,13 +37,13 @@ public class MascotRewardRule extends BaseTimeEntity {
     private int creditReward;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private MascotRewardRule(int levelRequired, int creditReward) {
+    private GrowthRewardRule(int levelRequired, int creditReward) {
         this.levelRequired = levelRequired;
         this.creditReward = creditReward;
     }
 
-    public static MascotRewardRule create(int levelRequired, int creditReward) {
-        return MascotRewardRule.builder()
+    public static GrowthRewardRule create(int levelRequired, int creditReward) {
+        return GrowthRewardRule.builder()
                 .levelRequired(levelRequired)
                 .creditReward(creditReward)
                 .build();
@@ -54,10 +54,10 @@ public class MascotRewardRule extends BaseTimeEntity {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof MascotRewardRule)) {
+        if (!(o instanceof GrowthRewardRule)) {
             return false;
         }
-        MascotRewardRule other = (MascotRewardRule) o;
+        GrowthRewardRule other = (GrowthRewardRule) o;
         return id != null && id.equals(other.id);
     }
 
