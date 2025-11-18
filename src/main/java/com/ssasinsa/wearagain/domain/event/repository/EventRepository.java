@@ -25,4 +25,6 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     );
 
     Optional<Event> findByStaffCode(String staffCode);
+
+    List<Event> findByStatusAndScissorGrantedFalse(EventStatus status);
 }

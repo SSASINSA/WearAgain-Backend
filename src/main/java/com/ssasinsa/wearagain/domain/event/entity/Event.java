@@ -88,6 +88,13 @@ public class Event extends BaseTimeEntity {
     @Column(name = "staff_code_issued_at")
     private LocalDateTime staffCodeIssuedAt;
 
+    @Column(name = "scissor_granted", nullable = false)
+    @Default
+    private boolean scissorGranted = false;
+
+    @Column(name = "scissor_granted_at")
+    private LocalDateTime scissorGrantedAt;
+
     public static Event create(
             String title,
             String description,
@@ -180,6 +187,11 @@ public class Event extends BaseTimeEntity {
     public void updateStaffCode(String staffCode, LocalDateTime issuedAt) {
         this.staffCode = staffCode;
         this.staffCodeIssuedAt = issuedAt;
+    }
+
+    public void markScissorGrantCompleted(LocalDateTime completedAt) {
+        this.scissorGranted = true;
+        this.scissorGrantedAt = completedAt;
     }
 
     @Override
