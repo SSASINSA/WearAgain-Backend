@@ -27,6 +27,7 @@ public class TicketScissorGrantService {
     private final UserRepository userRepository;
     private final UserGrowthRepository userGrowthRepository;
     private final GrowthInitializer growthInitializer;
+    private final GrowthCommandService growthCommandService;
 
     @Transactional
     public void grantScissorsForClosedEvents() {
@@ -68,6 +69,7 @@ public class TicketScissorGrantService {
                     .orElseThrow(() -> new IllegalStateException("Growth record missing after initialization for user: " + userId));
 
             userGrowth.addScissors(grantAmount);
+            growthCommandService.recordGrant(user, userGrowth, event, grantAmount, "EVENT_GRANT");
             log.debug("Granted {} magic scissors to user {} for event {}", grantAmount, userId, event.getId());
         }
 

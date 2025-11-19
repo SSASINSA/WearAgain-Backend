@@ -115,6 +115,7 @@ DROP TABLE IF EXISTS community_categories;
 DROP TABLE IF EXISTS notifications;
 DROP TABLE IF EXISTS user_growths;
 DROP TABLE IF EXISTS growth_reward_rules;
+DROP TABLE IF EXISTS magic_scissor_histories;
 DROP TABLE IF EXISTS admin_signup_requests;
 DROP TABLE IF EXISTS admin_users;
 
@@ -398,6 +399,23 @@ CREATE TABLE user_growths (
   COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE UNIQUE INDEX uk_user_growths_user ON user_growths (users_id);
+
+CREATE TABLE magic_scissor_histories (
+    magic_scissor_histories_id BIGINT NOT NULL AUTO_INCREMENT,
+    users_id BIGINT NOT NULL,
+    user_growths_id BIGINT NOT NULL,
+    related_events_id BIGINT,
+    delta INT NOT NULL,
+    reason VARCHAR(30) NOT NULL,
+    memo VARCHAR(255),
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_magic_scissor_histories PRIMARY KEY (magic_scissor_histories_id),
+    CONSTRAINT fk_magic_scissor_histories_user FOREIGN KEY (users_id) REFERENCES users (users_id),
+    CONSTRAINT fk_magic_scissor_histories_growth FOREIGN KEY (user_growths_id) REFERENCES user_growths (user_growths_id),
+    CONSTRAINT fk_magic_scissor_histories_event FOREIGN KEY (related_events_id) REFERENCES event (event_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
 
 -- ===========================================================
 -- 💬 Community Domain
