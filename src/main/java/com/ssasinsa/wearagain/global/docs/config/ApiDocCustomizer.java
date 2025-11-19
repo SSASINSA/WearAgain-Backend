@@ -1,6 +1,8 @@
 package com.ssasinsa.wearagain.global.docs.config;
 
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
+import com.ssasinsa.wearagain.domain.auth.exception.AdminAuthErrorCode;
+import com.ssasinsa.wearagain.global.exception.ErrorResponse;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.Content;
@@ -11,6 +13,7 @@ import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.springdoc.core.customizers.OperationCustomizer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 
 @Component
 public class ApiDocCustomizer implements OperationCustomizer {
@@ -19,7 +22,8 @@ public class ApiDocCustomizer implements OperationCustomizer {
 
     @Override
     public Operation customize(Operation operation, HandlerMethod handlerMethod) {
-        ApiDoc apiDoc = handlerMethod.getMethodAnnotation(ApiDoc.class);
+        // findMergedAnnotation will resolve meta-annotations such as @AdminAuthApiDocs.Login
+        ApiDoc apiDoc = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(), ApiDoc.class);
         if (apiDoc == null) {
             return operation;
         }
@@ -39,6 +43,13 @@ public class ApiDocCustomizer implements OperationCustomizer {
         }
 
         responses.addApiResponse("200", response);
+
+        // If this operation belongs to admin auth package, add documented possible admin auth error responses.
+        String handlerPackage = handlerMethod.getBeanType().getPackageName();
+        if (handlerPackage != null && handlerPackage.contains(".domain.auth")) {
+            addAdminErrorResponses(responses);
+        }
+
         operation.setResponses(responses);
         return operation;
     }
@@ -62,6 +73,25 @@ public class ApiDocCustomizer implements OperationCustomizer {
         if (!hasContent) {
             return null;
         }
+
+        Content content = new Content();
+        content.addMediaType(MEDIA_TYPE_JSON, mediaType);
+        return content;
+    }
+
+    private void addAdminErrorResponses(ApiResponses responses) {
+        for (AdminAuthErrorCode errorCode : AdminAuthErrorCode.values()) {
+            responses.addApiResponse(String.valueOf(errorCode.getStatus()), new ApiResponse()
+                    .description(errorCode.getMessage())
+                    .content(buildErrorContent()));
+        }
+    }
+
+    private Content buildErrorContent() {
+        MediaType mediaType = new MediaType();
+        Schema<ErrorResponse> schema = new Schema<>();
+        schema.set$ref("#/components/schemas/ErrorResponse");
+        mediaType.schema(schema);
 
         Content content = new Content();
         content.addMediaType(MEDIA_TYPE_JSON, mediaType);
