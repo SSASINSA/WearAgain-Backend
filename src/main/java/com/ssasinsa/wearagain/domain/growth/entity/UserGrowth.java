@@ -111,7 +111,6 @@ public class UserGrowth extends BaseTimeEntity {
 
     public void levelUp() {
         this.currentLevel += 1;
-        this.exp = 0;
     }
 
     public void recordRepair() {
