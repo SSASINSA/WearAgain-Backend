@@ -1,7 +1,9 @@
 package com.ssasinsa.wearagain.domain.growth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -55,7 +57,8 @@ class TicketScissorGrantServiceTest {
 
     @Test
     void should_grant_scissors_and_mark_event_completed() {
-        Event event = createClosedEvent(1L);
+        Event event = createEventNeedingClosure(1L);
+        when(eventRepository.findEventsToClose(eq(EventStatus.CLOSED), any(LocalDate.class))).thenReturn(List.of(event));
         when(eventRepository.findByStatusAndScissorGrantedFalse(EventStatus.CLOSED)).thenReturn(List.of(event));
 
         TicketChargeSummary summary = new TestTicketChargeSummary(10L, 3L);
@@ -70,6 +73,7 @@ class TicketScissorGrantServiceTest {
         ticketScissorGrantService.grantScissorsForClosedEvents();
 
         assertThat(userGrowth.getMagicScissorCount()).isEqualTo(3);
+        assertThat(event.getStatus()).isEqualTo(EventStatus.CLOSED);
         assertThat(event.isScissorGranted()).isTrue();
         assertThat(event.getScissorGrantedAt()).isNotNull();
         verify(growthInitializer).initialize(user);
@@ -77,17 +81,19 @@ class TicketScissorGrantServiceTest {
 
     @Test
     void should_mark_event_even_when_ticket_history_missing() {
-        Event event = createClosedEvent(2L);
+        Event event = createEventNeedingClosure(2L);
+        when(eventRepository.findEventsToClose(eq(EventStatus.CLOSED), any(LocalDate.class))).thenReturn(List.of(event));
         when(eventRepository.findByStatusAndScissorGrantedFalse(EventStatus.CLOSED)).thenReturn(List.of(event));
         when(ticketHistoryRepository.calculateChargedTicketsByEvent(2L)).thenReturn(List.of());
 
         ticketScissorGrantService.grantScissorsForClosedEvents();
 
+        assertThat(event.getStatus()).isEqualTo(EventStatus.CLOSED);
         assertThat(event.isScissorGranted()).isTrue();
         verify(userRepository, never()).findById(anyLong());
     }
 
-    private Event createClosedEvent(Long id) {
+    private Event createEventNeedingClosure(Long id) {
         AdminUser admin = AdminUser.createSuperAdmin("admin@example.com", "password", "관리자");
         Event event = Event.create(
                 "이벤트",
@@ -95,7 +101,7 @@ class TicketScissorGrantServiceTest {
                 LocalDate.now().minusDays(2),
                 LocalDate.now().minusDays(1),
                 "서울",
-                EventStatus.CLOSED,
+                EventStatus.OPEN,
                 admin,
                 null,
                 null

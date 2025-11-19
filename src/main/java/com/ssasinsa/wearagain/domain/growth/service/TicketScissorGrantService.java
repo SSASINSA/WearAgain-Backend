@@ -9,6 +9,7 @@ import com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryRepository.TicketChargeSummary;
 import com.ssasinsa.wearagain.domain.growth.entity.UserGrowth;
 import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
@@ -29,12 +30,19 @@ public class TicketScissorGrantService {
 
     @Transactional
     public void grantScissorsForClosedEvents() {
+        closeExpiredEvents();
+
         List<Event> closedEvents = eventRepository.findByStatusAndScissorGrantedFalse(EventStatus.CLOSED);
         if (closedEvents.isEmpty()) {
             return;
         }
 
         closedEvents.forEach(this::processEvent);
+    }
+
+    private void closeExpiredEvents() {
+        List<Event> eventsToClose = eventRepository.findEventsToClose(EventStatus.CLOSED, LocalDate.now());
+        eventsToClose.forEach(event -> event.changeStatus(EventStatus.CLOSED));
     }
 
     private void processEvent(Event event) {
