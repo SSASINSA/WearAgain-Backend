@@ -85,10 +85,11 @@ class GrowthCommandServiceTest {
         when(userGrowthRepository.findByUserIdForUpdate(2L)).thenReturn(Optional.of(userGrowth));
         when(growthRewardRuleRepository.findByLevelRequired(10)).thenReturn(Optional.of(GrowthRewardRule.create(10, 50)));
 
-        MagicScissorUseResult result = growthCommandService.useMagicScissors(2L, 1);
+        MagicScissorUseResult result = growthCommandService.useMagicScissors(2L, 5);
 
         assertThat(result.rewardGranted()).isTrue();
         assertThat(result.rewardCredit()).isEqualTo(50);
+        assertThat(userGrowth.getMagicScissorCount()).isEqualTo(9);
         assertThat(user.getCreditBalance()).isEqualTo(50);
         verify(creditHistoryRepository).save(any(CreditHistory.class));
     }

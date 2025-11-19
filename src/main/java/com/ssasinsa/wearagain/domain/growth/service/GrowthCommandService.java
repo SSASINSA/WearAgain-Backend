@@ -49,8 +49,10 @@ public class GrowthCommandService {
             throw new GrowthException(GrowthErrorCode.INSUFFICIENT_MAGIC_SCISSORS);
         }
 
-        userGrowth.useScissors(useCount);
-        userGrowth.gainExperience(useCount * EXP_PER_USE);
+        int actualUseCount = adjustUseCountForReward(userGrowth, useCount);
+
+        userGrowth.useScissors(actualUseCount);
+        userGrowth.gainExperience(actualUseCount * EXP_PER_USE);
 
         boolean rewardGranted = false;
         int totalRewardCredit = 0;
@@ -69,7 +71,7 @@ public class GrowthCommandService {
             }
         }
 
-        saveHistory(user, userGrowth, null, -useCount, MagicScissorHistoryReason.USED_REPAIR, null);
+        saveHistory(user, userGrowth, null, -actualUseCount, MagicScissorHistoryReason.USED_REPAIR, null);
 
         return new MagicScissorUseResult(
                 userGrowth.getCurrentLevel(),
@@ -79,6 +81,20 @@ public class GrowthCommandService {
                 rewardGranted,
                 totalRewardCredit
         );
+    }
+
+    private int adjustUseCountForReward(UserGrowth userGrowth, int requestedUseCount) {
+        if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
+            return requestedUseCount;
+        }
+
+        int remainingExp = LEVEL_EXP_THRESHOLD - userGrowth.getExp();
+        if (remainingExp <= 0) {
+            remainingExp = LEVEL_EXP_THRESHOLD;
+        }
+        int usesNeeded = (int) Math.ceil((double) remainingExp / EXP_PER_USE);
+        usesNeeded = Math.max(usesNeeded, 1);
+        return Math.min(requestedUseCount, usesNeeded);
     }
 
     public void recordGrant(User user, UserGrowth userGrowth, Event event, int amount, String memo) {
