@@ -107,6 +107,25 @@ public class User extends BaseTimeEntity {
         return this.ticketBalance;
     }
 
+    public int increaseCreditBalance(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        this.creditBalance += amount;
+        return this.creditBalance;
+    }
+
+    public int decreaseCreditBalance(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("amount must be positive");
+        }
+        if (this.creditBalance < amount) {
+            throw new IllegalStateException("insufficient credit balance");
+        }
+        this.creditBalance -= amount;
+        return this.creditBalance;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

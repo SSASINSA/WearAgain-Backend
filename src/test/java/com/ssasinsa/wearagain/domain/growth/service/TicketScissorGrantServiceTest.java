@@ -41,6 +41,8 @@ class TicketScissorGrantServiceTest {
     private UserGrowthRepository userGrowthRepository;
     @Mock
     private GrowthInitializer growthInitializer;
+    @Mock
+    private GrowthCommandService growthCommandService;
 
     private TicketScissorGrantService ticketScissorGrantService;
 
@@ -51,7 +53,8 @@ class TicketScissorGrantServiceTest {
                 ticketHistoryRepository,
                 userRepository,
                 userGrowthRepository,
-                growthInitializer
+                growthInitializer,
+                growthCommandService
         );
     }
 
@@ -77,6 +80,7 @@ class TicketScissorGrantServiceTest {
         assertThat(event.isScissorGranted()).isTrue();
         assertThat(event.getScissorGrantedAt()).isNotNull();
         verify(growthInitializer).initialize(user);
+        verify(growthCommandService).recordGrant(user, userGrowth, event, 3, "EVENT_GRANT");
     }
 
     @Test
