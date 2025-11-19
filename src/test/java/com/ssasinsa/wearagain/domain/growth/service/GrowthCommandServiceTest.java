@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -92,6 +93,43 @@ class GrowthCommandServiceTest {
         assertThat(userGrowth.getMagicScissorCount()).isEqualTo(9);
         assertThat(user.getCreditBalance()).isEqualTo(50);
         verify(creditHistoryRepository).save(any(CreditHistory.class));
+    }
+
+    @Test
+    void should_retains_remaining_exp_when_multiple_levels_awarded() {
+        User user = createUser(3L);
+        UserGrowth userGrowth = UserGrowth.create(user);
+        ReflectionTestUtils.setField(userGrowth, "magicScissorCount", 5);
+
+        when(userRepository.findById(3L)).thenReturn(Optional.of(user));
+        when(userGrowthRepository.findByUserIdForUpdate(3L)).thenReturn(Optional.of(userGrowth));
+
+        MagicScissorUseResult result = growthCommandService.useMagicScissors(3L, 3);
+
+        assertThat(result.level()).isEqualTo(2);
+        assertThat(result.exp()).isEqualTo(5);
+        assertThat(result.magicScissorCount()).isEqualTo(2);
+        assertThat(result.rewardGranted()).isFalse();
+    }
+
+    @Test
+    void should_allow_multiple_use_when_below_max_level() {
+        User user = createUser(4L);
+        UserGrowth userGrowth = UserGrowth.create(user);
+        ReflectionTestUtils.setField(userGrowth, "magicScissorCount", 10);
+        ReflectionTestUtils.setField(userGrowth, "currentLevel", 9);
+        ReflectionTestUtils.setField(userGrowth, "exp", 70);
+
+        when(userRepository.findById(4L)).thenReturn(Optional.of(user));
+        when(userGrowthRepository.findByUserIdForUpdate(4L)).thenReturn(Optional.of(userGrowth));
+
+        MagicScissorUseResult result = growthCommandService.useMagicScissors(4L, 2);
+
+        assertThat(result.level()).isEqualTo(10);
+        assertThat(result.exp()).isEqualTo(40);
+        assertThat(result.magicScissorCount()).isEqualTo(8);
+        assertThat(result.rewardGranted()).isFalse();
+        verify(creditHistoryRepository, never()).save(any());
     }
 
     @Test
