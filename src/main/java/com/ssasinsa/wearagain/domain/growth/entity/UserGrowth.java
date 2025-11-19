@@ -45,16 +45,33 @@ public class UserGrowth extends BaseTimeEntity {
     @Column(nullable = false)
     private int cycles;
 
+    @Column(name = "magic_scissor_count", nullable = false)
+    private int magicScissorCount;
+
+    @Column(name = "total_scissor_used", nullable = false)
+    private int totalScissorUsed;
+
     @Column(name = "last_rewarded_at")
     private LocalDateTime lastRewardedAt;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private UserGrowth(User user, int currentLevel, int exp, int repairCount, int cycles, LocalDateTime lastRewardedAt) {
+    private UserGrowth(
+            User user,
+            int currentLevel,
+            int exp,
+            int repairCount,
+            int cycles,
+            int magicScissorCount,
+            int totalScissorUsed,
+            LocalDateTime lastRewardedAt
+    ) {
         this.user = user;
         this.currentLevel = currentLevel;
         this.exp = exp;
         this.repairCount = repairCount;
         this.cycles = cycles;
+        this.magicScissorCount = magicScissorCount;
+        this.totalScissorUsed = totalScissorUsed;
         this.lastRewardedAt = lastRewardedAt;
     }
 
@@ -65,7 +82,27 @@ public class UserGrowth extends BaseTimeEntity {
                 .exp(0)
                 .repairCount(0)
                 .cycles(0)
+                .magicScissorCount(0)
+                .totalScissorUsed(0)
                 .build();
+    }
+
+    public void addScissors(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("scissor amount must be positive");
+        }
+        this.magicScissorCount += amount;
+    }
+
+    public void useScissors(int amount) {
+        if (amount <= 0) {
+            throw new IllegalArgumentException("scissor amount must be positive");
+        }
+        if (this.magicScissorCount < amount) {
+            throw new IllegalStateException("insufficient magic scissors");
+        }
+        this.magicScissorCount -= amount;
+        this.totalScissorUsed += amount;
     }
 
     public void gainExperience(int amount) {
