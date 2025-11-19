@@ -44,12 +44,6 @@ public class ApiDocCustomizer implements OperationCustomizer {
 
         responses.addApiResponse("200", response);
 
-        // If this operation belongs to admin auth package, add documented possible admin auth error responses.
-        String handlerPackage = handlerMethod.getBeanType().getPackageName();
-        if (handlerPackage != null && handlerPackage.contains(".domain.auth")) {
-            addAdminErrorResponses(responses);
-        }
-
         operation.setResponses(responses);
         return operation;
     }
@@ -78,6 +72,7 @@ public class ApiDocCustomizer implements OperationCustomizer {
         content.addMediaType(MEDIA_TYPE_JSON, mediaType);
         return content;
     }
+
 
     private void addAdminErrorResponses(ApiResponses responses) {
         for (AdminAuthErrorCode errorCode : AdminAuthErrorCode.values()) {

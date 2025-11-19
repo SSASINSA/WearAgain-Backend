@@ -61,10 +61,9 @@ public class AdminAuthController {
     @PostMapping("/signup-requests/{requestId}/approve")
     public ResponseEntity<AdminSignupApprovalResponse> approve(
             @PathVariable Long requestId,
-            @AuthenticationPrincipal AdminAuthenticatedUser principal,
-            @Valid @RequestBody AdminSignupApproveRequest request
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        return ResponseEntity.ok(adminAuthService.approveSignupRequest(requestId, principal.adminId(), request));
+        return ResponseEntity.ok(adminAuthService.approveSignupRequest(requestId, principal.adminId()));
     }
 
     @AdminAuthApiDocs.RejectSignup

@@ -86,7 +86,6 @@ public final class AdminAuthApiDocs {
     @ApiDoc(
             summary = "관리자 가입 승인",
             description = "SUPER_ADMIN이 가입 신청을 승인하여 관리자 계정을 생성합니다.",
-            requestExample = AdminAuthExamples.ADMIN_APPROVE_REQUEST,
             responseSchema = AdminSignupApprovalResponse.class,
             responseExample = AdminAuthExamples.ADMIN_APPROVE_RESPONSE
     )

@@ -4,7 +4,6 @@ import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.domain.auth.config.AdminJwtProperties;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLoginRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLogoutRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupApproveRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminTokenRefreshRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
@@ -185,7 +184,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     @Override
     @Transactional
-    public AdminSignupApprovalResponse approveSignupRequest(Long requestId, Long reviewerId, AdminSignupApproveRequest request) {
+    public AdminSignupApprovalResponse approveSignupRequest(Long requestId, Long reviewerId) {
         AdminSignupRequest signupRequest = loadPendingRequest(requestId);
 
         if (adminUserRepository.existsByEmail(signupRequest.getEmail())) {
@@ -196,7 +195,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         AdminUser reviewer = adminUserRepository.findById(reviewerId)
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INSUFFICIENT_PERMISSION));
 
-        AdminRole role = normalizeRequestedRole(request.role());
+        AdminRole role = normalizeRequestedRole(signupRequest.getRequestedRole());
         AdminUser adminUser = AdminUser.createApproved(signupRequest.getEmail(), signupRequest.getPassword(), signupRequest.getName(), role);
         adminUserRepository.save(adminUser);
 
@@ -263,8 +262,14 @@ public class AdminAuthServiceImpl implements AdminAuthService {
             throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
         }
 
-        if (adminUserRepository.existsByEmail(request.email())) {
-            throw new AdminAuthException(AdminAuthErrorCode.EMAIL_ALREADY_REGISTERED);
+        Optional<AdminUser> existingUser = adminUserRepository.findByEmail(request.email());
+        if (existingUser.isPresent()) {
+            AdminUser user = existingUser.get();
+            if (user.getStatus() == AdminStatus.SUSPENDED) {
+                adminUserRepository.delete(user);
+            } else {
+                throw new AdminAuthException(AdminAuthErrorCode.EMAIL_ALREADY_REGISTERED);
+            }
         }
 
         boolean pendingExists = adminSignupRequestRepository.existsByEmailAndStatusIn(

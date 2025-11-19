@@ -10,7 +10,6 @@ import static org.mockito.Mockito.when;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.domain.auth.config.AdminJwtProperties;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLoginRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupApproveRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupApprovalResponse;
@@ -96,7 +95,7 @@ class AdminAuthServiceImplTest {
         );
 
         when(passwordEncoder.encode(request.password())).thenReturn("encoded-password");
-        when(adminUserRepository.existsByEmail(request.email())).thenReturn(false);
+        when(adminUserRepository.findByEmail(request.email())).thenReturn(Optional.empty());
         when(adminSignupRequestRepository.existsByEmailAndStatusIn(eq(request.email()), any())).thenReturn(false);
         when(adminSignupRequestRepository.findTopByEmailOrderByCreatedAtDesc(request.email())).thenReturn(Optional.empty());
         when(adminSignupRequestRepository.save(any(AdminSignupRequest.class))).thenAnswer(invocation -> {
@@ -108,7 +107,7 @@ class AdminAuthServiceImplTest {
         var response = adminAuthService.createSignupRequest(request);
 
         assertThat(response.signupRequestId()).isEqualTo(1L);
-        assertThat(response.status()).isEqualTo(com.ssasinsa.wearagain.domain.auth.entity.AdminSignupRequestStatus.PENDING);
+        assertThat(response.status()).isEqualTo(AdminSignupRequestStatus.PENDING);
         assertThat(response.message()).contains("접수");
     }
 
@@ -123,7 +122,8 @@ class AdminAuthServiceImplTest {
                 null
         );
 
-        when(adminUserRepository.existsByEmail(request.email())).thenReturn(true);
+        AdminUser existing = AdminUser.createApproved(request.email(), "encoded", "홍길동", AdminRole.ADMIN);
+        when(adminUserRepository.findByEmail(request.email())).thenReturn(Optional.of(existing));
 
         assertThatThrownBy(() -> adminAuthService.createSignupRequest(request))
                 .isInstanceOf(AdminAuthException.class)
@@ -141,7 +141,7 @@ class AdminAuthServiceImplTest {
                 "manager@wearagain.kr",
                 "encoded-password",
                 "홍길동",
-                AdminRole.MANAGER,
+                AdminRole.ADMIN,
                 "이벤트 운영"
         );
         ReflectionTestUtils.setField(signupRequest, "id", requestId);
@@ -158,11 +158,7 @@ class AdminAuthServiceImplTest {
             return saved;
         });
 
-        AdminSignupApprovalResponse response = adminAuthService.approveSignupRequest(
-                requestId,
-                reviewerId,
-                new AdminSignupApproveRequest(AdminRole.ADMIN)
-        );
+        AdminSignupApprovalResponse response = adminAuthService.approveSignupRequest(requestId, reviewerId);
 
         assertThat(response.adminUserId()).isEqualTo(200L);
         assertThat(response.role()).isEqualTo(AdminRole.ADMIN);
@@ -257,3 +253,4 @@ class AdminAuthServiceImplTest {
         verify(adminSignupRequestRepository).findAllByOrderByCreatedAtDesc();
     }
 }
+

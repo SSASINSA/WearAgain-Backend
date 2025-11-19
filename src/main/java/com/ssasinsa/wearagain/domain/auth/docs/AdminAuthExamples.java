@@ -62,18 +62,11 @@ public final class AdminAuthExamples {
                   "requestedRole": "ADMIN",
                   "status": "PENDING",
                   "reason": "운영팀 신규 인력",
-                  "rejectionReason": null,
                   "createdAt": "2025-11-03T10:00:00",
                   "reviewedAt": null,
                   "reviewer": null
                 }
               ]
-            }
-            """;
-
-    public static final String ADMIN_APPROVE_REQUEST = """
-            {
-              "role": "ADMIN"
             }
             """;
 
@@ -86,9 +79,4 @@ public final class AdminAuthExamples {
             }
             """;
 
-    public static final String ADMIN_REJECT_REQUEST = """
-            {
-              "reason": "요청 정보 불충분"
-            }
-            """;
 }
