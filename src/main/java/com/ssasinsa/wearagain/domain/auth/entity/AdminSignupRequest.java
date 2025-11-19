@@ -95,6 +95,10 @@ public class AdminSignupRequest extends BaseTimeEntity {
         this.rejectionReason = rejectionReason;
     }
 
+    public void markRejected(AdminUser reviewer, LocalDateTime reviewedAt) {
+        markRejected(reviewer, reviewedAt, null);
+    }
+
     public void markExpired() {
         this.status = AdminSignupRequestStatus.EXPIRED;
     }

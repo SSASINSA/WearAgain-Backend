@@ -98,8 +98,7 @@ public final class AdminAuthApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 가입 거절",
-            description = "SUPER_ADMIN이 가입 신청을 거절하고 사유를 기록합니다.",
-            requestExample = AdminAuthExamples.ADMIN_REJECT_REQUEST,
+            description = "SUPER_ADMIN이 가입 신청을 거절합니다.",
             responseSchema = AdminSimpleResponse.class,
             responseExample = AdminAuthExamples.ADMIN_SIMPLE_RESPONSE
     )

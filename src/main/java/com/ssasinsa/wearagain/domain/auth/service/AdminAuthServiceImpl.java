@@ -5,7 +5,6 @@ import com.ssasinsa.wearagain.domain.auth.config.AdminJwtProperties;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLoginRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLogoutRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupApproveRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRejectRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminTokenRefreshRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
@@ -208,12 +207,12 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     @Override
     @Transactional
-    public AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId, AdminSignupRejectRequest request) {
+    public AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId) {
         AdminSignupRequest signupRequest = loadPendingRequest(requestId);
         AdminUser reviewer = adminUserRepository.findById(reviewerId)
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INSUFFICIENT_PERMISSION));
 
-        signupRequest.markRejected(reviewer, LocalDateTime.now(), request.reason());
+        signupRequest.markRejected(reviewer, LocalDateTime.now());
         return AdminSimpleResponse.of("가입 신청이 거절되었습니다.");
     }
 
