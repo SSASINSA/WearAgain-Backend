@@ -5,6 +5,7 @@ import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupApprovalRespon
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestListResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSimpleResponse;
+import com.ssasinsa.wearagain.domain.auth.dto.response.AdminRoleResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -103,5 +104,17 @@ public final class AdminAuthApiDocs {
     )
     @SecurityRequirement(name = "adminJWT")
     public @interface RejectSignup {
+    }
+
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "내 권한 조회",
+            description = "현재 로그인한 관리자의 권한(Role)을 조회합니다.",
+            responseSchema = AdminRoleResponse.class,
+            responseExample = AdminAuthExamples.ADMIN_MY_ROLE_RESPONSE
+    )
+    @SecurityRequirement(name = "adminJWT")
+    public @interface GetMyRole {
     }
 }

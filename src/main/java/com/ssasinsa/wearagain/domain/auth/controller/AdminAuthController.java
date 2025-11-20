@@ -75,4 +75,12 @@ public class AdminAuthController {
     ) {
         return ResponseEntity.ok(adminAuthService.rejectSignupRequest(requestId, principal.adminId()));
     }
+
+    @AdminAuthApiDocs.GetMyRole
+    @GetMapping("/my-role")
+    public ResponseEntity<AdminRoleResponse> getMyRole(
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        return ResponseEntity.ok(adminAuthService.getMyRole(principal.adminId()));
+    }
 }

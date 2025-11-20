@@ -79,4 +79,10 @@ public final class AdminAuthExamples {
             }
             """;
 
+    public static final String ADMIN_MY_ROLE_RESPONSE = """
+            {
+              "role": "SUPER_ADMIN"
+            }
+            """;
+
 }

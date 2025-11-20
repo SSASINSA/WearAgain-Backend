@@ -7,6 +7,7 @@ import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLogoutRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminTokenRefreshRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
+import com.ssasinsa.wearagain.domain.auth.dto.response.AdminRoleResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupApprovalResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSimpleResponse;
@@ -238,6 +239,13 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                 .toList();
 
         return AdminSignupRequestListResponse.of(summaries);
+    }
+
+    @Override
+    public AdminRoleResponse getMyRole(Long adminId) {
+        AdminUser admin = adminUserRepository.findById(adminId)
+                .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT));
+        return AdminRoleResponse.of(admin.getRole());
     }
 
     private AdminSignupRequest loadPendingRequest(Long requestId) {

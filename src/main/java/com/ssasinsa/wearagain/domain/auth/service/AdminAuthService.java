@@ -5,6 +5,7 @@ import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLogoutRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminTokenRefreshRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
+import com.ssasinsa.wearagain.domain.auth.dto.response.AdminRoleResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupApprovalResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSimpleResponse;
@@ -26,4 +27,6 @@ public interface AdminAuthService {
     AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId);
 
     AdminSignupRequestListResponse getSignupRequests(AdminSignupRequestStatus status);
+
+    AdminRoleResponse getMyRole(Long adminId);
 }
