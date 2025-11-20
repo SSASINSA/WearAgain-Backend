@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>WearAgain Kakao Callback</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #f8fafc; }
+        main { max-width: 360px; margin: 80px auto; padding: 32px; background: #fff; border-radius: 12px; box-shadow: 0 10px 30px rgba(15, 23, 42, 0.1); text-align: center; }
+        h1 { font-size: 20px; margin-bottom: 12px; color: #111827; }
+        p { margin: 0; color: #475569; font-size: 14px; line-height: 1.5; word-break: keep-all; }
+        .spinner { width: 36px; height: 36px; border: 4px solid #e2e8f0; border-top-color: #0f172a; border-radius: 50%; margin: 24px auto; animation: spin 0.8s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+<main>
+    <div class="spinner"></div>
+    <h1>토큰 발급 중</h1>
+    <p id="status">인가 코드를 확인하는 중입니다...</p>
+</main>
+<script>
+    const statusEl = document.getElementById('status');
+
+    function setStatus(message) {
+        statusEl.textContent = message;
+    }
+
+    function notifyParent(payload) {
+        if (!window.opener) {
+            setStatus('부모 창이 닫혀 있습니다. 창을 닫고 다시 시도해 주세요.');
+            return;
+        }
+        window.opener.postMessage(payload, window.location.origin);
+    }
+
+    function completeSuccess(token, expiresIn) {
+        notifyParent({ type: 'SWAGGER_KAKAO_LOGIN_SUCCESS', token: token, expiresIn: expiresIn });
+        setStatus('로그인 성공! 창이 곧 닫힙니다.');
+        setTimeout(function () { window.close(); }, 800);
+    }
+
+    function completeError(message) {
+        notifyParent({ type: 'SWAGGER_KAKAO_LOGIN_ERROR', message: message });
+        setStatus(message + ' 창을 닫고 다시 시도해 주세요.');
+        setTimeout(function () { window.close(); }, 1600);
+    }
+
+    function parseParams() {
+        const params = new URLSearchParams(window.location.search);
+        return {
+            code: params.get('code'),
+            state: params.get('state'),
+            error: params.get('error'),
+            errorDescription: params.get('error_description')
+        };
+    }
+
+    (function () {
+        const { code, state, error, errorDescription } = parseParams();
+        if (error) {
+            completeError(errorDescription || '카카오 인증이 취소되었습니다.');
+            return;
+        }
+        if (!code) {
+            completeError('인가 코드가 비어 있습니다.');
+            return;
+        }
+        const storedState = sessionStorage.getItem('swagger-kakao-state');
+        sessionStorage.removeItem('swagger-kakao-state');
+        if (storedState && state && storedState !== state) {
+            completeError('State가 일치하지 않습니다.');
+            return;
+        }
+        fetch('/api/v1/auth/kakao/callback', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify({ authorizationCode: code })
+        })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('카카오 로그인 API 실패 (' + response.status + ')');
+                }
+                return response.json();
+            })
+            .then(function (data) {
+                if (!data || !data.accessToken) {
+                    throw new Error('토큰 정보가 비어 있습니다.');
+                }
+                completeSuccess(data.accessToken, data.accessTokenExpiresIn || 0);
+            })
+            .catch(function (err) {
+                console.error('카카오 로그인 처리 실패', err);
+                completeError(err.message || '카카오 로그인 실패');
+            });
+    })();
+</script>
+</body>
+</html>

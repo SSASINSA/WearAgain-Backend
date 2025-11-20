@@ -135,6 +135,12 @@ springdoc:
   swagger-ui:
     enabled: true
 
+swagger:
+  test-login:
+    admin:
+      email: ${SWAGGER_TEST_LOGIN_ADMIN_EMAIL:}
+      password: ${SWAGGER_TEST_LOGIN_ADMIN_PASSWORD:}
+
 ---
 spring:
   config:
