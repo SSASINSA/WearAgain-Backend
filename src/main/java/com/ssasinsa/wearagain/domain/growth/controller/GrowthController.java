@@ -34,9 +34,6 @@ public class GrowthController {
     @GrowthApiDocs.GetStatus
     @GetMapping("/status")
     public ResponseEntity<GrowthStatusResponse> getStatus(@AuthenticationPrincipal AuthenticatedUser user) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
         GrowthStatusResponse response = GrowthStatusResponse.of(growthQueryService.getStatus(user.userId()));
         return ResponseEntity.ok(response);
     }
@@ -47,9 +44,6 @@ public class GrowthController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @Valid @RequestBody MagicScissorUseRequest request
     ) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
         MagicScissorUseResult result = growthCommandService.useMagicScissors(user.userId(), request.useCount());
         MagicScissorUseResponse response = MagicScissorUseResponse.from(result, GrowthConstants.LEVEL_EXP_THRESHOLD);
         return ResponseEntity.ok(response);
