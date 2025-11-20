@@ -68,6 +68,7 @@ public class GrowthCommandService {
                     rewardGranted = true;
                     totalRewardCredit += reward;
                 }
+                userGrowth.resetLevel();
             }
         }
 

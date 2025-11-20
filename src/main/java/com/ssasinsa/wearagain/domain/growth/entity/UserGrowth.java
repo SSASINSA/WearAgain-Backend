@@ -125,6 +125,11 @@ public class UserGrowth extends BaseTimeEntity {
         this.lastRewardedAt = rewardedAt;
     }
 
+    public void resetLevel() {
+        this.currentLevel = 1;
+        this.exp = 0;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
