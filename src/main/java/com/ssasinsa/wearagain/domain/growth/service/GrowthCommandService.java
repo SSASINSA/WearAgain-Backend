@@ -16,6 +16,9 @@ import com.ssasinsa.wearagain.domain.growth.exception.GrowthException;
 import com.ssasinsa.wearagain.domain.growth.repository.GrowthRewardRuleRepository;
 import com.ssasinsa.wearagain.domain.growth.repository.MagicScissorHistoryRepository;
 import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,11 +52,10 @@ public class GrowthCommandService {
             throw new GrowthException(GrowthErrorCode.INSUFFICIENT_MAGIC_SCISSORS);
         }
 
-        int actualUseCount = adjustUseCountForReward(userGrowth, useCount);
+        userGrowth.useScissors(useCount);
+        userGrowth.gainExperience(useCount * EXP_PER_USE);
 
-        userGrowth.useScissors(actualUseCount);
-        userGrowth.gainExperience(actualUseCount * EXP_PER_USE);
-
+        Map<Integer, Integer> rewardRuleMap = loadRewardRules();
         boolean rewardGranted = false;
         int totalRewardCredit = 0;
 
@@ -61,18 +63,23 @@ public class GrowthCommandService {
             userGrowth.gainExperience(-GrowthConstants.LEVEL_EXP_THRESHOLD);
             if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
                 userGrowth.levelUp();
-            } else {
-                userGrowth.completeCycle();
-                int reward = grantCycleReward(user);
+                int reward = grantRewardForLevel(userGrowth.getCurrentLevel(), user, rewardRuleMap);
                 if (reward > 0) {
                     rewardGranted = true;
                     totalRewardCredit += reward;
                 }
-                userGrowth.resetLevel();
+            } else {
+                userGrowth.completeCycle();
+                int reward = grantRewardForLevel(MAX_LEVEL, user, rewardRuleMap);
+                if (reward > 0) {
+                    rewardGranted = true;
+                    totalRewardCredit += reward;
+                }
+                userGrowth.resetToLevelOneKeepingExp();
             }
         }
 
-        saveHistory(user, userGrowth, null, -actualUseCount, MagicScissorHistoryReason.USED_REPAIR, null);
+        saveHistory(user, userGrowth, null, -useCount, MagicScissorHistoryReason.USED_REPAIR, null);
 
         return new MagicScissorUseResult(
                 userGrowth.getCurrentLevel(),
@@ -84,37 +91,13 @@ public class GrowthCommandService {
         );
     }
 
-    private int adjustUseCountForReward(UserGrowth userGrowth, int requestedUseCount) {
-        if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
-            return requestedUseCount;
-        }
-
-        int remainingExp = GrowthConstants.LEVEL_EXP_THRESHOLD - userGrowth.getExp();
-        if (remainingExp <= 0) {
-            remainingExp = GrowthConstants.LEVEL_EXP_THRESHOLD;
-        }
-        int usesNeeded = (int) Math.ceil((double) remainingExp / EXP_PER_USE);
-        usesNeeded = Math.max(usesNeeded, 1);
-        return Math.min(requestedUseCount, usesNeeded);
-    }
-
     public void recordGrant(User user, UserGrowth userGrowth, Event event, int amount, String memo) {
         saveHistory(user, userGrowth, event, amount, MagicScissorHistoryReason.EARNED_EVENT, memo);
     }
 
-    private int grantCycleReward(User user) {
-        GrowthRewardRule rewardRule = growthRewardRuleRepository.findByLevelRequired(MAX_LEVEL)
-                .orElseThrow(() -> new GrowthException(GrowthErrorCode.REWARD_RULE_NOT_FOUND));
-
-        int rewardCredit = rewardRule.getCreditReward();
-        if (rewardCredit <= 0) {
-            return 0;
-        }
-
-        user.increaseCreditBalance(rewardCredit);
-        CreditHistory history = CreditHistory.create(user, null, rewardCredit, CREDIT_REASON_GROWTH_REWARD);
-        creditHistoryRepository.save(history);
-        return rewardCredit;
+    private int grantRewardForLevel(int levelRequired, User user, Map<Integer, Integer> rewardRuleMap) {
+        int rewardCredit = getRewardCredit(levelRequired, rewardRuleMap);
+        return applyReward(user, rewardCredit);
     }
 
     private void saveHistory(User user, UserGrowth userGrowth, Event event, int delta,
@@ -127,5 +110,29 @@ public class GrowthCommandService {
         if (useCount < 1 || useCount > MAX_USE_PER_REQUEST) {
             throw new GrowthException(GrowthErrorCode.INVALID_MAGIC_SCISSOR_COUNT);
         }
+    }
+
+    private Map<Integer, Integer> loadRewardRules() {
+        return growthRewardRuleRepository.findAll()
+                .stream()
+                .collect(Collectors.toMap(GrowthRewardRule::getLevelRequired, GrowthRewardRule::getCreditReward));
+    }
+
+    private int getRewardCredit(int level, Map<Integer, Integer> rewardRuleMap) {
+        Integer credit = rewardRuleMap.get(level);
+        if (credit == null) {
+            throw new GrowthException(GrowthErrorCode.REWARD_RULE_NOT_FOUND);
+        }
+        return credit;
+    }
+
+    private int applyReward(User user, int rewardCredit) {
+        if (rewardCredit <= 0) {
+            return 0;
+        }
+        user.increaseCreditBalance(rewardCredit);
+        CreditHistory history = CreditHistory.create(user, null, rewardCredit, CREDIT_REASON_GROWTH_REWARD);
+        creditHistoryRepository.save(history);
+        return rewardCredit;
     }
 }
