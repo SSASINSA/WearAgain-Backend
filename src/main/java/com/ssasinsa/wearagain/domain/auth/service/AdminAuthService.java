@@ -2,11 +2,10 @@ package com.ssasinsa.wearagain.domain.auth.service;
 
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLoginRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLogoutRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupApproveRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRejectRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminTokenRefreshRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
+import com.ssasinsa.wearagain.domain.auth.dto.response.AdminRoleResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupApprovalResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSimpleResponse;
@@ -23,9 +22,11 @@ public interface AdminAuthService {
 
     AdminSignupRequestResponse createSignupRequest(AdminSignupRequestCreateRequest request);
 
-    AdminSignupApprovalResponse approveSignupRequest(Long requestId, Long reviewerId, AdminSignupApproveRequest request);
+    AdminSignupApprovalResponse approveSignupRequest(Long requestId, Long reviewerId);
 
-    AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId, AdminSignupRejectRequest request);
+    AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId);
 
     AdminSignupRequestListResponse getSignupRequests(AdminSignupRequestStatus status);
+
+    AdminRoleResponse getMyRole(Long adminId);
 }

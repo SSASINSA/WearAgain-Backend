@@ -27,9 +27,6 @@ public record AdminSignupRequestSummaryResponse(
         @Schema(description = "신청 사유", example = "운영팀 신규 인력")
         String reason,
 
-        @Schema(description = "거절 사유", example = "서류 미비", nullable = true)
-        String rejectionReason,
-
         @Schema(description = "신청 일시", example = "2025-11-03T10:00:00")
         LocalDateTime createdAt,
 
@@ -48,7 +45,6 @@ public record AdminSignupRequestSummaryResponse(
                 request.getRequestedRole(),
                 request.getStatus(),
                 request.getReason(),
-                request.getRejectionReason(),
                 request.getCreatedAt(),
                 request.getReviewedAt(),
                 Reviewer.from(request.getReviewedBy())

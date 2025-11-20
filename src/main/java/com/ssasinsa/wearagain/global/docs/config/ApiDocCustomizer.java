@@ -9,6 +9,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
 
@@ -19,7 +20,8 @@ public class ApiDocCustomizer implements OperationCustomizer {
 
     @Override
     public Operation customize(Operation operation, HandlerMethod handlerMethod) {
-        ApiDoc apiDoc = handlerMethod.getMethodAnnotation(ApiDoc.class);
+        // findMergedAnnotation will resolve meta-annotations such as @AdminAuthApiDocs.Login
+        ApiDoc apiDoc = AnnotatedElementUtils.findMergedAnnotation(handlerMethod.getMethod(), ApiDoc.class);
         if (apiDoc == null) {
             return operation;
         }
@@ -39,6 +41,7 @@ public class ApiDocCustomizer implements OperationCustomizer {
         }
 
         responses.addApiResponse("200", response);
+
         operation.setResponses(responses);
         return operation;
     }

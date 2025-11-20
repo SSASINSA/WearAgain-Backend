@@ -4,11 +4,10 @@ import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.domain.auth.config.AdminJwtProperties;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLoginRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLogoutRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupApproveRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRejectRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminTokenRefreshRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
+import com.ssasinsa.wearagain.domain.auth.dto.response.AdminRoleResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupApprovalResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestResponse;
 import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSimpleResponse;
@@ -58,6 +57,14 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     @Override
     @Transactional
     public AdminAuthTokenResponse login(AdminLoginRequest request) {
+        boolean pendingSignupExists = adminSignupRequestRepository.existsByEmailAndStatusIn(
+                request.email(),
+                EnumSet.of(AdminSignupRequestStatus.PENDING)
+        );
+        if (pendingSignupExists) {
+            throw new AdminAuthException(AdminAuthErrorCode.SIGNUP_PENDING);
+        }
+
         AdminUser admin = adminUserRepository.findByEmail(request.email())
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_CREDENTIAL));
 
@@ -88,34 +95,34 @@ public class AdminAuthServiceImpl implements AdminAuthService {
     @Override
     @Transactional
     public AdminAuthTokenResponse refresh(AdminTokenRefreshRequest request) {
-        if (!StringUtils.hasText(request.refreshToken())) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
-        }
+         if (!StringUtils.hasText(request.refreshToken())) {
+             throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
+         }
 
-        RefreshTokenClaims claims;
-        try {
+         RefreshTokenClaims claims;
+         try {
             claims = adminJwtTokenProvider.parseRefreshToken(request.refreshToken());
-        } catch (JwtException | IllegalArgumentException exception) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT, exception);
-        }
+         } catch (JwtException | IllegalArgumentException exception) {
+            throw new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID, exception);
+         }
 
-        Long adminId = claims.adminId();
-        UUID tokenId = claims.tokenId();
+         Long adminId = claims.adminId();
+         UUID tokenId = claims.tokenId();
 
-        String refreshKey = adminRefreshTokenKeyManager.adminRefreshTokenKey(adminId);
-        String storedToken = redisTemplate.opsForValue().get(refreshKey);
-        if (!StringUtils.hasText(storedToken) || !Objects.equals(storedToken, request.refreshToken())) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
-        }
+         String refreshKey = adminRefreshTokenKeyManager.adminRefreshTokenKey(adminId);
+         String storedToken = redisTemplate.opsForValue().get(refreshKey);
+         if (!StringUtils.hasText(storedToken) || !Objects.equals(storedToken, request.refreshToken())) {
+            throw new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID);
+         }
 
-        String rotationKey = adminRefreshTokenKeyManager.rotationDetectorKey(tokenId.toString());
-        Boolean deleted = redisTemplate.delete(rotationKey);
-        if (!Boolean.TRUE.equals(deleted)) {
-            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
-        }
+         String rotationKey = adminRefreshTokenKeyManager.rotationDetectorKey(tokenId.toString());
+         Boolean deleted = redisTemplate.delete(rotationKey);
+         if (!Boolean.TRUE.equals(deleted)) {
+            throw new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID);
+         }
 
         AdminUser admin = adminUserRepository.findById(adminId)
-                .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT));
+                .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.REFRESH_TOKEN_INVALID));
 
         if (admin.getStatus() != AdminStatus.ACTIVE) {
             throw new AdminAuthException(AdminAuthErrorCode.ACCOUNT_NOT_APPROVED);
@@ -178,7 +185,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     @Override
     @Transactional
-    public AdminSignupApprovalResponse approveSignupRequest(Long requestId, Long reviewerId, AdminSignupApproveRequest request) {
+    public AdminSignupApprovalResponse approveSignupRequest(Long requestId, Long reviewerId) {
         AdminSignupRequest signupRequest = loadPendingRequest(requestId);
 
         if (adminUserRepository.existsByEmail(signupRequest.getEmail())) {
@@ -189,7 +196,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         AdminUser reviewer = adminUserRepository.findById(reviewerId)
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INSUFFICIENT_PERMISSION));
 
-        AdminRole role = normalizeRequestedRole(request.role());
+        AdminRole role = normalizeRequestedRole(signupRequest.getRequestedRole());
         AdminUser adminUser = AdminUser.createApproved(signupRequest.getEmail(), signupRequest.getPassword(), signupRequest.getName(), role);
         adminUserRepository.save(adminUser);
 
@@ -200,12 +207,12 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     @Override
     @Transactional
-    public AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId, AdminSignupRejectRequest request) {
+    public AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId) {
         AdminSignupRequest signupRequest = loadPendingRequest(requestId);
         AdminUser reviewer = adminUserRepository.findById(reviewerId)
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INSUFFICIENT_PERMISSION));
 
-        signupRequest.markRejected(reviewer, LocalDateTime.now(), request.reason());
+        signupRequest.markRejected(reviewer, LocalDateTime.now());
         return AdminSimpleResponse.of("가입 신청이 거절되었습니다.");
     }
 
@@ -234,6 +241,13 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         return AdminSignupRequestListResponse.of(summaries);
     }
 
+    @Override
+    public AdminRoleResponse getMyRole(Long adminId) {
+        AdminUser admin = adminUserRepository.findById(adminId)
+                .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT));
+        return AdminRoleResponse.of(admin.getRole());
+    }
+
     private AdminSignupRequest loadPendingRequest(Long requestId) {
         AdminSignupRequest signupRequest = adminSignupRequestRepository.findById(requestId)
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT));
@@ -256,8 +270,14 @@ public class AdminAuthServiceImpl implements AdminAuthService {
             throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
         }
 
-        if (adminUserRepository.existsByEmail(request.email())) {
-            throw new AdminAuthException(AdminAuthErrorCode.EMAIL_ALREADY_REGISTERED);
+        Optional<AdminUser> existingUser = adminUserRepository.findByEmail(request.email());
+        if (existingUser.isPresent()) {
+            AdminUser user = existingUser.get();
+            if (user.getStatus() == AdminStatus.SUSPENDED) {
+                adminUserRepository.delete(user);
+            } else {
+                throw new AdminAuthException(AdminAuthErrorCode.EMAIL_ALREADY_REGISTERED);
+            }
         }
 
         boolean pendingExists = adminSignupRequestRepository.existsByEmailAndStatusIn(
@@ -265,7 +285,7 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                 EnumSet.of(AdminSignupRequestStatus.PENDING)
         );
         if (pendingExists) {
-            throw new AdminAuthException(AdminAuthErrorCode.REQUEST_ALREADY_PROCESSED);
+            throw new AdminAuthException(AdminAuthErrorCode.SIGNUP_ALREADY_REQUESTED);
         }
 
         Optional<AdminSignupRequest> latestRequest = adminSignupRequestRepository.findTopByEmailOrderByCreatedAtDesc(request.email());

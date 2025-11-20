@@ -49,9 +49,6 @@ public class AdminSignupRequest extends BaseTimeEntity {
     @Column(length = 500)
     private String reason;
 
-    @Column(length = 500)
-    private String rejectionReason;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private AdminSignupRequestStatus status;
@@ -88,11 +85,10 @@ public class AdminSignupRequest extends BaseTimeEntity {
         this.reviewedAt = reviewedAt;
     }
 
-    public void markRejected(AdminUser reviewer, LocalDateTime reviewedAt, String rejectionReason) {
+    public void markRejected(AdminUser reviewer, LocalDateTime reviewedAt) {
         this.status = AdminSignupRequestStatus.REJECTED;
         this.reviewedBy = reviewer;
         this.reviewedAt = reviewedAt;
-        this.rejectionReason = rejectionReason;
     }
 
     public void markExpired() {
