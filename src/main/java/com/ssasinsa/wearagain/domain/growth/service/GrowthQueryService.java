@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.growth.service;
 
 import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
+import com.ssasinsa.wearagain.domain.growth.GrowthConstants;
 import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import com.ssasinsa.wearagain.domain.growth.dto.MascotStatusDto;
 import com.ssasinsa.wearagain.domain.growth.entity.UserGrowth;
@@ -10,12 +11,12 @@ import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
 import java.math.BigDecimal;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class GrowthQueryService {
-
-    private static final int NEXT_LEVEL_EXP = 100;
 
     private final UserGrowthRepository userGrowthRepository;
     private final ImpactAnalyticsRepository impactAnalyticsRepository;
@@ -29,6 +30,6 @@ public class GrowthQueryService {
             impactSummary = new ImpactSummary(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         }
 
-        return MascotStatusDto.of(userGrowth, NEXT_LEVEL_EXP, impactSummary);
+        return MascotStatusDto.of(userGrowth, GrowthConstants.LEVEL_EXP_THRESHOLD, impactSummary);
     }
 }

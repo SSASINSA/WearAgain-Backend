@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain.domain.growth.controller;
 
+import com.ssasinsa.wearagain.domain.growth.GrowthConstants;
 import com.ssasinsa.wearagain.domain.growth.docs.GrowthApiDocs;
 import com.ssasinsa.wearagain.domain.growth.dto.GrowthStatusResponse;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseRequest;
@@ -27,8 +28,6 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = GrowthApiDocs.TAG_NAME, description = GrowthApiDocs.TAG_DESCRIPTION)
 public class GrowthController {
 
-    private static final int NEXT_LEVEL_EXP = 100;
-
     private final GrowthQueryService growthQueryService;
     private final GrowthCommandService growthCommandService;
 
@@ -52,7 +51,7 @@ public class GrowthController {
             throw new CustomException(CommonErrorCode.UNAUTHORIZED);
         }
         MagicScissorUseResult result = growthCommandService.useMagicScissors(user.userId(), request.useCount());
-        MagicScissorUseResponse response = MagicScissorUseResponse.from(result, NEXT_LEVEL_EXP);
+        MagicScissorUseResponse response = MagicScissorUseResponse.from(result, GrowthConstants.LEVEL_EXP_THRESHOLD);
         return ResponseEntity.ok(response);
     }
 }
