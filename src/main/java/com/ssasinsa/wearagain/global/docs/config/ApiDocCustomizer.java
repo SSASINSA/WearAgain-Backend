@@ -1,8 +1,6 @@
 package com.ssasinsa.wearagain.global.docs.config;
 
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
-import com.ssasinsa.wearagain.domain.auth.exception.AdminAuthErrorCode;
-import com.ssasinsa.wearagain.global.exception.ErrorResponse;
 import io.swagger.v3.oas.models.Operation;
 import io.swagger.v3.oas.models.examples.Example;
 import io.swagger.v3.oas.models.media.Content;
@@ -11,9 +9,9 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
 import org.springdoc.core.customizers.OperationCustomizer;
+import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
-import org.springframework.core.annotation.AnnotatedElementUtils;
 
 @Component
 public class ApiDocCustomizer implements OperationCustomizer {
@@ -67,26 +65,6 @@ public class ApiDocCustomizer implements OperationCustomizer {
         if (!hasContent) {
             return null;
         }
-
-        Content content = new Content();
-        content.addMediaType(MEDIA_TYPE_JSON, mediaType);
-        return content;
-    }
-
-
-    private void addAdminErrorResponses(ApiResponses responses) {
-        for (AdminAuthErrorCode errorCode : AdminAuthErrorCode.values()) {
-            responses.addApiResponse(String.valueOf(errorCode.getStatus()), new ApiResponse()
-                    .description(errorCode.getMessage())
-                    .content(buildErrorContent()));
-        }
-    }
-
-    private Content buildErrorContent() {
-        MediaType mediaType = new MediaType();
-        Schema<ErrorResponse> schema = new Schema<>();
-        schema.set$ref("#/components/schemas/ErrorResponse");
-        mediaType.schema(schema);
 
         Content content = new Content();
         content.addMediaType(MEDIA_TYPE_JSON, mediaType);
