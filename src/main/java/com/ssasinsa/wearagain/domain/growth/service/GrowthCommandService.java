@@ -5,6 +5,7 @@ import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.finance.entity.CreditHistory;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
+import com.ssasinsa.wearagain.domain.growth.GrowthConstants;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResult;
 import com.ssasinsa.wearagain.domain.growth.entity.GrowthRewardRule;
 import com.ssasinsa.wearagain.domain.growth.entity.MagicScissorHistory;
@@ -25,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class GrowthCommandService {
 
     private static final int EXP_PER_USE = 35;
-    private static final int LEVEL_EXP_THRESHOLD = 100;
     private static final int MAX_LEVEL = 10;
     private static final int MAX_USE_PER_REQUEST = 20;
     private static final String CREDIT_REASON_GROWTH_REWARD = "GROWTH_LEVEL_REWARD";
@@ -57,8 +57,8 @@ public class GrowthCommandService {
         boolean rewardGranted = false;
         int totalRewardCredit = 0;
 
-        while (userGrowth.getExp() >= LEVEL_EXP_THRESHOLD) {
-            userGrowth.gainExperience(-LEVEL_EXP_THRESHOLD);
+        while (userGrowth.getExp() >= GrowthConstants.LEVEL_EXP_THRESHOLD) {
+            userGrowth.gainExperience(-GrowthConstants.LEVEL_EXP_THRESHOLD);
             if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
                 userGrowth.levelUp();
             } else {
@@ -68,6 +68,7 @@ public class GrowthCommandService {
                     rewardGranted = true;
                     totalRewardCredit += reward;
                 }
+                userGrowth.resetLevel();
             }
         }
 
@@ -88,9 +89,9 @@ public class GrowthCommandService {
             return requestedUseCount;
         }
 
-        int remainingExp = LEVEL_EXP_THRESHOLD - userGrowth.getExp();
+        int remainingExp = GrowthConstants.LEVEL_EXP_THRESHOLD - userGrowth.getExp();
         if (remainingExp <= 0) {
-            remainingExp = LEVEL_EXP_THRESHOLD;
+            remainingExp = GrowthConstants.LEVEL_EXP_THRESHOLD;
         }
         int usesNeeded = (int) Math.ceil((double) remainingExp / EXP_PER_USE);
         usesNeeded = Math.max(usesNeeded, 1);

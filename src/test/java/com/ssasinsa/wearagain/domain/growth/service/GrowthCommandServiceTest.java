@@ -90,6 +90,8 @@ class GrowthCommandServiceTest {
 
         assertThat(result.rewardGranted()).isTrue();
         assertThat(result.rewardCredit()).isEqualTo(50);
+        assertThat(result.level()).isEqualTo(1);
+        assertThat(result.exp()).isEqualTo(0);
         assertThat(userGrowth.getMagicScissorCount()).isEqualTo(9);
         assertThat(user.getCreditBalance()).isEqualTo(50);
         verify(creditHistoryRepository).save(any(CreditHistory.class));
