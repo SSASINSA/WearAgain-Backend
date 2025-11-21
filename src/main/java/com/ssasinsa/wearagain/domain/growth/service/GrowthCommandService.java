@@ -62,12 +62,10 @@ public class GrowthCommandService {
             userGrowth.gainExperience(-GrowthConstants.LEVEL_EXP_THRESHOLD);
             if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
                 userGrowth.levelUp();
-                if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
-                    int reward = grantRewardForLevel(userGrowth.getCurrentLevel(), user, rewardRuleMap);
-                    if (reward > 0) {
-                        rewardGranted = true;
-                        totalRewardCredit += reward;
-                    }
+                int reward = grantRewardForLevel(userGrowth.getCurrentLevel(), user, rewardRuleMap);
+                if (reward > 0) {
+                    rewardGranted = true;
+                    totalRewardCredit += reward;
                 }
             } else {
                 userGrowth.completeCycle();
