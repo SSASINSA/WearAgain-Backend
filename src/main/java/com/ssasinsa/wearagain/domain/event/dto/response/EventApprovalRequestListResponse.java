@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.event.dto.response;
 
 import com.ssasinsa.wearagain.domain.event.entity.EventApprovalRequest;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -17,7 +18,7 @@ public record EventApprovalRequestListResponse(
         @Schema(description = "승인 요청 관리자 정보")
         AdminInfo requestingAdmin,
 
-        @Schema(description = "승인 요청 생성 시각", example = "2025-11-21T10:00:00Z")
+        @Schema(description = "승인 요청 생성 시각", example = "2025-10-20T10:00:00Z")
         OffsetDateTime createdAt
 ) {
     @Schema(description = "행사 요약 정보")
@@ -26,16 +27,22 @@ public record EventApprovalRequestListResponse(
             Long eventId,
 
             @Schema(description = "행사 제목", example = "지속가능 패션 워크숍")
-            String title
+            String title,
+
+            @Schema(description = "행사 위치", example = "서울시 마포구 연남동 223-14 2F")
+            String location,
+
+            @Schema(description = "행사 시작일", example = "2025-11-10")
+            LocalDate startDate,
+
+            @Schema(description = "행사 종료일", example = "2025-11-30")
+            LocalDate endDate
     ) {
     }
 
     @Schema(description = "관리자 정보")
     public record AdminInfo(
-            @Schema(description = "관리자 ID", example = "1")
-            Long adminId,
-
-            @Schema(description = "관리자 이름", example = "이름")
+            @Schema(description = "관리자 이름", example = "홍길동")
             String name,
 
             @Schema(description = "관리자 이메일", example = "admin@example.com")
@@ -46,11 +53,13 @@ public record EventApprovalRequestListResponse(
     public static EventApprovalRequestListResponse from(EventApprovalRequest request) {
         EventInfo eventInfo = new EventInfo(
                 request.getEvent().getId(),
-                request.getEvent().getTitle()
+                request.getEvent().getTitle(),
+                request.getEvent().getLocation(),
+                request.getEvent().getStartDate(),
+                request.getEvent().getEndDate()
         );
 
         AdminInfo adminInfo = new AdminInfo(
-                request.getRequestingAdmin().getId(),
                 request.getRequestingAdmin().getName(),
                 request.getRequestingAdmin().getEmail()
         );

@@ -29,9 +29,6 @@ public record EventApprovalRequestDetailResponse(
 ) {
     @Schema(description = "관리자 정보")
     public record AdminInfo(
-            @Schema(description = "관리자 ID", example = "1")
-            Long adminId,
-
             @Schema(description = "관리자 이름", example = "이름")
             String name,
 
@@ -67,14 +64,12 @@ public record EventApprovalRequestDetailResponse(
 
     public static EventApprovalRequestDetailResponse from(EventApprovalRequest request) {
         AdminInfo requestingAdmin = new AdminInfo(
-                request.getRequestingAdmin().getId(),
                 request.getRequestingAdmin().getName(),
                 request.getRequestingAdmin().getEmail()
         );
 
         AdminInfo processedByAdmin = request.getProcessedByAdmin() != null
                 ? new AdminInfo(
-                        request.getProcessedByAdmin().getId(),
                         request.getProcessedByAdmin().getName(),
                         request.getProcessedByAdmin().getEmail()
                 )
@@ -104,3 +99,4 @@ public record EventApprovalRequestDetailResponse(
         return dateTime == null ? null : dateTime.atOffset(ZoneOffset.UTC);
     }
 }
+

@@ -505,10 +505,12 @@ public final class EventExamples {
                 "approvalRequestId": 1,
                 "event": {
                   "eventId": 100,
-                  "title": "지속가능 패션 워크숍"
+                  "title": "지속가능 패션 워크숍",
+                  "location": "서울시 마포구 연남동 223-14 2F",
+                  "startDate": "2025-11-10",
+                  "endDate": "2025-11-30"
                 },
                 "requestingAdmin": {
-                  "adminId": 11,
                   "name": "홍길동",
                   "email": "admin1@wearagain.kr"
                 },
@@ -518,10 +520,12 @@ public final class EventExamples {
                 "approvalRequestId": 2,
                 "event": {
                   "eventId": 101,
-                  "title": "업사이클링 패션 쇼"
+                  "title": "업사이클링 패션 쇼",
+                  "location": "서울시 강남구 테헤란로 123",
+                  "startDate": "2025-11-15",
+                  "endDate": "2025-11-25"
                 },
                 "requestingAdmin": {
-                  "adminId": 12,
                   "name": "김영희",
                   "email": "admin2@wearagain.kr"
                 },
@@ -536,7 +540,6 @@ public final class EventExamples {
               "createdAt": "2025-10-20T10:00:00Z",
               "processedAt": null,
               "requestingAdmin": {
-                "adminId": 11,
                 "name": "홍길동",
                 "email": "admin1@wearagain.kr"
               },
