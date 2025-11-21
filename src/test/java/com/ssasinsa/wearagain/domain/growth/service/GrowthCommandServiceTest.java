@@ -125,7 +125,7 @@ class GrowthCommandServiceTest {
         User user = createUser(4L);
         UserGrowth userGrowth = UserGrowth.create(user);
         ReflectionTestUtils.setField(userGrowth, "magicScissorCount", 10);
-        ReflectionTestUtils.setField(userGrowth, "currentLevel", 9);
+        ReflectionTestUtils.setField(userGrowth, "currentLevel", 10);
         ReflectionTestUtils.setField(userGrowth, "exp", 70);
 
         when(userRepository.findById(4L)).thenReturn(Optional.of(user));
@@ -134,7 +134,7 @@ class GrowthCommandServiceTest {
 
         MagicScissorUseResult result = growthCommandService.useMagicScissors(4L, 2);
 
-        assertThat(result.level()).isEqualTo(10);
+        assertThat(result.level()).isEqualTo(1);
         assertThat(result.exp()).isEqualTo(40);
         assertThat(result.magicScissorCount()).isEqualTo(8);
         assertThat(result.rewardGranted()).isTrue();
