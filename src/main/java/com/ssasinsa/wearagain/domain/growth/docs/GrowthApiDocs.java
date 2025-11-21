@@ -30,6 +30,16 @@ public final class GrowthApiDocs {
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
+            summary = "랭킹 조회",
+            description = "최신 스냅샷(전날 집계) 기준 상위 1~10위와 내 랭킹/순위 변동을 조회합니다."
+    )
+    public @interface GetRanking {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
             summary = "마법의 가위 사용",
             description = "가위를 사용하여 경험치를 획득하고, 필요 시 보상을 지급합니다."
     )
