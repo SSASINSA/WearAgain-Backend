@@ -3,8 +3,8 @@ package com.ssasinsa.wearagain.domain.growth.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -20,11 +20,12 @@ import com.ssasinsa.wearagain.domain.growth.exception.GrowthException;
 import com.ssasinsa.wearagain.domain.growth.repository.GrowthRewardRuleRepository;
 import com.ssasinsa.wearagain.domain.growth.repository.MagicScissorHistoryRepository;
 import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
+import java.util.List;
 import java.util.Optional;
+import org.mockito.Mockito;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -64,6 +65,7 @@ class GrowthCommandServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(1L)).thenReturn(Optional.of(userGrowth));
+        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
 
         MagicScissorUseResult result = growthCommandService.useMagicScissors(1L, 2);
 
@@ -84,17 +86,18 @@ class GrowthCommandServiceTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(2L)).thenReturn(Optional.of(userGrowth));
-        when(growthRewardRuleRepository.findByLevelRequired(10)).thenReturn(Optional.of(GrowthRewardRule.create(10, 50)));
+        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
 
         MagicScissorUseResult result = growthCommandService.useMagicScissors(2L, 5);
 
         assertThat(result.rewardGranted()).isTrue();
-        assertThat(result.rewardCredit()).isEqualTo(50);
-        assertThat(result.level()).isEqualTo(1);
-        assertThat(result.exp()).isEqualTo(0);
-        assertThat(userGrowth.getMagicScissorCount()).isEqualTo(9);
-        assertThat(user.getCreditBalance()).isEqualTo(50);
-        verify(creditHistoryRepository).save(any(CreditHistory.class));
+        assertThat(result.rewardCredit()).isEqualTo(400);
+        assertThat(result.level()).isEqualTo(2);
+        assertThat(result.exp()).isEqualTo(65);
+        assertThat(result.cycles()).isEqualTo(1);
+        assertThat(userGrowth.getMagicScissorCount()).isEqualTo(5);
+        assertThat(user.getCreditBalance()).isEqualTo(400);
+        verify(creditHistoryRepository, times(2)).save(any(CreditHistory.class));
     }
 
     @Test
@@ -105,13 +108,16 @@ class GrowthCommandServiceTest {
 
         when(userRepository.findById(3L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(3L)).thenReturn(Optional.of(userGrowth));
+        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
 
         MagicScissorUseResult result = growthCommandService.useMagicScissors(3L, 3);
 
         assertThat(result.level()).isEqualTo(2);
         assertThat(result.exp()).isEqualTo(5);
         assertThat(result.magicScissorCount()).isEqualTo(2);
-        assertThat(result.rewardGranted()).isFalse();
+        assertThat(result.rewardGranted()).isTrue();
+        assertThat(result.rewardCredit()).isEqualTo(100);
+        verify(creditHistoryRepository).save(any(CreditHistory.class));
     }
 
     @Test
@@ -119,19 +125,21 @@ class GrowthCommandServiceTest {
         User user = createUser(4L);
         UserGrowth userGrowth = UserGrowth.create(user);
         ReflectionTestUtils.setField(userGrowth, "magicScissorCount", 10);
-        ReflectionTestUtils.setField(userGrowth, "currentLevel", 9);
+        ReflectionTestUtils.setField(userGrowth, "currentLevel", 10);
         ReflectionTestUtils.setField(userGrowth, "exp", 70);
 
         when(userRepository.findById(4L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(4L)).thenReturn(Optional.of(userGrowth));
+        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
 
         MagicScissorUseResult result = growthCommandService.useMagicScissors(4L, 2);
 
-        assertThat(result.level()).isEqualTo(10);
+        assertThat(result.level()).isEqualTo(1);
         assertThat(result.exp()).isEqualTo(40);
         assertThat(result.magicScissorCount()).isEqualTo(8);
-        assertThat(result.rewardGranted()).isFalse();
-        verify(creditHistoryRepository, never()).save(any());
+        assertThat(result.rewardGranted()).isTrue();
+        assertThat(result.rewardCredit()).isEqualTo(300);
+        verify(creditHistoryRepository).save(any(CreditHistory.class));
     }
 
     @Test
@@ -142,9 +150,30 @@ class GrowthCommandServiceTest {
                 .isEqualTo(GrowthErrorCode.INVALID_MAGIC_SCISSOR_COUNT);
     }
 
+    @Test
+    void should_throw_when_reward_rule_missing() {
+        User user = createUser(5L);
+        UserGrowth userGrowth = UserGrowth.create(user);
+        ReflectionTestUtils.setField(userGrowth, "magicScissorCount", 5);
+
+        when(userRepository.findById(5L)).thenReturn(Optional.of(user));
+        when(userGrowthRepository.findByUserIdForUpdate(5L)).thenReturn(Optional.of(userGrowth));
+        when(growthRewardRuleRepository.findAll()).thenReturn(List.of());
+
+        assertThatThrownBy(() -> growthCommandService.useMagicScissors(5L, 3))
+                .isInstanceOf(GrowthException.class)
+                .extracting("errorCode")
+                .isEqualTo(GrowthErrorCode.REWARD_RULE_NOT_FOUND);
+        verify(creditHistoryRepository, never()).save(any());
+    }
+
     private User createUser(Long id) {
         User user = User.create("user@example.com", "사용자", null);
         ReflectionTestUtils.setField(user, "id", id);
         return user;
+    }
+
+    private GrowthRewardRule rule(int level, int credit) {
+        return GrowthRewardRule.create(level, credit);
     }
 }
