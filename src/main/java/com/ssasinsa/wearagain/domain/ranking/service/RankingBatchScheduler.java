@@ -18,6 +18,6 @@ public class RankingBatchScheduler {
 
     @Scheduled(cron = "0 0 0 * * *", zone = "Asia/Seoul")
     public void aggregateDailyRanking() {
-        rankingAggregationService.aggregateDaily(LocalDate.now(ZONE_SEOUL));
+        rankingAggregationService.aggregateDaily(LocalDate.now(ZONE_SEOUL).minusDays(1));
     }
 }
