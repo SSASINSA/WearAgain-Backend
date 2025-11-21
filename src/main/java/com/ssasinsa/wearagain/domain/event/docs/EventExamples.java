@@ -498,4 +498,66 @@ public final class EventExamples {
               "status": "CANCELED"
             }
             """;
+
+    public static final String ADMIN_EVENT_APPROVAL_LIST_RESPONSE = """
+            [
+              {
+                "approvalRequestId": 1,
+                "event": {
+                  "eventId": 100,
+                  "title": "지속가능 패션 워크숍"
+                },
+                "requestingAdmin": {
+                  "adminId": 11,
+                  "name": "홍길동",
+                  "email": "admin1@wearagain.kr"
+                },
+                "createdAt": "2025-10-20T10:00:00Z"
+              },
+              {
+                "approvalRequestId": 2,
+                "event": {
+                  "eventId": 101,
+                  "title": "업사이클링 패션 쇼"
+                },
+                "requestingAdmin": {
+                  "adminId": 12,
+                  "name": "김영희",
+                  "email": "admin2@wearagain.kr"
+                },
+                "createdAt": "2025-10-21T14:30:00Z"
+              }
+            ]
+            """;
+
+    public static final String ADMIN_EVENT_APPROVAL_DETAIL_RESPONSE = """
+            {
+              "approvalRequestId": 1,
+              "createdAt": "2025-10-20T10:00:00Z",
+              "processedAt": null,
+              "requestingAdmin": {
+                "adminId": 11,
+                "name": "홍길동",
+                "email": "admin1@wearagain.kr"
+              },
+              "processedByAdmin": null,
+              "event": {
+                "eventId": 100,
+                "title": "지속가능 패션 워크숍",
+                "description": "웨어어게인과 함께하는 리폼 클래스",
+                "location": "서울시 마포구 연남동 223-14 2F",
+                "startDate": "2025-11-10",
+                "endDate": "2025-11-30",
+                "status": "DRAFT"
+              }
+            }
+            """;
+
+    public static final String ADMIN_EVENT_APPROVE_RESPONSE = """
+            "행사 승인이 완료되었습니다."
+            """;
+
+    public static final String ADMIN_EVENT_REJECT_APPROVAL_RESPONSE = """
+            "행사 거부 처리가 완료되었습니다."
+            """;
 }

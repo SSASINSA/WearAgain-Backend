@@ -12,6 +12,8 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminStatusUpdateReque
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
 import com.ssasinsa.wearagain.domain.event.service.EventAdminService;
 import com.ssasinsa.wearagain.domain.event.service.EventImageUploadService;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
@@ -149,6 +151,50 @@ public class EventAdminController {
     ) {
         ensureAuthenticated(principal);
         EventApplicationRejectResponse response = eventAdminService.rejectApplication(applicationId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    @EventApiDocs.ApproveApprovalRequest
+    @PostMapping("/events/{eventId}/approve")
+    public ResponseEntity<String> approveApprovalRequest(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        ensureAuthenticated(principal);
+        String response = eventAdminService.approveApprovalRequest(
+                eventId,
+                principal.adminId()
+        );
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @EventApiDocs.RejectApprovalRequest
+    @PostMapping("/events/{eventId}/reject")
+    public ResponseEntity<String> rejectApprovalRequest(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        ensureAuthenticated(principal);
+        String response = eventAdminService.rejectApprovalRequest(
+                eventId,
+                principal.adminId()
+        );
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @EventApiDocs.ListPendingApprovals
+    @GetMapping("/approvals")
+    public ResponseEntity<java.util.List<EventApprovalRequestListResponse>> getPendingApprovals() {
+        java.util.List<EventApprovalRequestListResponse> responses = eventAdminService.getPendingApprovalRequests();
+        return ResponseEntity.ok(responses);
+    }
+
+    @EventApiDocs.GetApprovalDetail
+    @GetMapping("/approvals/{approvalRequestId}")
+    public ResponseEntity<EventApprovalRequestDetailResponse> getApprovalDetail(
+            @PathVariable Long approvalRequestId
+    ) {
+        EventApprovalRequestDetailResponse response = eventAdminService.getApprovalRequestDetail(approvalRequestId);
         return ResponseEntity.ok(response);
     }
 

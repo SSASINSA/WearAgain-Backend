@@ -18,6 +18,8 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.Eve
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
@@ -35,6 +37,8 @@ import com.ssasinsa.wearagain.domain.event.repository.EventCapacitySummary;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
+import com.ssasinsa.wearagain.domain.event.entity.EventApprovalRequest;
+import com.ssasinsa.wearagain.domain.event.repository.EventApprovalRequestRepository;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -88,6 +92,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     private final EventOptionRepository eventOptionRepository;
     private final EventApplicationRepository eventApplicationRepository;
     private final AdminUserRepository adminUserRepository;
+    private final EventApprovalRequestRepository eventApprovalRequestRepository;
 
     @Override
     @Transactional
@@ -730,9 +735,11 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     private static Map<EventStatus, EnumSet<EventStatus>> createStatusTransitions() {
         EnumMap<EventStatus, EnumSet<EventStatus>> transitions = new EnumMap<>(EventStatus.class);
-        transitions.put(EventStatus.DRAFT, EnumSet.of(EventStatus.DRAFT, EventStatus.OPEN, EventStatus.ARCHIVED));
+        transitions.put(EventStatus.DRAFT, EnumSet.of(EventStatus.DRAFT, EventStatus.APPROVAL, EventStatus.ARCHIVED));
+        transitions.put(EventStatus.APPROVAL, EnumSet.of(EventStatus.APPROVAL, EventStatus.OPEN, EventStatus.REJECTED, EventStatus.ARCHIVED));
         transitions.put(EventStatus.OPEN, EnumSet.of(EventStatus.OPEN, EventStatus.CLOSED, EventStatus.ARCHIVED));
         transitions.put(EventStatus.CLOSED, EnumSet.of(EventStatus.CLOSED, EventStatus.ARCHIVED));
+        transitions.put(EventStatus.REJECTED, EnumSet.of(EventStatus.REJECTED, EventStatus.ARCHIVED));
         transitions.put(EventStatus.ARCHIVED, EnumSet.of(EventStatus.ARCHIVED));
         return transitions;
     }
@@ -788,5 +795,83 @@ public class EventAdminServiceImpl implements EventAdminService {
     private String generateStaffCode() {
         int value = STAFF_CODE_RANDOM.nextInt(1_000_000);
         return String.format("%06d", value);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EventApprovalRequestListResponse> getPendingApprovalRequests() {
+        return eventApprovalRequestRepository.findByEventStatusOrderByCreatedAtDesc(EventStatus.DRAFT)
+                .stream()
+                .map(EventApprovalRequestListResponse::from)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public EventApprovalRequestDetailResponse getApprovalRequestDetail(Long approvalRequestId) {
+        EventApprovalRequest request = eventApprovalRequestRepository.findById(approvalRequestId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+
+        return EventApprovalRequestDetailResponse.from(request);
+    }
+
+    @Override
+    @Transactional
+    public String approveApprovalRequest(Long eventId, Long superAdminId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+
+        if (event.getStatus() != EventStatus.DRAFT) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_STATUS);
+        }
+
+        AdminUser superAdmin = adminUserRepository.findById(superAdminId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+
+        if (superAdmin.getRole() != AdminRole.SUPER_ADMIN) {
+            throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
+        }
+
+        EventApprovalRequest approvalRequest = new EventApprovalRequest(
+                null,
+                event,
+                event.getOrganizerAdmin(),
+                superAdmin,
+                LocalDateTime.now()
+        );
+        eventApprovalRequestRepository.save(approvalRequest);
+        event.changeStatus(EventStatus.APPROVAL);
+
+        return "행사 승인이 완료되었습니다.";
+    }
+
+    @Override
+    @Transactional
+    public String rejectApprovalRequest(Long eventId, Long superAdminId) {
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+
+        if (event.getStatus() != EventStatus.DRAFT) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_STATUS);
+        }
+
+        AdminUser superAdmin = adminUserRepository.findById(superAdminId)
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+
+        if (superAdmin.getRole() != AdminRole.SUPER_ADMIN) {
+            throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
+        }
+
+        EventApprovalRequest approvalRequest = new EventApprovalRequest(
+                null,
+                event,
+                event.getOrganizerAdmin(),
+                superAdmin,
+                LocalDateTime.now()
+        );
+        eventApprovalRequestRepository.save(approvalRequest);
+        event.changeStatus(EventStatus.REJECTED);
+
+        return "행사 승인이 거부되었습니다.";
     }
 }
