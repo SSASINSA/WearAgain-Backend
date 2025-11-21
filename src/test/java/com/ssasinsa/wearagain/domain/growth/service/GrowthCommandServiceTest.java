@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -96,7 +97,7 @@ class GrowthCommandServiceTest {
         assertThat(result.cycles()).isEqualTo(1);
         assertThat(userGrowth.getMagicScissorCount()).isEqualTo(5);
         assertThat(user.getCreditBalance()).isEqualTo(400);
-        verify(creditHistoryRepository, Mockito.times(2)).save(any(CreditHistory.class));
+        verify(creditHistoryRepository, times(2)).save(any(CreditHistory.class));
     }
 
     @Test
@@ -136,9 +137,9 @@ class GrowthCommandServiceTest {
         assertThat(result.level()).isEqualTo(10);
         assertThat(result.exp()).isEqualTo(40);
         assertThat(result.magicScissorCount()).isEqualTo(8);
-        assertThat(result.rewardGranted()).isTrue();
-        assertThat(result.rewardCredit()).isEqualTo(300);
-        verify(creditHistoryRepository).save(any(CreditHistory.class));
+        assertThat(result.rewardGranted()).isFalse();
+        assertThat(result.rewardCredit()).isEqualTo(0);
+        verify(creditHistoryRepository, never()).save(any(CreditHistory.class));
     }
 
     @Test

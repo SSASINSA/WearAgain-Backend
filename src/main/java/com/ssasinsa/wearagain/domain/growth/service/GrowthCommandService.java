@@ -62,10 +62,12 @@ public class GrowthCommandService {
             userGrowth.gainExperience(-GrowthConstants.LEVEL_EXP_THRESHOLD);
             if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
                 userGrowth.levelUp();
-                int reward = grantRewardForLevel(userGrowth.getCurrentLevel(), user, rewardRuleMap);
-                if (reward > 0) {
-                    rewardGranted = true;
-                    totalRewardCredit += reward;
+                if (userGrowth.getCurrentLevel() < MAX_LEVEL) {
+                    int reward = grantRewardForLevel(userGrowth.getCurrentLevel(), user, rewardRuleMap);
+                    if (reward > 0) {
+                        rewardGranted = true;
+                        totalRewardCredit += reward;
+                    }
                 }
             } else {
                 userGrowth.completeCycle();
@@ -111,7 +113,7 @@ public class GrowthCommandService {
         }
     }
 
-    private Map<Integer, Integer> loadRewardRules() {
+private Map<Integer, Integer> loadRewardRules() {
         return growthRewardRuleRepository.findAll()
                 .stream()
                 .collect(Collectors.toMap(GrowthRewardRule::getLevelRequired, GrowthRewardRule::getCreditReward));
