@@ -68,7 +68,7 @@ import org.springframework.util.StringUtils;
 @RequiredArgsConstructor
 public class EventAdminServiceImpl implements EventAdminService {
 
-    private static final Pattern HTTPS_URL_PATTERN = Pattern.compile("^https://.+", Pattern.CASE_INSENSITIVE);
+    private static final Pattern HTTPS_URL_PATTERN = Pattern.compile("^(https?://|/|file:).+", Pattern.CASE_INSENSITIVE);
     private static final int MAX_EVENT_DURATION_DAYS = 365;
     private static final int MAX_IMAGE_COUNT = 10;
     private static final int MAX_OPTION_DEPTH = 3;
