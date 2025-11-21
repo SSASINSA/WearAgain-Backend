@@ -7,6 +7,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.lenient;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
@@ -55,6 +56,8 @@ class GrowthCommandServiceTest {
                 creditHistoryRepository,
                 magicScissorHistoryRepository
         );
+
+        lenient().when(growthRewardRuleRepository.findAll()).thenReturn(defaultRules());
     }
 
     @Test
@@ -65,8 +68,6 @@ class GrowthCommandServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(1L)).thenReturn(Optional.of(userGrowth));
-        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
-
         MagicScissorUseResult result = growthCommandService.useMagicScissors(1L, 2);
 
         assertThat(result.level()).isEqualTo(1);
@@ -86,8 +87,6 @@ class GrowthCommandServiceTest {
 
         when(userRepository.findById(2L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(2L)).thenReturn(Optional.of(userGrowth));
-        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
-
         MagicScissorUseResult result = growthCommandService.useMagicScissors(2L, 5);
 
         assertThat(result.rewardGranted()).isTrue();
@@ -108,8 +107,6 @@ class GrowthCommandServiceTest {
 
         when(userRepository.findById(3L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(3L)).thenReturn(Optional.of(userGrowth));
-        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
-
         MagicScissorUseResult result = growthCommandService.useMagicScissors(3L, 3);
 
         assertThat(result.level()).isEqualTo(2);
@@ -130,8 +127,6 @@ class GrowthCommandServiceTest {
 
         when(userRepository.findById(4L)).thenReturn(Optional.of(user));
         when(userGrowthRepository.findByUserIdForUpdate(4L)).thenReturn(Optional.of(userGrowth));
-        when(growthRewardRuleRepository.findAll()).thenReturn(List.of(rule(2, 100), rule(10, 300)));
-
         MagicScissorUseResult result = growthCommandService.useMagicScissors(4L, 2);
 
         assertThat(result.level()).isEqualTo(1);
@@ -175,5 +170,20 @@ class GrowthCommandServiceTest {
 
     private GrowthRewardRule rule(int level, int credit) {
         return GrowthRewardRule.create(level, credit);
+    }
+
+    private List<GrowthRewardRule> defaultRules() {
+        return List.of(
+                rule(1, 100),
+                rule(2, 100),
+                rule(3, 100),
+                rule(4, 100),
+                rule(5, 100),
+                rule(6, 100),
+                rule(7, 100),
+                rule(8, 100),
+                rule(9, 100),
+                rule(10, 300)
+        );
     }
 }
