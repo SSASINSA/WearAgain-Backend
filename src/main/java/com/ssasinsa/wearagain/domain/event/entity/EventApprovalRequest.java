@@ -54,6 +54,16 @@ public class EventApprovalRequest extends BaseTimeEntity {
                 .build();
     }
 
+    /**
+     * 승인 요청 생성 (대기 중 상태)
+     */
+    public static EventApprovalRequest createPending(Event event, AdminUser requestingAdmin) {
+        return EventApprovalRequest.builder()
+                .event(event)
+                .requestingAdmin(requestingAdmin)
+                .build();
+    }
+
     public void approve(AdminUser approverAdmin, LocalDateTime processedAt) {
         this.processedByAdmin = approverAdmin;
         this.processedAt = processedAt;
