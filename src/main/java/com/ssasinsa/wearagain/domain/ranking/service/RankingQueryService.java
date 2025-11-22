@@ -14,9 +14,9 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,31 +38,44 @@ public class RankingQueryService {
                 .stream()
                 .collect(Collectors.toMap(RankingSnapshotRepository.RankView::getUserId, RankingSnapshotRepository.RankView::getRank));
 
-        List<RankingCandidate> candidates = rankingCandidateRepository.findCandidates(MagicScissorHistoryReason.USED_REPAIR);
+        List<RankingCandidate> topCandidates = rankingCandidateRepository.findCandidates(
+                MagicScissorHistoryReason.USED_REPAIR,
+                PageRequest.of(0, 10)
+        );
 
-        List<RankingEntry> topRanks = new ArrayList<>();
-        RankingEntry me = null;
-        int rank = 1;
-
-        for (RankingCandidate candidate : candidates) {
+        List<RankingEntry> topRanks = new ArrayList<>(topCandidates.size());
+        for (int i = 0; i < topCandidates.size(); i++) {
+            RankingCandidate candidate = topCandidates.get(i);
+            int currentRank = i + 1;
             Integer previousRank = previousRankMap.get(candidate.userId());
-            Integer rankChange = previousRank == null ? null : rank - previousRank;
-            RankingEntry entry = RankingEntry.of(
-                    rank,
-                    candidate.nickname(),
-                    candidate.repairCount(),
-                    rankChange
-            );
-
-            if (rank <= 10) {
-                topRanks.add(entry);
-            }
-            if (me == null && candidate.userId().equals(userId)) {
-                me = entry;
-            }
-            rank++;
+            Integer rankChange = previousRank == null ? null : currentRank - previousRank;
+            topRanks.add(RankingEntry.of(currentRank, candidate.nickname(), candidate.repairCount(), rankChange));
         }
 
+        RankingEntry me = buildMeEntry(userId, previousRankMap);
+
         return RankingResponse.of(snapshotDate, topRanks, me);
+    }
+
+    private RankingEntry buildMeEntry(Long userId, Map<Long, Integer> previousRankMap) {
+        Integer currentRank = rankingCandidateRepository.findRankForUser(
+                MagicScissorHistoryReason.USED_REPAIR.name(),
+                userId
+        );
+        if (currentRank == null) {
+            return null;
+        }
+        Integer previousRank = previousRankMap.get(userId);
+        Integer rankChange = previousRank == null ? null : currentRank - previousRank;
+
+        RankingCandidate meCandidate = rankingCandidateRepository.findCandidateByUserId(
+                        MagicScissorHistoryReason.USED_REPAIR,
+                        userId
+                )
+                .orElse(null);
+        if (meCandidate == null) {
+            return null;
+        }
+        return RankingEntry.of(currentRank, meCandidate.nickname(), meCandidate.repairCount(), rankChange);
     }
 }

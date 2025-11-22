@@ -17,6 +17,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,7 +39,10 @@ public class RankingAggregationService {
             return;
         }
 
-        List<RankingCandidate> candidates = rankingCandidateRepository.findCandidates(MagicScissorHistoryReason.USED_REPAIR);
+        List<RankingCandidate> candidates = rankingCandidateRepository.findCandidates(
+                MagicScissorHistoryReason.USED_REPAIR,
+                Pageable.unpaged()
+        );
         if (candidates.isEmpty()) {
             log.info("랭킹 대상이 없어 스냅샷을 생성하지 않습니다. snapshotDate={}", snapshotDate);
             cleanUpSnapshots(snapshotDate);
