@@ -39,8 +39,7 @@ public class ApiDocCustomizer implements OperationCustomizer {
         if (content != null) {
             response.content(content);
         }
-
-        responses.addApiResponse("200", response);
+        responses.addApiResponse(apiDoc.successStatus(), response);
 
         operation.setResponses(responses);
         return operation;

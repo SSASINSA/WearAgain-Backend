@@ -30,6 +30,18 @@ public final class GrowthApiDocs {
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
+            summary = "랭킹 조회",
+            description = "최신 스냅샷(전날 집계)을 비교 기준으로, 현재 수선 횟수 기반 실시간 랭킹 Top10과 내 순위/변동을 조회합니다.",
+            responseSchema = com.ssasinsa.wearagain.domain.ranking.dto.RankingResponse.class,
+            successStatus = "200"
+    )
+    public @interface GetRanking {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
             summary = "마법의 가위 사용",
             description = "가위를 사용하여 경험치를 획득하고, 필요 시 보상을 지급합니다."
     )

@@ -8,6 +8,8 @@ import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResponse;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResult;
 import com.ssasinsa.wearagain.domain.growth.service.GrowthCommandService;
 import com.ssasinsa.wearagain.domain.growth.service.GrowthQueryService;
+import com.ssasinsa.wearagain.domain.ranking.dto.RankingResponse;
+import com.ssasinsa.wearagain.domain.ranking.service.RankingQueryService;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import com.ssasinsa.wearagain.global.security.AuthenticatedUser;
@@ -30,6 +32,7 @@ public class GrowthController {
 
     private final GrowthQueryService growthQueryService;
     private final GrowthCommandService growthCommandService;
+    private final RankingQueryService rankingQueryService;
 
     @GrowthApiDocs.GetStatus
     @GetMapping("/status")
@@ -46,6 +49,13 @@ public class GrowthController {
     ) {
         MagicScissorUseResult result = growthCommandService.useMagicScissors(user.userId(), request.useCount());
         MagicScissorUseResponse response = MagicScissorUseResponse.from(result, GrowthConstants.LEVEL_EXP_THRESHOLD);
+        return ResponseEntity.ok(response);
+    }
+
+    @GrowthApiDocs.GetRanking
+    @GetMapping("/ranking")
+    public ResponseEntity<RankingResponse> getRanking(@AuthenticationPrincipal AuthenticatedUser user) {
+        RankingResponse response = rankingQueryService.getLatestRanking(user.userId());
         return ResponseEntity.ok(response);
     }
 }
