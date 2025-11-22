@@ -26,8 +26,4 @@ public @interface ApiDoc {
      */
     String successStatus() default "200";
 
-    /**
-     * 오류 응답 예시. 형식: "statusCode:{json 예시}"
-     */
-    String[] errorResponses() default {};
 }

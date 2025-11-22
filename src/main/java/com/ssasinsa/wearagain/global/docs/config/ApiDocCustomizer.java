@@ -41,25 +41,6 @@ public class ApiDocCustomizer implements OperationCustomizer {
         }
         responses.addApiResponse(apiDoc.successStatus(), response);
 
-        String[] errorResponses = apiDoc.errorResponses();
-        if (errorResponses.length > 0) {
-            for (String err : errorResponses) {
-                int delimiter = err.indexOf(':');
-                if (delimiter <= 0 || delimiter >= err.length() - 1) {
-                    continue;
-                }
-                String status = err.substring(0, delimiter);
-                String example = err.substring(delimiter + 1);
-                ApiResponse errorResponse = new ApiResponse().description("Error " + status);
-                Content errorContent = new Content();
-                MediaType mediaType = new MediaType();
-                mediaType.addExamples("example", new Example().value(example));
-                errorContent.addMediaType(MEDIA_TYPE_JSON, mediaType);
-                errorResponse.setContent(errorContent);
-                responses.addApiResponse(status, errorResponse);
-            }
-        }
-
         operation.setResponses(responses);
         return operation;
     }
