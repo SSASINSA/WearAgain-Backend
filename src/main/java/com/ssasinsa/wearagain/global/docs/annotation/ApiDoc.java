@@ -20,4 +20,14 @@ public @interface ApiDoc {
     String responseExample() default "";
 
     Class<?> responseSchema() default Void.class;
+
+    /**
+     * 성공 응답 코드 (기본 200).
+     */
+    String successStatus() default "200";
+
+    /**
+     * 오류 응답 예시. 형식: "statusCode:{json 예시}"
+     */
+    String[] errorResponses() default {};
 }

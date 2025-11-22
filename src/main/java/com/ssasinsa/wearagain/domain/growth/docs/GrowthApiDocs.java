@@ -31,7 +31,12 @@ public final class GrowthApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "랭킹 조회",
-            description = "최신 스냅샷(전날 집계) 기준 상위 1~10위와 내 랭킹/순위 변동을 조회합니다."
+            description = "최신 스냅샷(전날 집계)을 비교 기준으로, 현재 수선 횟수 기반 실시간 랭킹 Top10과 내 순위/변동을 조회합니다.",
+            responseSchema = com.ssasinsa.wearagain.domain.ranking.dto.RankingResponse.class,
+            successStatus = "200",
+            errorResponses = {
+                    "503:{\"code\":\"R1001\",\"message\":\"랭킹 스냅샷이 아직 생성되지 않았습니다.\"}"
+            }
     )
     public @interface GetRanking {
     }
