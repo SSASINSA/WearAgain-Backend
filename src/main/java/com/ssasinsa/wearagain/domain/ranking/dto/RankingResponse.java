@@ -4,11 +4,11 @@ import java.time.LocalDate;
 import java.util.List;
 
 public record RankingResponse(
-        LocalDate snapshotDate,
+        LocalDate comparedSnapshotDate,
         List<RankingEntry> topRanks,
         RankingEntry me
 ) {
-    public static RankingResponse of(LocalDate snapshotDate, List<RankingEntry> topRanks, RankingEntry me) {
-        return new RankingResponse(snapshotDate, topRanks, me);
+    public static RankingResponse of(LocalDate comparedSnapshotDate, List<RankingEntry> topRanks, RankingEntry me) {
+        return new RankingResponse(comparedSnapshotDate, topRanks, me);
     }
 }
