@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.event.entity;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import jakarta.persistence.*;
+import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,9 +15,9 @@ import java.util.Objects;
 @Getter
 @Entity
 @Table(name = "event_approval_requests")
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Builder(access = AccessLevel.PRIVATE)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class EventApprovalRequest extends BaseTimeEntity {
 
     @Id
@@ -39,10 +40,17 @@ public class EventApprovalRequest extends BaseTimeEntity {
     @Column(name = "processed_at")
     private LocalDateTime processedAt;
 
-    public static EventApprovalRequest create(Event event, AdminUser requestingAdmin) {
+    public static EventApprovalRequest create(
+            Event event,
+            AdminUser requestingAdmin,
+            AdminUser processedByAdmin,
+            LocalDateTime processedAt
+    ) {
         return EventApprovalRequest.builder()
                 .event(event)
                 .requestingAdmin(requestingAdmin)
+                .processedByAdmin(processedByAdmin)
+                .processedAt(processedAt)
                 .build();
     }
 

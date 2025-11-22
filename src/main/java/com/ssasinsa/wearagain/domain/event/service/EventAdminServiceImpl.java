@@ -832,8 +832,7 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
         }
 
-        EventApprovalRequest approvalRequest = new EventApprovalRequest(
-                null,
+        EventApprovalRequest approvalRequest = EventApprovalRequest.create(
                 event,
                 event.getOrganizerAdmin(),
                 superAdmin,
@@ -862,8 +861,7 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
         }
 
-        EventApprovalRequest approvalRequest = new EventApprovalRequest(
-                null,
+        EventApprovalRequest approvalRequest = EventApprovalRequest.create(
                 event,
                 event.getOrganizerAdmin(),
                 superAdmin,
