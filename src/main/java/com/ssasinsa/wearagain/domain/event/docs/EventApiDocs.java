@@ -323,8 +323,8 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "행사 승인 신청 목록 조회",
             description = """
-                    최고 관리자(SUPER_ADMIN)가 Event의 status가 DRAFT인 행사 목록을 조회합니다.
-                    생성 시간 기준 최신순으로 정렬됩니다.
+                    최고 관리자(SUPER_ADMIN)가 승인 대기 중인 행사(DRAFT 상태)의 승인 신청 목록을 조회합니다.
+                    생성 시간 기준 최신순으로 정렬되며, 각 신청의 제목, 신청 관리자 정보 등을 포함합니다.
                     """,
             responseSchema = EventApprovalRequestListResponse.class,
             responseExample = EventExamples.ADMIN_EVENT_APPROVAL_LIST_RESPONSE
@@ -338,8 +338,8 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "행사 승인 신청 상세 조회",
             description = """
-                    특정 행사 승인 신청 건의 상세 정보를 조회합니다.
-                    행사 정보, 신청 관리자, 처리 관리자 등의 정보를 포함합니다.
+                    특정 행사 승인 신청 건(EventApprovalRequest)의 상세 정보를 조회합니다.
+                    승인 신청한 행사의 전체 정보(이미지, 옵션, 기본정보)와 신청 관리자, 처리 상태 등을 포함합니다.
                     """,
             responseSchema = EventApprovalRequestDetailResponse.class,
             responseExample = EventExamples.ADMIN_EVENT_APPROVAL_DETAIL_RESPONSE
@@ -354,8 +354,8 @@ public final class EventApiDocs {
             summary = "행사 승인",
             description = """
                     최고 관리자(SUPER_ADMIN)만 호출 가능합니다.
-                    DRAFT 상태의 행사를 승인하여 APPROVAL 상태로 변경합니다.
-                    승인 요청 정보(신청자, 처리자, 처리 시간)를 기록합니다.
+                    EventApprovalRequest를 승인하여 관련 Event를 DRAFT에서 APPROVAL 상태로 변경합니다.
+                    승인 처리자 정보와 처리 시간을 기록합니다.
                     """,
             responseExample = EventExamples.ADMIN_EVENT_APPROVE_RESPONSE
     )
@@ -369,8 +369,8 @@ public final class EventApiDocs {
             summary = "행사 승인 거부",
             description = """
                     최고 관리자(SUPER_ADMIN)만 호출 가능합니다.
-                    DRAFT 상태의 행사를 거부하여 REJECTED 상태로 변경합니다.
-                    거부 요청 정보(신청자, 처리자, 처리 시간)를 기록합니다.
+                    EventApprovalRequest를 거부하여 관련 Event를 DRAFT에서 REJECTED 상태로 변경합니다.
+                    거부 처리자 정보와 처리 시간을 기록합니다.
                     """,
             responseExample = EventExamples.ADMIN_EVENT_REJECT_APPROVAL_RESPONSE
     )

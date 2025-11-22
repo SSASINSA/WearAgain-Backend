@@ -561,6 +561,6 @@ public final class EventExamples {
             """;
 
     public static final String ADMIN_EVENT_REJECT_APPROVAL_RESPONSE = """
-            "행사 거부 처리가 완료되었습니다."
+            "행사 승인이 거부되었습니다."
             """;
 }
