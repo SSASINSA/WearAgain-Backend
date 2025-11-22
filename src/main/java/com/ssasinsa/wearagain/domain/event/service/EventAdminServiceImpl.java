@@ -140,6 +140,9 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.EVENT_REGISTRATION_FAILED, exception);
         }
 
+        EventApprovalRequest approvalRequest = EventApprovalRequest.create(savedEvent, organizer);
+        eventApprovalRequestRepository.save(approvalRequest);
+
         return mapToCreateResponse(savedEvent);
     }
 
@@ -817,60 +820,46 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional
-    public String approveApprovalRequest(Long eventId, Long superAdminId) {
-        Event event = eventRepository.findById(eventId)
+    public String approveApprovalRequest(Long approvalRequestId, Long adminId) {
+        EventApprovalRequest approvalRequest = eventApprovalRequestRepository.findById(approvalRequestId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
+        Event event = approvalRequest.getEvent();
         if (event.getStatus() != EventStatus.DRAFT) {
             throw new EventException(EventErrorCode.INVALID_EVENT_STATUS);
         }
 
-        AdminUser superAdmin = adminUserRepository.findById(superAdminId)
+        AdminUser admin = adminUserRepository.findById(adminId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
-        if (superAdmin.getRole() != AdminRole.SUPER_ADMIN) {
+        if (admin.getRole() != AdminRole.SUPER_ADMIN) {
             throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
         }
 
-        EventApprovalRequest approvalRequest = new EventApprovalRequest(
-                null,
-                event,
-                event.getOrganizerAdmin(),
-                superAdmin,
-                LocalDateTime.now()
-        );
-        eventApprovalRequestRepository.save(approvalRequest);
-        event.changeStatus(EventStatus.APPROVAL);
+        approvalRequest.approve(admin, LocalDateTime.now());
 
         return "행사 승인이 완료되었습니다.";
     }
 
     @Override
     @Transactional
-    public String rejectApprovalRequest(Long eventId, Long superAdminId) {
-        Event event = eventRepository.findById(eventId)
+    public String rejectApprovalRequest(Long approvalRequestId, Long adminId) {
+        EventApprovalRequest approvalRequest = eventApprovalRequestRepository.findById(approvalRequestId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
+        Event event = approvalRequest.getEvent();
         if (event.getStatus() != EventStatus.DRAFT) {
             throw new EventException(EventErrorCode.INVALID_EVENT_STATUS);
         }
 
-        AdminUser superAdmin = adminUserRepository.findById(superAdminId)
+        AdminUser admin = adminUserRepository.findById(adminId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
-        if (superAdmin.getRole() != AdminRole.SUPER_ADMIN) {
+        if (admin.getRole() != AdminRole.SUPER_ADMIN) {
             throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
         }
 
-        EventApprovalRequest approvalRequest = new EventApprovalRequest(
-                null,
-                event,
-                event.getOrganizerAdmin(),
-                superAdmin,
-                LocalDateTime.now()
-        );
-        eventApprovalRequestRepository.save(approvalRequest);
-        event.changeStatus(EventStatus.REJECTED);
+        approvalRequest.reject(admin, LocalDateTime.now());
 
         return "행사 승인이 거부되었습니다.";
     }

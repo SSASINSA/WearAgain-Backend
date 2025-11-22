@@ -155,42 +155,42 @@ public class EventAdminController {
     }
 
     @EventApiDocs.ApproveApprovalRequest
-    @PostMapping("/events/{eventId}/approve")
+    @PostMapping("/events/approvals/{approvalRequestId}/approve")
     public ResponseEntity<String> approveApprovalRequest(
-            @PathVariable Long eventId,
+            @PathVariable Long approvalRequestId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);
         String response = eventAdminService.approveApprovalRequest(
-                eventId,
+                approvalRequestId,
                 principal.adminId()
         );
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @EventApiDocs.RejectApprovalRequest
-    @PostMapping("/events/{eventId}/reject")
+    @PostMapping("/events/approvals/{approvalRequestId}/reject")
     public ResponseEntity<String> rejectApprovalRequest(
-            @PathVariable Long eventId,
+            @PathVariable Long approvalRequestId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);
         String response = eventAdminService.rejectApprovalRequest(
-                eventId,
+                approvalRequestId,
                 principal.adminId()
         );
         return ResponseEntity.status(HttpStatus.OK).body(response);
     }
 
     @EventApiDocs.ListPendingApprovals
-    @GetMapping("/approvals")
+    @GetMapping("/events/approvals")
     public ResponseEntity<java.util.List<EventApprovalRequestListResponse>> getPendingApprovals() {
         java.util.List<EventApprovalRequestListResponse> responses = eventAdminService.getPendingApprovalRequests();
         return ResponseEntity.ok(responses);
     }
 
     @EventApiDocs.GetApprovalDetail
-    @GetMapping("/approvals/{approvalRequestId}")
+    @GetMapping("/events/approvals/{approvalRequestId}")
     public ResponseEntity<EventApprovalRequestDetailResponse> getApprovalDetail(
             @PathVariable Long approvalRequestId
     ) {

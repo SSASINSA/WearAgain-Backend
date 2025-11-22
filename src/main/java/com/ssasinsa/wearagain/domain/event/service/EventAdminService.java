@@ -38,7 +38,7 @@ public interface EventAdminService {
 
     EventApprovalRequestDetailResponse getApprovalRequestDetail(Long approvalRequestId);
 
-    String approveApprovalRequest(Long eventId, Long superAdminId);
+    String approveApprovalRequest(Long approvalRequestId, Long adminId);
 
-    String rejectApprovalRequest(Long eventId, Long superAdminId);
+    String rejectApprovalRequest(Long approvalRequestId, Long adminId);
 }
