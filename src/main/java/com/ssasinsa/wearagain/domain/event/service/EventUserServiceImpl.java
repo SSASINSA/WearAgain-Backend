@@ -197,7 +197,7 @@ public class EventUserServiceImpl implements EventUserService {
     @Transactional(readOnly = true)
     public EventApplicationListResponse getUserApplications(
             Long userId,
-            EventApplicationStatus status,
+            EventApplicationStatus[] statuses,
             LocalDate from,
             LocalDate to,
             String cursor,
@@ -214,14 +214,12 @@ public class EventUserServiceImpl implements EventUserService {
         LocalDateTime fromDateTime = from == null ? null : from.atStartOfDay();
         LocalDateTime toDateTime = to == null ? null : to.plusDays(1).atStartOfDay();
 
-        Collection<EventApplicationStatus> statuses = status == null
-                ? EnumSet.allOf(EventApplicationStatus.class)
-                : EnumSet.of(status);
+        Collection<EventApplicationStatus> targetStatuses = resolveApplicationStatuses(statuses);
 
         Pageable pageable = PageRequest.of(0, size + 1);
         List<Long> fetchedIds = eventApplicationRepository.findApplicationIdsForUser(
                 userId,
-                statuses,
+                targetStatuses,
                 fromDateTime,
                 toDateTime,
                 cursorCreatedAt,
@@ -260,6 +258,22 @@ public class EventUserServiceImpl implements EventUserService {
                 : null;
 
         return new EventApplicationListResponse(items, nextCursor, hasNext);
+    }
+
+    private Collection<EventApplicationStatus> resolveApplicationStatuses(EventApplicationStatus[] statuses) {
+        if (statuses == null || statuses.length == 0) {
+            return EnumSet.complementOf(EnumSet.of(EventApplicationStatus.CANCELED, EventApplicationStatus.REJECTED));
+        }
+        EnumSet<EventApplicationStatus> set = EnumSet.noneOf(EventApplicationStatus.class);
+        for (EventApplicationStatus status : statuses) {
+            if (status != null) {
+                set.add(status);
+            }
+        }
+        if (set.isEmpty()) {
+            return EnumSet.complementOf(EnumSet.of(EventApplicationStatus.CANCELED, EventApplicationStatus.REJECTED));
+        }
+        return set;
     }
 
     @Override

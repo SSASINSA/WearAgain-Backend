@@ -24,7 +24,7 @@ public interface EventUserService {
 
     EventApplicationListResponse getUserApplications(
             Long userId,
-            EventApplicationStatus status,
+            EventApplicationStatus[] statuses,
             LocalDate from,
             LocalDate to,
             String cursor,
