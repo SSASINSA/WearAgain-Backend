@@ -103,14 +103,6 @@ public class TicketStaffServiceImpl implements TicketStaffService {
         }
     }
 
-    private void deleteToken(Long userId) {
-        try {
-            ticketQrTokenStore.deleteToken(userId);
-        } catch (IllegalStateException exception) {
-            throw new TicketException(TicketErrorCode.TICKET_QR_TOKEN_STORE_FAILED, exception);
-        }
-    }
-
     private void ensureParticipant(Long eventId, Long userId) {
         boolean exists = eventApplicationRepository.existsByUserIdAndEventIdAndStatusIn(
                 userId,
