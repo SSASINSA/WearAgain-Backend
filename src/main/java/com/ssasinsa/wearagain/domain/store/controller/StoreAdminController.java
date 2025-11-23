@@ -48,7 +48,7 @@ public class StoreAdminController {
     public ResponseEntity<StoreImageUploadResponse> uploadItemImage(@RequestPart("file") MultipartFile file) {
         String imageName = storeImageUploadService.uploadImage(file);
         String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/upload/")
+                .path("/uploads/")
                 .path(imageName)
                 .toUriString();
         StoreImageUploadResponse response = new StoreImageUploadResponse(imageName, imageUrl);
