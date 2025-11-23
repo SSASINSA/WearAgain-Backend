@@ -59,7 +59,6 @@ public class TicketStaffServiceImpl implements TicketStaffService {
                 event
         );
 
-        deleteToken(payload.userId());
         OffsetDateTime usedAt = OffsetDateTime.now(ZoneOffset.UTC);
         log.info("Ticket used by staff code {} for user {}", code, payload.userId());
         return new TicketUseResponse(result.ticketCountBefore(), result.ticketCountAfter(), usedAt);
