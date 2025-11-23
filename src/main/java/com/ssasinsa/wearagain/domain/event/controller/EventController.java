@@ -67,7 +67,7 @@ public class EventController {
     @GetMapping("/applications")
     public ResponseEntity<EventApplicationListResponse> getApplications(
             @AuthenticationPrincipal AuthenticatedUser user,
-            @RequestParam(name = "status", required = false) EventApplicationStatus status,
+            @RequestParam(name = "status", required = false) EventApplicationStatus[] statuses,
             @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(name = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam(name = "cursor", required = false) String cursor,
@@ -78,7 +78,7 @@ public class EventController {
         }
         EventApplicationListResponse response = eventUserService.getUserApplications(
                 user.userId(),
-                status,
+                statuses,
                 from,
                 to,
                 cursor,
