@@ -59,7 +59,6 @@ public class TicketStaffServiceImpl implements TicketStaffService {
                 event
         );
 
-        deleteToken(payload.userId());
         OffsetDateTime usedAt = OffsetDateTime.now(ZoneOffset.UTC);
         log.info("Ticket used by staff code {} for user {}", code, payload.userId());
         return new TicketUseResponse(result.ticketCountBefore(), result.ticketCountAfter(), usedAt);
@@ -99,14 +98,6 @@ public class TicketStaffServiceImpl implements TicketStaffService {
         try {
             return ticketQrTokenStore.getTokenByToken(qrToken)
                     .orElseThrow(() -> new TicketException(TicketErrorCode.TICKET_QR_TOKEN_NOT_FOUND));
-        } catch (IllegalStateException exception) {
-            throw new TicketException(TicketErrorCode.TICKET_QR_TOKEN_STORE_FAILED, exception);
-        }
-    }
-
-    private void deleteToken(Long userId) {
-        try {
-            ticketQrTokenStore.deleteToken(userId);
         } catch (IllegalStateException exception) {
             throw new TicketException(TicketErrorCode.TICKET_QR_TOKEN_STORE_FAILED, exception);
         }
