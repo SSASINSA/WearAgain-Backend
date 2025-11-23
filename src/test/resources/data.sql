@@ -79,3 +79,22 @@ VALUES
     (1018, 118, 118, -1, 'USED_REPAIR', NOW() - INTERVAL 8 DAY, NOW() - INTERVAL 8 DAY),
     (1019, 119, 119, -1, 'USED_REPAIR', NOW() - INTERVAL 9 DAY, NOW() - INTERVAL 9 DAY),
     (1020, 120, 120, -1, 'USED_REPAIR', NOW() - INTERVAL 10 DAY, NOW() - INTERVAL 10 DAY);
+
+INSERT INTO store_items (store_items_id, name, description, category, price, stock, status, created_at, updated_at)
+VALUES
+    (301, '업사이클 에코백', '재활용 원단으로 제작한 친환경 에코백입니다.', 'bag', 12000, 100, 'ACTIVE', NOW(), NOW()),
+    (302, '리사이클 텀블러', '이중 진공 구조로 보온 보냉이 가능한 스테인리스 텀블러입니다.', 'kitchen', 18000, 50, 'ACTIVE', NOW(), NOW()),
+    (303, '리유저블 컵 세트', '가벼운 소재의 재사용 컵 4P 세트입니다.', 'kitchen', 9000, 0, 'INACTIVE', NOW(), NOW()),
+    (304, '리사이클 토트백', 'md-docs의 download.png를 활용한 기본 토트백 샘플입니다.', 'bag', 15000, 40, 'ACTIVE', NOW(), NOW()),
+    (305, '리유저블 워터보틀', 'md-docs의 download (1).png를 활용한 워터보틀 샘플입니다.', 'kitchen', 11000, 80, 'ACTIVE', NOW(), NOW()),
+    (306, '업사이클 파우치', 'md-docs의 download (2).png를 활용한 파우치 샘플입니다.', 'accessory', 8000, 25, 'ACTIVE', NOW(), NOW());
+
+INSERT INTO store_item_images (store_item_images_id, store_items_id, image_url, sort_order, created_at, updated_at)
+VALUES
+    (501, 301, 'https://cdn.wearagain.local/store/items/301/main.jpg', 1, NOW(), NOW()),
+    (502, 301, 'https://cdn.wearagain.local/store/items/301/detail-1.jpg', 2, NOW(), NOW()),
+    (503, 302, 'https://cdn.wearagain.local/store/items/302/main.jpg', 1, NOW(), NOW()),
+    (504, 303, 'https://cdn.wearagain.local/store/items/303/main.jpg', 1, NOW(), NOW()),
+    (505, 304, '/upload/store/md-docs/download.png', 1, NOW(), NOW()),
+    (506, 305, '/upload/store/md-docs/download (1).png', 1, NOW(), NOW()),
+    (507, 306, '/upload/store/md-docs/download (2).png', 1, NOW(), NOW());

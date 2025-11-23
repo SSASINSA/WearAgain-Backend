@@ -19,6 +19,16 @@ public final class StoreApiDocs {
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
+            summary = "스토어 상품 이미지 업로드",
+            description = "이미지 파일을 업로드하고 저장 경로를 반환합니다."
+    )
+    public @interface UploadItemImage {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
             summary = "관리자 스토어 상품 등록",
             description = "관리자 페이지에서 스토어 상품과 이미지를 등록합니다."
     )
@@ -75,6 +85,7 @@ public final class StoreApiDocs {
     public @interface DeleteItem {
     }
 
+    @SecurityRequirement(name = "adminJWT")
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
@@ -84,6 +95,7 @@ public final class StoreApiDocs {
     public @interface GetItems {
     }
 
+    @SecurityRequirement(name = "adminJWT")
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(

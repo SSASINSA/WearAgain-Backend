@@ -7,14 +7,17 @@ import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemStatusUpdateRequ
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCreateResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreImageUploadResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.service.StoreAdminService;
+import com.ssasinsa.wearagain.domain.store.service.StoreImageUploadService;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -26,7 +29,10 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
+import org.springframework.web.multipart.MultipartFile;
 
 @Tag(name = StoreApiDocs.TAG_NAME, description = StoreApiDocs.TAG_DESCRIPTION)
 @RestController
@@ -35,6 +41,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class StoreAdminController {
 
     private final StoreAdminService storeAdminService;
+    private final StoreImageUploadService storeImageUploadService;
+
+    @StoreApiDocs.UploadItemImage
+    @PostMapping(value = "/items/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<StoreImageUploadResponse> uploadItemImage(@RequestPart("file") MultipartFile file) {
+        String imageName = storeImageUploadService.uploadImage(file);
+        String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/upload/")
+                .path(imageName)
+                .toUriString();
+        StoreImageUploadResponse response = new StoreImageUploadResponse(imageName, imageUrl);
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
 
     @StoreApiDocs.CreateItem
     @PostMapping("/items")

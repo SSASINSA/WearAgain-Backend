@@ -16,12 +16,12 @@ public class StoreServiceImpl implements StoreService {
     @Override
     @Transactional(readOnly = true)
     public StoreItemListResponse getItems(String category, String keyword, int page, int size) {
-        throw new UnsupportedOperationException("스토어 기능은 구현 예정입니다.");
+        throw new UnsupportedOperationException("스토어 사용자용 기능은 구현 예정입니다.");
     }
 
     @Override
     @Transactional(readOnly = true)
     public StoreItemDetailResponse getItemDetail(Long itemId) {
-        throw new UnsupportedOperationException("스토어 기능은 구현 예정입니다.");
+        throw new UnsupportedOperationException("스토어 사용자용 기능은 구현 예정입니다.");
     }
 }

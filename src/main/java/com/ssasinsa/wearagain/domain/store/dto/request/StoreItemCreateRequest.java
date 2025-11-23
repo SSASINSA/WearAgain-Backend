@@ -41,7 +41,7 @@ public record StoreItemCreateRequest(
         List<@Valid StoreItemImageRequest> images
 ) {
 
-    @Schema(description = "상품 이미지 정보")
+    @Schema(description = "스토어 상품 이미지 정보")
     public record StoreItemImageRequest(
             @Schema(description = "이미지 URL", example = "https://cdn.wearagain.kr/store/items/1/main.jpg")
             @NotBlank
