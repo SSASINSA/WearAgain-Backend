@@ -96,7 +96,7 @@ AGENTS.md
 prd/
 todolist.md
 Results.md
-docs/
+/md-docs/
 
 # Local artifacts
 .DS_Store
