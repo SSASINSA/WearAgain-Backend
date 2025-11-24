@@ -44,9 +44,8 @@ public class StoreItem extends BaseTimeEntity {
     @Builder.Default
     private StoreItemStatus status = StoreItemStatus.ACTIVE;
 
-    @Column(name = "max_purchase_per_user", nullable = false)
-    @Builder.Default
-    private int maxPurchasePerUser = 1;
+    @Column(name = "max_purchase_per_user")
+    private Integer maxPurchasePerUser;
 
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
@@ -62,14 +61,14 @@ public class StoreItem extends BaseTimeEntity {
     public static StoreItem create(String name, String description, String category, int price, Integer stock, Integer maxPurchasePerUser, StoreItemStatus status, List<String> imageUrls) {
         int resolvedStock = stock == null ? 0 : stock;
         StoreItemStatus resolvedStatus = status == null ? StoreItemStatus.ACTIVE : status;
-        int resolvedMaxPurchasePerUser = maxPurchasePerUser == null ? 1 : maxPurchasePerUser;
+        Integer resolvedMaxPurchasePerUser = maxPurchasePerUser;
         if (price < 0) {
             throw new IllegalArgumentException("price must be zero or positive");
         }
         if (resolvedStock < 0) {
             throw new IllegalArgumentException("stock must be zero or positive");
         }
-        if (resolvedMaxPurchasePerUser <= 0) {
+        if (resolvedMaxPurchasePerUser != null && resolvedMaxPurchasePerUser <= 0) {
             throw new IllegalArgumentException("maxPurchasePerUser must be positive");
         }
 
