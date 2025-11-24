@@ -261,7 +261,7 @@ CREATE TABLE store_items (
     category VARCHAR(50),
     price INT NOT NULL,
     stock INT NOT NULL DEFAULT 0,
-    max_purchase_per_user INT DEFAULT 1,
+    max_purchase_per_user INT,
     status ENUM('ACTIVE','INACTIVE','DELETED') NOT NULL DEFAULT 'ACTIVE',
     deleted_at DATETIME(6),
     deleted_by BIGINT,
