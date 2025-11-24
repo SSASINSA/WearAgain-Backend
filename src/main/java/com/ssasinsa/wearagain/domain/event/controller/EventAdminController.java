@@ -62,7 +62,7 @@ public class EventAdminController {
     public ResponseEntity<EventImageUploadResponse> uploadEventImage(@RequestPart("file") MultipartFile file) {
         String imageName = eventImageUploadService.uploadImage(file);
         String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/upload/")
+                .path("/uploads/")
                 .path(imageName)
                 .toUriString();
         EventImageUploadResponse response = new EventImageUploadResponse(imageName, imageUrl);

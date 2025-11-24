@@ -2,28 +2,13 @@ package com.ssasinsa.wearagain.domain.store.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.OneToMany;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
+import lombok.*;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import lombok.AccessLevel;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Builder.Default;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
@@ -99,8 +84,33 @@ public class StoreItem extends BaseTimeEntity {
         this.deletedBy = admin;
     }
 
+    public void updateInformation(String name, String description, String category, Integer price, Integer stock) {
+        if (name != null) {
+            this.name = name;
+        }
+        if (description != null) {
+            this.description = description;
+        }
+        if (category != null) {
+            this.category = category;
+        }
+        if (price != null) {
+            this.price = price;
+        }
+        if (stock != null) {
+            this.stock = stock;
+        }
+    }
+
     public void changeStatus(StoreItemStatus status) {
         this.status = status;
+    }
+
+    public void replaceImages(List<StoreItemImage> newImages) {
+        images.clear();
+        if (newImages != null) {
+            images.addAll(newImages);
+        }
     }
 
     void addImage(StoreItemImage image) {
