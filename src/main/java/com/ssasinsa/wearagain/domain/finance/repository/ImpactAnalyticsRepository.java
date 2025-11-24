@@ -14,4 +14,6 @@ public interface ImpactAnalyticsRepository extends JpaRepository<ImpactAnalytics
             + "COALESCE(SUM(ia.energySaved), 0)) "
             + "FROM ImpactAnalytics ia WHERE ia.user.id = :userId")
     ImpactSummary aggregateByUserId(@Param("userId") Long userId);
+
+    boolean existsByUserIdAndEventId(Long userId, Long eventId);
 }

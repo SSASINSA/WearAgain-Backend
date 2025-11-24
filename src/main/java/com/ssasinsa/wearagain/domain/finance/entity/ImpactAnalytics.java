@@ -38,13 +38,13 @@ public class ImpactAnalytics extends BaseTimeEntity {
     @JoinColumn(name = "events_id", nullable = false)
     private Event event;
 
-    @Column(name = "co2_saved", precision = 10, scale = 2)
+    @Column(name = "co2_saved", precision = 18, scale = 6)
     private BigDecimal co2Saved;
 
-    @Column(name = "water_saved", precision = 10, scale = 2)
+    @Column(name = "water_saved", precision = 18, scale = 6)
     private BigDecimal waterSaved;
 
-    @Column(name = "energy_saved", precision = 10, scale = 2)
+    @Column(name = "energy_saved", precision = 18, scale = 6)
     private BigDecimal energySaved;
 
     @Builder(access = AccessLevel.PRIVATE)

@@ -126,6 +126,11 @@ logging:
   level:
     org.springframework.security.web.FilterChainProxy: DEBUG
 
+impact:
+  co2-per-ticket: ${IMPACT_CO2_PER_TICKET:0}
+  water-per-ticket: ${IMPACT_WATER_PER_TICKET:0}
+  energy-per-ticket: ${IMPACT_ENERGY_PER_TICKET:0}
+
 app:
   upload:
     event-image-root: ${EVENT_IMAGE_UPLOAD_ROOT:/data/uploads}
