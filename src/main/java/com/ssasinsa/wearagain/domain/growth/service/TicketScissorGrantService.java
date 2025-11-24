@@ -87,7 +87,7 @@ public class TicketScissorGrantService {
     private void saveImpactAnalyticsIfAbsent(User user, Event event, int grantAmount) {
         Long userId = user.getId();
         Long eventId = event.getId();
-        if (eventId == null || impactAnalyticsRepository.existsByUserIdAndEventId(userId, eventId)) {
+        if (impactAnalyticsRepository.existsByUserIdAndEventId(userId, eventId)) {
             return;
         }
 
