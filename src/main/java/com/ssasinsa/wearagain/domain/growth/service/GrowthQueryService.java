@@ -9,6 +9,7 @@ import com.ssasinsa.wearagain.domain.growth.exception.GrowthErrorCode;
 import com.ssasinsa.wearagain.domain.growth.exception.GrowthException;
 import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,21 @@ public class GrowthQueryService {
             impactSummary = new ImpactSummary(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         }
 
-        return MascotStatusDto.of(userGrowth, GrowthConstants.LEVEL_EXP_THRESHOLD, impactSummary);
+        return MascotStatusDto.of(userGrowth, GrowthConstants.LEVEL_EXP_THRESHOLD, scaleImpactForResponse(impactSummary));
+    }
+
+    private ImpactSummary scaleImpactForResponse(ImpactSummary impactSummary) {
+        return new ImpactSummary(
+                scale(impactSummary.co2Saved()),
+                scale(impactSummary.waterSaved()),
+                scale(impactSummary.energySaved())
+        );
+    }
+
+    private BigDecimal scale(BigDecimal value) {
+        if (value == null) {
+            return BigDecimal.ZERO;
+        }
+        return value.setScale(3, RoundingMode.HALF_UP);
     }
 }

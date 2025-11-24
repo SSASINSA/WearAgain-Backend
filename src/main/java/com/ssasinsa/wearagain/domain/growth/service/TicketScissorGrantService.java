@@ -106,7 +106,7 @@ public class TicketScissorGrantService {
         if (perTicket == null || BigDecimal.ZERO.compareTo(perTicket) == 0) {
             return BigDecimal.ZERO;
         }
-        return perTicket.multiply(ticketCount).setScale(3, RoundingMode.HALF_UP);
+        return perTicket.multiply(ticketCount);
     }
 
     private int toPositiveAmount(Long totalCharged) {
