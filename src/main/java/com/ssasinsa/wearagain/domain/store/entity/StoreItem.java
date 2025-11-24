@@ -58,6 +58,12 @@ public class StoreItem extends BaseTimeEntity {
     public static StoreItem create(String name, String description, String category, int price, Integer stock, StoreItemStatus status, List<String> imageUrls) {
         int resolvedStock = stock == null ? 0 : stock;
         StoreItemStatus resolvedStatus = status == null ? StoreItemStatus.ACTIVE : status;
+        if (price < 0) {
+            throw new IllegalArgumentException("price must be zero or positive");
+        }
+        if (resolvedStock < 0) {
+            throw new IllegalArgumentException("stock must be zero or positive");
+        }
 
         StoreItem item = StoreItem.builder()
                 .name(name)
@@ -110,6 +116,25 @@ public class StoreItem extends BaseTimeEntity {
         images.clear();
         if (newImages != null) {
             images.addAll(newImages);
+        }
+    }
+
+    public void decreaseStock(int quantity) {
+        validateQuantity(quantity);
+        if (this.stock < quantity) {
+            throw new IllegalStateException("insufficient stock");
+        }
+        this.stock -= quantity;
+    }
+
+    public void increaseStock(int quantity) {
+        validateQuantity(quantity);
+        this.stock += quantity;
+    }
+
+    private void validateQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("quantity must be positive");
         }
     }
 

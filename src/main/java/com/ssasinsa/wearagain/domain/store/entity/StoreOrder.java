@@ -51,29 +51,43 @@ public class StoreOrder extends BaseTimeEntity {
     @Column(nullable = false)
     private int price;
 
-    @Column(name = "refunded_amount")
-    private Integer refundedAmount;
+    @Column(nullable = false)
+    private int quantity;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private StoreOrder(User user, StoreItem item, StoreOrderStatus status, int price, Integer refundedAmount) {
+    private StoreOrder(User user, StoreItem item, StoreOrderStatus status, int price, int quantity) {
+        validatePrice(price);
+        validateQuantity(quantity);
         this.user = user;
         this.item = item;
         this.status = status == null ? StoreOrderStatus.PURCHASED : status;
         this.price = price;
-        this.refundedAmount = refundedAmount == null ? 0 : refundedAmount;
+        this.quantity = quantity;
     }
 
-    public static StoreOrder create(User user, StoreItem item, int price) {
+    public static StoreOrder create(User user, StoreItem item, int price, int quantity) {
         return StoreOrder.builder()
                 .user(user)
                 .item(item)
                 .price(price)
+                .quantity(quantity)
                 .build();
     }
 
-    public void cancel(int refundedAmount) {
+    public void cancel() {
         this.status = StoreOrderStatus.CANCELED;
-        this.refundedAmount = refundedAmount;
+    }
+
+    private void validatePrice(int price) {
+        if (price < 0) {
+            throw new IllegalArgumentException("price must be zero or positive");
+        }
+    }
+
+    private void validateQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("quantity must be positive");
+        }
     }
 
     public void markFailed() {

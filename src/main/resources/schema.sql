@@ -296,7 +296,7 @@ CREATE TABLE store_orders (
     store_items_id BIGINT NOT NULL,
     status ENUM('PURCHASED','CANCELED','FAILED') NOT NULL DEFAULT 'PURCHASED',
     price INT NOT NULL,
-    refunded_amount INT NOT NULL DEFAULT 0,
+    quantity INT NOT NULL DEFAULT 1,
     purchased_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     canceled_at DATETIME(6),
     CONSTRAINT pk_store_orders PRIMARY KEY (store_orders_id),
