@@ -56,6 +56,8 @@ public class StoreOrder extends BaseTimeEntity {
 
     @Builder(access = AccessLevel.PRIVATE)
     private StoreOrder(User user, StoreItem item, StoreOrderStatus status, int price, int quantity) {
+        validatePrice(price);
+        validateQuantity(quantity);
         this.user = user;
         this.item = item;
         this.status = status == null ? StoreOrderStatus.PURCHASED : status;
@@ -74,6 +76,18 @@ public class StoreOrder extends BaseTimeEntity {
 
     public void cancel() {
         this.status = StoreOrderStatus.CANCELED;
+    }
+
+    private void validatePrice(int price) {
+        if (price < 0) {
+            throw new IllegalArgumentException("price must be zero or positive");
+        }
+    }
+
+    private void validateQuantity(int quantity) {
+        if (quantity <= 0) {
+            throw new IllegalArgumentException("quantity must be positive");
+        }
     }
 
     public void markFailed() {
