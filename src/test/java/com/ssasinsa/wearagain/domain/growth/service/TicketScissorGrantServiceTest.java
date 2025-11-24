@@ -14,16 +14,21 @@ import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
+import com.ssasinsa.wearagain.domain.finance.config.ImpactProperties;
+import com.ssasinsa.wearagain.domain.finance.entity.ImpactAnalytics;
+import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryRepository.TicketChargeSummary;
 import com.ssasinsa.wearagain.domain.growth.entity.UserGrowth;
 import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -43,18 +48,29 @@ class TicketScissorGrantServiceTest {
     private GrowthInitializer growthInitializer;
     @Mock
     private GrowthCommandService growthCommandService;
+    @Mock
+    private ImpactAnalyticsRepository impactAnalyticsRepository;
+
+    private ImpactProperties impactProperties;
 
     private TicketScissorGrantService ticketScissorGrantService;
 
     @BeforeEach
     void setUp() {
+        impactProperties = new ImpactProperties(
+                new BigDecimal("1.50"),
+                new BigDecimal("2.00"),
+                new BigDecimal("3.00")
+        );
         ticketScissorGrantService = new TicketScissorGrantService(
                 eventRepository,
                 ticketHistoryRepository,
                 userRepository,
                 userGrowthRepository,
                 growthInitializer,
-                growthCommandService
+                growthCommandService,
+                impactAnalyticsRepository,
+                impactProperties
         );
     }
 
@@ -69,6 +85,7 @@ class TicketScissorGrantServiceTest {
 
         User user = createUser(10L);
         when(userRepository.findById(10L)).thenReturn(Optional.of(user));
+        when(impactAnalyticsRepository.existsByUserIdAndEventId(10L, 1L)).thenReturn(false);
 
         UserGrowth userGrowth = UserGrowth.create(user);
         when(userGrowthRepository.findByUserId(10L)).thenReturn(Optional.of(userGrowth));
@@ -81,6 +98,12 @@ class TicketScissorGrantServiceTest {
         assertThat(event.getScissorGrantedAt()).isNotNull();
         verify(growthInitializer).initialize(user);
         verify(growthCommandService).recordGrant(user, userGrowth, event, 3, "EVENT_GRANT");
+        ArgumentCaptor<ImpactAnalytics> captor = ArgumentCaptor.forClass(ImpactAnalytics.class);
+        verify(impactAnalyticsRepository).save(captor.capture());
+        ImpactAnalytics saved = captor.getValue();
+        assertThat(saved.getCo2Saved()).isEqualByComparingTo("4.500");
+        assertThat(saved.getWaterSaved()).isEqualByComparingTo("6.000");
+        assertThat(saved.getEnergySaved()).isEqualByComparingTo("9.000");
     }
 
     @Test
@@ -95,6 +118,64 @@ class TicketScissorGrantServiceTest {
         assertThat(event.getStatus()).isEqualTo(EventStatus.CLOSED);
         assertThat(event.isScissorGranted()).isTrue();
         verify(userRepository, never()).findById(anyLong());
+        verify(impactAnalyticsRepository, never()).save(any());
+    }
+
+    @Test
+    void should_skip_saving_impact_when_already_exists() {
+        Event event = createEventNeedingClosure(3L);
+        when(eventRepository.findEventsToClose(eq(EventStatus.CLOSED), any(LocalDate.class))).thenReturn(List.of(event));
+        when(eventRepository.findByStatusAndScissorGrantedFalse(EventStatus.CLOSED)).thenReturn(List.of(event));
+
+        TicketChargeSummary summary = new TestTicketChargeSummary(11L, 5L);
+        when(ticketHistoryRepository.calculateChargedTicketsByEvent(3L)).thenReturn(List.of(summary));
+
+        User user = createUser(11L);
+        when(userRepository.findById(11L)).thenReturn(Optional.of(user));
+        when(userGrowthRepository.findByUserId(11L)).thenReturn(Optional.of(UserGrowth.create(user)));
+        when(impactAnalyticsRepository.existsByUserIdAndEventId(11L, 3L)).thenReturn(true);
+
+        ticketScissorGrantService.grantScissorsForClosedEvents();
+
+        verify(impactAnalyticsRepository, never()).save(any());
+        assertThat(event.isScissorGranted()).isTrue();
+    }
+
+    @Test
+    void should_save_zero_impact_when_unit_is_zero() {
+        // 단가 0일 때도 저장되지만 값은 0이어야 한다.
+        impactProperties = new ImpactProperties(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
+        ticketScissorGrantService = new TicketScissorGrantService(
+                eventRepository,
+                ticketHistoryRepository,
+                userRepository,
+                userGrowthRepository,
+                growthInitializer,
+                growthCommandService,
+                impactAnalyticsRepository,
+                impactProperties
+        );
+
+        Event event = createEventNeedingClosure(4L);
+        when(eventRepository.findEventsToClose(eq(EventStatus.CLOSED), any(LocalDate.class))).thenReturn(List.of(event));
+        when(eventRepository.findByStatusAndScissorGrantedFalse(EventStatus.CLOSED)).thenReturn(List.of(event));
+
+        TicketChargeSummary summary = new TestTicketChargeSummary(12L, 2L);
+        when(ticketHistoryRepository.calculateChargedTicketsByEvent(4L)).thenReturn(List.of(summary));
+
+        User user = createUser(12L);
+        when(userRepository.findById(12L)).thenReturn(Optional.of(user));
+        when(userGrowthRepository.findByUserId(12L)).thenReturn(Optional.of(UserGrowth.create(user)));
+        when(impactAnalyticsRepository.existsByUserIdAndEventId(12L, 4L)).thenReturn(false);
+
+        ticketScissorGrantService.grantScissorsForClosedEvents();
+
+        ArgumentCaptor<ImpactAnalytics> captor = ArgumentCaptor.forClass(ImpactAnalytics.class);
+        verify(impactAnalyticsRepository).save(captor.capture());
+        ImpactAnalytics saved = captor.getValue();
+        assertThat(saved.getCo2Saved()).isEqualByComparingTo("0.000");
+        assertThat(saved.getWaterSaved()).isEqualByComparingTo("0.000");
+        assertThat(saved.getEnergySaved()).isEqualByComparingTo("0.000");
     }
 
     private Event createEventNeedingClosure(Long id) {
