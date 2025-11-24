@@ -25,6 +25,9 @@ public record StoreItemDetailResponse(
         @Schema(description = "재고 수량", example = "100")
         Integer stock,
 
+        @Schema(description = "사용자별 최대 구매 횟수", example = "1")
+        Integer maxPurchasePerUser,
+
         @Schema(description = "상품 상태", example = "ACTIVE")
         StoreItemStatus status,
 

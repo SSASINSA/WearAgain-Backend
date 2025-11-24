@@ -33,6 +33,10 @@ public record StoreItemCreateRequest(
         @PositiveOrZero
         Integer stock,
 
+        @Schema(description = "사용자별 최대 구매 횟수", example = "1")
+        @Positive
+        Integer maxPurchasePerUser,
+
         @Schema(description = "상품 상태", example = "ACTIVE")
         StoreItemStatus status,
 
