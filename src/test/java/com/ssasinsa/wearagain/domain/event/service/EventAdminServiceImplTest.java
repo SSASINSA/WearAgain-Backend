@@ -1,50 +1,17 @@
 package com.ssasinsa.wearagain.domain.event.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyCollection;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminSummaryResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
+import com.ssasinsa.wearagain.domain.event.dto.admin.*;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminImageRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminOptionRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateImageRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest.EventAdminCreateOptionRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
-import com.ssasinsa.wearagain.domain.event.entity.Event;
-import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
-import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
-import com.ssasinsa.wearagain.domain.event.entity.EventImage;
-import com.ssasinsa.wearagain.domain.event.entity.EventOption;
-import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
+import com.ssasinsa.wearagain.domain.event.entity.*;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
-import com.ssasinsa.wearagain.domain.event.repository.EventApplicationEventCount;
-import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
-import com.ssasinsa.wearagain.domain.event.repository.EventCapacitySummary;
-import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
-import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
-import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
-import java.util.List;
+import com.ssasinsa.wearagain.domain.event.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,6 +24,17 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -73,6 +51,9 @@ class EventAdminServiceImplTest {
 
     @Mock
     private AdminUserRepository adminUserRepository;
+
+    @Mock
+    private EventApprovalRequestRepository eventApprovalRequestRepository;
 
     @InjectMocks
     private EventAdminServiceImpl eventAdminService;

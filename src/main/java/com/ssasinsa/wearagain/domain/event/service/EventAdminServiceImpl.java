@@ -803,7 +803,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     @Override
     @Transactional(readOnly = true)
     public List<EventApprovalRequestListResponse> getPendingApprovalRequests() {
-        return eventApprovalRequestRepository.findByEventStatusOrderByCreatedAtDesc(EventStatus.DRAFT)
+        return eventApprovalRequestRepository.findByEvent_StatusAndProcessedAtIsNullOrderByCreatedAtDesc(EventStatus.DRAFT)
                 .stream()
                 .map(EventApprovalRequestListResponse::from)
                 .toList();
@@ -813,7 +813,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     @Transactional(readOnly = true)
     public EventApprovalRequestDetailResponse getApprovalRequestDetail(Long approvalRequestId) {
         EventApprovalRequest request = eventApprovalRequestRepository.findById(approvalRequestId)
-                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPROVAL_REQUEST_NOT_FOUND));
 
         return EventApprovalRequestDetailResponse.from(request);
     }
@@ -822,7 +822,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     @Transactional
     public String approveApprovalRequest(Long approvalRequestId, Long adminId) {
         EventApprovalRequest approvalRequest = eventApprovalRequestRepository.findById(approvalRequestId)
-                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPROVAL_REQUEST_NOT_FOUND));
 
         Event event = approvalRequest.getEvent();
         if (event.getStatus() != EventStatus.DRAFT) {
@@ -845,7 +845,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     @Transactional
     public String rejectApprovalRequest(Long approvalRequestId, Long adminId) {
         EventApprovalRequest approvalRequest = eventApprovalRequestRepository.findById(approvalRequestId)
-                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPROVAL_REQUEST_NOT_FOUND));
 
         Event event = approvalRequest.getEvent();
         if (event.getStatus() != EventStatus.DRAFT) {

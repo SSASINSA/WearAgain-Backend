@@ -9,5 +9,5 @@ import java.util.List;
 
 @Repository
 public interface EventApprovalRequestRepository extends JpaRepository<EventApprovalRequest, Long> {
-    List<EventApprovalRequest> findByEventStatusOrderByCreatedAtDesc(EventStatus status);
+    List<EventApprovalRequest> findByEvent_StatusAndProcessedAtIsNullOrderByCreatedAtDesc(EventStatus status);
 }

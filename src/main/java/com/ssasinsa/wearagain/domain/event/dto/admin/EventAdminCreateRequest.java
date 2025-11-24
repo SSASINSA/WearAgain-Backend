@@ -88,7 +88,10 @@ public record EventAdminCreateRequest(
             @Schema(description = "수용 인원 (필요 시)", example = "10")
             Integer capacity,
 
-            @Schema(description = "하위 옵션 목록")
+            @Schema(
+                    description = "하위 옵션 목록",
+                    example = "[{\"name\":\"오전 세션\",\"type\":\"TIME\",\"displayOrder\":1,\"capacity\":null,\"children\":[]}]"
+            )
             List<@Valid EventAdminCreateOptionRequest> children
     ) {
     }

@@ -23,14 +23,16 @@ public final class EventExamples {
               ],
               "options": [
                 {
-                  "name": "11월 15일",
+                  "name": "11월 15일 세션",
                   "type": "DATE",
                   "displayOrder": 1,
+                  "capacity": 10,
                   "children": [
                     {
-                      "name": "오전 세션 (10:00~12:00)",
+                      "name": "오전 세션",
                       "type": "TIME",
                       "displayOrder": 1,
+                      "capacity": null,
                       "children": [
                         {
                           "name": "A조",
