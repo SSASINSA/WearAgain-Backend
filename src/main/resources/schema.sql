@@ -457,6 +457,14 @@ CREATE TABLE community_categories (
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
+-- 커뮤니티 카테고리 초기 데이터
+INSERT INTO community_categories (name, created_at, updated_at)
+VALUES
+    ('질문', NOW(), NOW()),
+    ('리뷰', NOW(), NOW()),
+    ('수선', NOW(), NOW())
+ON DUPLICATE KEY UPDATE name = name;
+
 CREATE TABLE community_posts (
     community_posts_id BIGINT NOT NULL AUTO_INCREMENT,
     users_id BIGINT NOT NULL,

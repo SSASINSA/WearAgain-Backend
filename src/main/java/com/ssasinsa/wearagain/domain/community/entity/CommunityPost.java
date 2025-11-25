@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.community.entity;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -64,7 +65,7 @@ public class CommunityPost extends BaseTimeEntity {
     @Builder.Default
     private List<PostComment> comments = new ArrayList<>();
 
-    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
     @Builder.Default
     private List<CommunityPostImage> images = new ArrayList<>();
 
@@ -109,6 +110,18 @@ public class CommunityPost extends BaseTimeEntity {
 
     public void deactivate() {
         this.active = false;
+    }
+
+    public void updateTitle(String title) {
+        this.title = title;
+    }
+
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
+    public void clearImages() {
+        this.images.clear();
     }
 
     @Override
