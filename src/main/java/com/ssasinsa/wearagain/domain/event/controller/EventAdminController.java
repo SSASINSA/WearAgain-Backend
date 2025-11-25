@@ -12,16 +12,17 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminStatusUpdateReque
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
 import com.ssasinsa.wearagain.domain.event.service.EventAdminService;
 import com.ssasinsa.wearagain.domain.event.service.EventImageUploadService;
-import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
-import com.ssasinsa.wearagain.global.exception.CustomException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,7 +53,6 @@ public class EventAdminController {
             @Valid @RequestBody EventAdminCreateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         EventCreateResponse response = eventAdminService.createEvent(request, principal.adminId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -74,15 +74,19 @@ public class EventAdminController {
     public ResponseEntity<EventAdminListResponse> getEvents(
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        return ResponseEntity.ok(eventAdminService.getEvents(status, page, size));
+        return ResponseEntity.ok(eventAdminService.getEvents(status, page, size, principal.adminId(), principal.role()));
     }
 
     @EventApiDocs.GetAdminEventDetail
     @GetMapping("/events/{eventId}")
-    public ResponseEntity<EventAdminDetailResponse> getEventDetail(@PathVariable Long eventId) {
-        return ResponseEntity.ok(eventAdminService.getEventDetail(eventId));
+    public ResponseEntity<EventAdminDetailResponse> getEventDetail(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        return ResponseEntity.ok(eventAdminService.getEventDetail(eventId, principal.adminId(), principal.role()));
     }
 
     @EventApiDocs.UpdateEvent
@@ -92,7 +96,6 @@ public class EventAdminController {
             @Valid @RequestBody EventAdminUpdateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         return ResponseEntity.ok(eventAdminService.updateEvent(eventId, request, principal.adminId(), principal.role()));
     }
 
@@ -103,7 +106,6 @@ public class EventAdminController {
             @Valid @RequestBody EventAdminStatusUpdateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         return ResponseEntity.ok(eventAdminService.updateEventStatus(eventId, request.status(), principal.role()));
     }
 
@@ -113,7 +115,6 @@ public class EventAdminController {
             @PathVariable Long eventId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         EventStaffCodeResponse response = eventAdminService.issueStaffCode(eventId, principal.adminId());
         return ResponseEntity.ok(response);
     }
@@ -124,7 +125,6 @@ public class EventAdminController {
             @PathVariable Long eventId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         EventStaffCodeResponse response = eventAdminService.getStaffCode(eventId, principal.adminId());
         return ResponseEntity.ok(response);
     }
@@ -135,7 +135,6 @@ public class EventAdminController {
             @PathVariable Long eventId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         eventAdminService.archiveEvent(eventId);
         return ResponseEntity.noContent().build();
     }
@@ -147,14 +146,53 @@ public class EventAdminController {
             @Valid @RequestBody EventApplicationRejectRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         EventApplicationRejectResponse response = eventAdminService.rejectApplication(applicationId, request);
         return ResponseEntity.ok(response);
     }
 
-    private void ensureAuthenticated(AdminAuthenticatedUser principal) {
-        if (principal == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
+    @EventApiDocs.ApproveApprovalRequest
+    @PostMapping("/events/approvals/{approvalRequestId}/approve")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    public ResponseEntity<String> approveApprovalRequest(
+            @PathVariable Long approvalRequestId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        String response = eventAdminService.approveApprovalRequest(
+                approvalRequestId,
+                principal.adminId()
+        );
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @EventApiDocs.RejectApprovalRequest
+    @PostMapping("/events/approvals/{approvalRequestId}/reject")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    public ResponseEntity<String> rejectApprovalRequest(
+            @PathVariable Long approvalRequestId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        String response = eventAdminService.rejectApprovalRequest(
+                approvalRequestId,
+                principal.adminId()
+        );
+        return ResponseEntity.status(HttpStatus.OK).body(response);
+    }
+
+    @EventApiDocs.ListPendingApprovals
+    @GetMapping("/events/approvals")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    public ResponseEntity<java.util.List<EventApprovalRequestListResponse>> getPendingApprovals() {
+        java.util.List<EventApprovalRequestListResponse> responses = eventAdminService.getPendingApprovalRequests();
+        return ResponseEntity.ok(responses);
+    }
+
+    @EventApiDocs.GetApprovalDetail
+    @GetMapping("/events/approvals/{approvalRequestId}")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+    public ResponseEntity<EventApprovalRequestDetailResponse> getApprovalDetail(
+            @PathVariable Long approvalRequestId
+    ) {
+        EventApprovalRequestDetailResponse response = eventAdminService.getApprovalRequestDetail(approvalRequestId);
+        return ResponseEntity.ok(response);
     }
 }

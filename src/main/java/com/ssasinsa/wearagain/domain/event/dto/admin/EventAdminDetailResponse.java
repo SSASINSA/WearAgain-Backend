@@ -11,10 +11,10 @@ public record EventAdminDetailResponse(
         @Schema(description = "행사 ID", example = "101")
         Long eventId,
 
-        @Schema(description = "행사 제목", example = "지속가능 패션 워크숍")
+        @Schema(description = "행사 제목", example = "지구환경 패션 쇼케이스")
         String title,
 
-        @Schema(description = "행사 상세 설명", example = "웨어어게인과 함께하는 리폼 클래스")
+        @Schema(description = "행사 상세 설명", example = "지속가능한 소재로 만든 리폼 의상을 선보입니다.")
         String description,
 
         @Schema(description = "이용 방법 안내", example = "준비물은 개인 텀블러를 지참해주세요.")
@@ -23,7 +23,7 @@ public record EventAdminDetailResponse(
         @Schema(description = "주의 사항", example = "화재 예방을 위해 지정된 구역에서만 작업해주세요.")
         String precautions,
 
-        @Schema(description = "행사 위치", example = "서울시 마포구 연남동 223-14 2F")
+        @Schema(description = "행사 위치", example = "서울 성수동 123-4 2F")
         String location,
 
         @Schema(description = "주최자 이름", example = "운영자")
@@ -38,7 +38,7 @@ public record EventAdminDetailResponse(
         @Schema(description = "행사 담당 관리자 이메일", example = "admin@wearagain.kr")
         String organizerAdminEmail,
 
-        @Schema(description = "행사 담당 관리자 이름", example = "홍길동")
+        @Schema(description = "행사 담당 관리자 이름", example = "운영자")
         String organizerAdminName,
 
         @Schema(description = "행사 시작일", example = "2025-11-10")
@@ -89,7 +89,7 @@ public record EventAdminDetailResponse(
             @Schema(description = "이미지 URL", example = "https://cdn.wearagain.kr/events/123/main.jpg")
             String url,
 
-            @Schema(description = "대체 텍스트", example = "행사 대표 이미지")
+            @Schema(description = "대체텍스트", example = "행사 대표 이미지")
             String altText,
 
             @Schema(description = "정렬 순서 (1부터 시작)", example = "1")
@@ -105,13 +105,13 @@ public record EventAdminDetailResponse(
             @Schema(description = "옵션 이름", example = "11월 15일")
             String name,
 
-            @Schema(description = "옵션 타입 라벨", example = "DATE")
+            @Schema(description = "옵션 타입/레벨", example = "스태프")
             String type,
 
             @Schema(description = "정렬 순서", example = "1")
             int displayOrder,
 
-            @Schema(description = "수용 인원(없으면 null)", example = "30")
+            @Schema(description = "수용 인원(null이면 제한 없음)", example = "30")
             Integer capacity,
 
             @Schema(description = "현재 신청 인원", example = "25")
@@ -133,19 +133,19 @@ public record EventAdminDetailResponse(
             @Schema(description = "신청자 이메일", example = "user@wearagain.kr")
             String email,
 
-            @Schema(description = "신청자 이름", example = "사용자")
+            @Schema(description = "신청자 이름", example = "신청자")
             String displayName,
 
-            @Schema(description = "연결된 옵션 ID", example = "2003")
+            @Schema(description = "선택한 옵션 ID", example = "2003")
             Long optionId,
 
-            @Schema(description = "신청 상태", example = "APPLIED")
+            @Schema(description = "신청 상태", example = "DRAFT")
             String status,
 
             @Schema(description = "신청 시각(UTC)", example = "2025-11-12T04:00:00Z")
             OffsetDateTime appliedAt,
 
-            @Schema(description = "반려/취소 사유", example = "예약 인원 초과")
+            @Schema(description = "반려/취소 사유", example = "인원 초과")
             String reason
     ) {
     }

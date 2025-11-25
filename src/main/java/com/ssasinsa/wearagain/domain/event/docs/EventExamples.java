@@ -23,14 +23,16 @@ public final class EventExamples {
               ],
               "options": [
                 {
-                  "name": "11월 15일",
+                  "name": "11월 15일 세션",
                   "type": "DATE",
                   "displayOrder": 1,
+                  "capacity": 10,
                   "children": [
                     {
-                      "name": "오전 세션 (10:00~12:00)",
+                      "name": "오전 세션",
                       "type": "TIME",
                       "displayOrder": 1,
+                      "capacity": null,
                       "children": [
                         {
                           "name": "A조",
@@ -497,5 +499,70 @@ public final class EventExamples {
               "applicationId": 5001,
               "status": "CANCELED"
             }
+            """;
+
+    public static final String ADMIN_EVENT_APPROVAL_LIST_RESPONSE = """
+            [
+              {
+                "approvalRequestId": 1,
+                "event": {
+                  "eventId": 100,
+                  "title": "지속가능 패션 워크숍",
+                  "location": "서울시 마포구 연남동 223-14 2F",
+                  "startDate": "2025-11-10",
+                  "endDate": "2025-11-30"
+                },
+                "requestingAdmin": {
+                  "name": "홍길동",
+                  "email": "admin1@wearagain.kr"
+                },
+                "createdAt": "2025-10-20T10:00:00Z"
+              },
+              {
+                "approvalRequestId": 2,
+                "event": {
+                  "eventId": 101,
+                  "title": "업사이클링 패션 쇼",
+                  "location": "서울시 강남구 테헤란로 123",
+                  "startDate": "2025-11-15",
+                  "endDate": "2025-11-25"
+                },
+                "requestingAdmin": {
+                  "name": "김영희",
+                  "email": "admin2@wearagain.kr"
+                },
+                "createdAt": "2025-10-21T14:30:00Z"
+              }
+            ]
+            """;
+
+    public static final String ADMIN_EVENT_APPROVAL_DETAIL_RESPONSE = """
+            {
+              "approvalRequestId": 1,
+              "createdAt": "2025-10-20T10:00:00Z",
+              "processedAt": null,
+              "requestingAdmin": {
+                "name": "홍길동",
+                "email": "admin1@wearagain.kr"
+              },
+              "processedByAdmin": null,
+              "event": {
+                "eventId": 100,
+                "title": "지속가능 패션 워크숍",
+                "description": "웨어어게인과 함께하는 리폼 클래스",
+                "location": "서울시 마포구 연남동 223-14 2F",
+                "startDate": "2025-11-10",
+                "endDate": "2025-11-30",
+                "status": "DRAFT"
+              }
+            }
+            """;
+
+    public static final String ADMIN_EVENT_APPROVE_RESPONSE = """
+            "행사 승인이 완료되었습니다."
+            """;
+
+    public static final String ADMIN_EVENT_REJECT_APPROVAL_RESPONSE = """
+            "행사 승인이 거부되었습니다."
             """;
 }

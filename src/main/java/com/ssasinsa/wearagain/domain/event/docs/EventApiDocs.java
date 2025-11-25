@@ -4,23 +4,16 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationListResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationQrResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventApplyResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventCancelResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.*;
+import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
+import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCodeVerifyResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
-import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
-import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCodeVerifyResponse;
 
 public final class EventApiDocs {
 
@@ -322,5 +315,65 @@ public final class EventApiDocs {
             responseExample = EventExamples.STAFF_CODE_VERIFY_RESPONSE
     )
     public @interface StaffVerifyCode {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "행사 승인 신청 목록 조회",
+            description = """
+                    최고 관리자(SUPER_ADMIN)가 승인 대기 중인 행사(DRAFT 상태)의 승인 신청 목록을 조회합니다.
+                    생성 시간 기준 최신순으로 정렬되며, 각 신청의 제목, 신청 관리자 정보 등을 포함합니다.
+                    """,
+            responseSchema = EventApprovalRequestListResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_APPROVAL_LIST_RESPONSE
+    )
+    public @interface ListPendingApprovals {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "행사 승인 신청 상세 조회",
+            description = """
+                    특정 행사 승인 신청 건(EventApprovalRequest)의 상세 정보를 조회합니다.
+                    승인 신청한 행사의 전체 정보(이미지, 옵션, 기본정보)와 신청 관리자, 처리 상태 등을 포함합니다.
+                    """,
+            responseSchema = EventApprovalRequestDetailResponse.class,
+            responseExample = EventExamples.ADMIN_EVENT_APPROVAL_DETAIL_RESPONSE
+    )
+    public @interface GetApprovalDetail {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "행사 승인",
+            description = """
+                    최고 관리자(SUPER_ADMIN)만 호출 가능합니다.
+                    EventApprovalRequest를 승인하여 관련 Event를 DRAFT에서 APPROVAL 상태로 변경합니다.
+                    승인 처리자 정보와 처리 시간을 기록합니다.
+                    """,
+            responseExample = EventExamples.ADMIN_EVENT_APPROVE_RESPONSE
+    )
+    public @interface ApproveApprovalRequest {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "행사 승인 거부",
+            description = """
+                    최고 관리자(SUPER_ADMIN)만 호출 가능합니다.
+                    EventApprovalRequest를 거부하여 관련 Event를 DRAFT에서 REJECTED 상태로 변경합니다.
+                    거부 처리자 정보와 처리 시간을 기록합니다.
+                    """,
+            responseExample = EventExamples.ADMIN_EVENT_REJECT_APPROVAL_RESPONSE
+    )
+    public @interface RejectApprovalRequest {
     }
 }

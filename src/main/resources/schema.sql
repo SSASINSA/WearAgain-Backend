@@ -174,7 +174,7 @@ CREATE TABLE event (
     admin_users_id BIGINT NOT NULL,
     start_date DATE NOT NULL,
     end_date DATE NOT NULL,
-    status VARCHAR(20) NOT NULL DEFAULT 'DRAFT',
+    status ENUM('DRAFT','APPROVAL','OPEN','REJECTED','CLOSED','ARCHIVED') NOT NULL DEFAULT 'DRAFT',
     staff_code CHAR(6),
     staff_code_issued_at DATETIME(6),
     scissor_granted BOOLEAN NOT NULL DEFAULT FALSE,
@@ -249,6 +249,30 @@ CREATE INDEX idx_event_applications_user ON event_applications (users_id);
 CREATE INDEX idx_event_applications_event ON event_applications (event_id);
 CREATE INDEX idx_event_applications_option ON event_applications (event_option_id);
 CREATE INDEX idx_event_applications_status ON event_applications (status);
+
+-- ===========================================================
+-- 🎫 Event Approval Request Domain
+-- ===========================================================
+
+CREATE TABLE event_approval_requests (
+    event_approval_request_id BIGINT NOT NULL AUTO_INCREMENT,
+    event_id BIGINT NOT NULL UNIQUE,
+    requesting_admin_id BIGINT NOT NULL,
+    processed_by_admin_id BIGINT,
+    processed_at DATETIME(6),
+    created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT pk_event_approval_requests PRIMARY KEY (event_approval_request_id),
+    CONSTRAINT fk_event_approval_requests_event FOREIGN KEY (event_id) REFERENCES event (event_id),
+    CONSTRAINT fk_event_approval_requests_requesting_admin FOREIGN KEY (requesting_admin_id) REFERENCES admin_users (admin_users_id),
+    CONSTRAINT fk_event_approval_requests_processed_by_admin FOREIGN KEY (processed_by_admin_id) REFERENCES admin_users (admin_users_id)
+) ENGINE = InnoDB
+  DEFAULT CHARSET = utf8mb4
+  COLLATE = utf8mb4_0900_ai_ci;
+
+CREATE INDEX idx_event_approval_requests_processed_at ON event_approval_requests (processed_at);
+CREATE INDEX idx_event_approval_requests_requesting_admin ON event_approval_requests (requesting_admin_id);
+CREATE INDEX idx_event_approval_requests_processed_by_admin ON event_approval_requests (processed_by_admin_id);
 
 -- ===========================================================
 -- 🏪 Store Domain
