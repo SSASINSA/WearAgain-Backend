@@ -16,7 +16,7 @@ public class CommunityCategoryInitializer {
 
     private final CommunityCategoryRepository communityCategoryRepository;
 
-    private static final String[] DEFAULT_CATEGORIES = {"question", "review", "repair"};
+    private static final String[] DEFAULT_CATEGORIES = {"질문", "리뷰", "수선"};
 
     @EventListener(ApplicationReadyEvent.class)
     @Transactional

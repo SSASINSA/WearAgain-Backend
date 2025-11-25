@@ -460,9 +460,9 @@ CREATE TABLE community_categories (
 -- 커뮤니티 카테고리 초기 데이터
 INSERT INTO community_categories (name, created_at, updated_at)
 VALUES
-    ('question', NOW(), NOW()),
-    ('review', NOW(), NOW()),
-    ('repair', NOW(), NOW())
+    ('질문', NOW(), NOW()),
+    ('리뷰', NOW(), NOW()),
+    ('수선', NOW(), NOW())
 ON DUPLICATE KEY UPDATE name = name;
 
 CREATE TABLE community_posts (
