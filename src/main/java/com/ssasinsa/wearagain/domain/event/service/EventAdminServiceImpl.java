@@ -148,13 +148,21 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventAdminListResponse getEvents(String status, int page, int size) {
+    public EventAdminListResponse getEvents(String status, int page, int size, Long adminId, AdminRole role) {
         if (page < 0 || size <= 0 || size > 50) {
             throw new EventException(EventErrorCode.INVALID_EVENT_QUERY);
         }
         EnumSet<EventStatus> statuses = resolveStatuses(status);
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "startDate").and(Sort.by("id")));
-        Page<Event> result = eventRepository.findByStatusIn(statuses, pageable);
+        Page<Event> result;
+        if (role == AdminRole.MANAGER) {
+            if (adminId == null) {
+                throw new EventException(EventErrorCode.EVENT_UPDATE_FORBIDDEN);
+            }
+            result = eventRepository.findByStatusInAndOrganizerAdmin_Id(statuses, adminId, pageable);
+        } else {
+            result = eventRepository.findByStatusIn(statuses, pageable);
+        }
 
         List<Event> events = result.getContent();
 
@@ -177,9 +185,10 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventAdminDetailResponse getEventDetail(Long eventId) {
+    public EventAdminDetailResponse getEventDetail(Long eventId, Long adminId, AdminRole role) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+        enforceViewPermission(event, adminId, role);
 
         List<EventOption> rootOptions = event.getOptions()
                 .stream()
@@ -289,7 +298,7 @@ public class EventAdminServiceImpl implements EventAdminService {
             event.assignOptions(options);
         }
 
-        return getEventDetail(eventId);
+        return getEventDetail(eventId, adminId, role);
     }
 
     @Override
@@ -303,7 +312,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         if (event.getStatus() != status) {
             event.changeStatus(status);
         }
-        return getEventDetail(eventId);
+        return getEventDetail(eventId, null, role);
     }
 
     @Override
@@ -718,6 +727,19 @@ public class EventAdminServiceImpl implements EventAdminService {
             return;
         }
         throw new EventException(EventErrorCode.EVENT_UPDATE_FORBIDDEN);
+    }
+
+    private void enforceViewPermission(Event event, Long adminId, AdminRole role) {
+        if (role != AdminRole.MANAGER) {
+            return;
+        }
+        if (adminId == null) {
+            throw new EventException(EventErrorCode.EVENT_UPDATE_FORBIDDEN);
+        }
+        AdminUser organizer = event.getOrganizerAdmin();
+        if (organizer == null || organizer.getId() == null || !organizer.getId().equals(adminId)) {
+            throw new EventException(EventErrorCode.EVENT_UPDATE_FORBIDDEN);
+        }
     }
 
     private void enforceStatusChangePermission(AdminRole role) {

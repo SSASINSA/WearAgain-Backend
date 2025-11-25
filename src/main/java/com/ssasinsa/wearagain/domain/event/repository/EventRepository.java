@@ -15,6 +15,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
 
     Page<Event> findByStatusIn(Collection<EventStatus> statuses, Pageable pageable);
 
+    Page<Event> findByStatusInAndOrganizerAdmin_Id(Collection<EventStatus> statuses, Long adminId, Pageable pageable);
+
     @Query("SELECT e FROM Event e WHERE e.status IN :statuses"
             + " AND (:cursor IS NULL OR e.id > :cursor)"
             + " ORDER BY e.startDate ASC, e.id ASC")

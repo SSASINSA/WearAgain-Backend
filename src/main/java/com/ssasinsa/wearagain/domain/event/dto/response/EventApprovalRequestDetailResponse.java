@@ -1,13 +1,16 @@
 package com.ssasinsa.wearagain.domain.event.dto.response;
 
 import com.ssasinsa.wearagain.domain.event.entity.EventApprovalRequest;
+import com.ssasinsa.wearagain.domain.event.entity.EventOption;
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Comparator;
+import java.util.List;
 
-@Schema(description = "행사 승인 요청 상세 응답")
+@Schema(description = "이벤트 승인 요청 상세 응답")
 public record EventApprovalRequestDetailResponse(
         @Schema(description = "승인 요청 ID", example = "1")
         Long approvalRequestId,
@@ -24,8 +27,11 @@ public record EventApprovalRequestDetailResponse(
         @Schema(description = "승인 처리 관리자 정보", nullable = true)
         AdminInfo processedByAdmin,
 
-        @Schema(description = "행사 정보")
-        EventInfo event
+        @Schema(description = "이벤트 정보")
+        EventInfo event,
+
+        @Schema(description = "이벤트 옵션 트리(최대 depth 3)")
+        List<OptionInfo> options
 ) {
     @Schema(description = "관리자 정보")
     public record AdminInfo(
@@ -37,28 +43,50 @@ public record EventApprovalRequestDetailResponse(
     ) {
     }
 
-    @Schema(description = "행사 정보")
+    @Schema(description = "이벤트 정보")
     public record EventInfo(
-            @Schema(description = "행사 ID", example = "101")
+            @Schema(description = "이벤트 ID", example = "101")
             Long eventId,
 
-            @Schema(description = "행사 제목", example = "지속가능 패션 워크숍")
+            @Schema(description = "이벤트 제목", example = "지구환기 세션 워크숍")
             String title,
 
-            @Schema(description = "행사 상세 설명", example = "웨어어게인과 함께하는 리폼 클래스")
+            @Schema(description = "이벤트 상세 설명", example = "아이들과 함께하는 리폼 클래스")
             String description,
 
-            @Schema(description = "행사 위치", example = "서울시 마포구 연남동 223-14 2F")
+            @Schema(description = "이벤트 장소", example = "서울시 마포구 어딘가 223-14 2F")
             String location,
 
-            @Schema(description = "행사 시작일", example = "2025-11-10")
+            @Schema(description = "이벤트 시작일", example = "2025-11-10")
             LocalDate startDate,
 
-            @Schema(description = "행사 종료일", example = "2025-11-30")
+            @Schema(description = "이벤트 종료일", example = "2025-11-30")
             LocalDate endDate,
 
-            @Schema(description = "행사 상태", example = "DRAFT")
+            @Schema(description = "이벤트 상태", example = "DRAFT")
             String status
+    ) {
+    }
+
+    @Schema(description = "이벤트 옵션 정보")
+    public record OptionInfo(
+            @Schema(description = "옵션 ID", example = "2001")
+            Long optionId,
+
+            @Schema(description = "옵션 이름", example = "오전 세션")
+            String name,
+
+            @Schema(description = "옵션 타입", example = "TIME")
+            String type,
+
+            @Schema(description = "정렬 순서(1부터)", example = "1")
+            int displayOrder,
+
+            @Schema(description = "정원(null이면 무제한)", example = "30")
+            Integer capacity,
+
+            @Schema(description = "하위 옵션 목록")
+            List<OptionInfo> children
     ) {
     }
 
@@ -85,13 +113,37 @@ public record EventApprovalRequestDetailResponse(
                 request.getEvent().getStatus().name()
         );
 
+        List<OptionInfo> options = request.getEvent().getOptions()
+                .stream()
+                .filter(option -> option.getParentOption() == null)
+                .sorted(Comparator.comparingInt(EventOption::getDisplayOrder))
+                .map(EventApprovalRequestDetailResponse::mapOption)
+                .toList();
+
         return new EventApprovalRequestDetailResponse(
                 request.getId(),
                 toOffset(request.getCreatedAt()),
                 toOffset(request.getProcessedAt()),
                 requestingAdmin,
                 processedByAdmin,
-                eventInfo
+                eventInfo,
+                options
+        );
+    }
+
+    private static OptionInfo mapOption(EventOption option) {
+        List<OptionInfo> children = option.getChildOptions()
+                .stream()
+                .sorted(Comparator.comparingInt(EventOption::getDisplayOrder))
+                .map(EventApprovalRequestDetailResponse::mapOption)
+                .toList();
+        return new OptionInfo(
+                option.getId(),
+                option.getName(),
+                option.getType(),
+                option.getDisplayOrder(),
+                option.getCapacity(),
+                children
         );
     }
 
@@ -99,4 +151,3 @@ public record EventApprovalRequestDetailResponse(
         return dateTime == null ? null : dateTime.atOffset(ZoneOffset.UTC);
     }
 }
-

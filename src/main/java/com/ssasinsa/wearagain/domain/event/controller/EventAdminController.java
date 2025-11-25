@@ -42,7 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','MANAGER')")
 public class EventAdminController {
 
     private final EventImageUploadService eventImageUploadService;
@@ -72,18 +72,24 @@ public class EventAdminController {
 
     @EventApiDocs.ListAdminEvents
     @GetMapping("/events")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','MANAGER')")
     public ResponseEntity<EventAdminListResponse> getEvents(
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        return ResponseEntity.ok(eventAdminService.getEvents(status, page, size));
+        return ResponseEntity.ok(eventAdminService.getEvents(status, page, size, principal.adminId(), principal.role()));
     }
 
     @EventApiDocs.GetAdminEventDetail
     @GetMapping("/events/{eventId}")
-    public ResponseEntity<EventAdminDetailResponse> getEventDetail(@PathVariable Long eventId) {
-        return ResponseEntity.ok(eventAdminService.getEventDetail(eventId));
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','MANAGER')")
+    public ResponseEntity<EventAdminDetailResponse> getEventDetail(
+            @PathVariable Long eventId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        return ResponseEntity.ok(eventAdminService.getEventDetail(eventId, principal.adminId(), principal.role()));
     }
 
     @EventApiDocs.UpdateEvent
@@ -149,7 +155,7 @@ public class EventAdminController {
 
     @EventApiDocs.ApproveApprovalRequest
     @PostMapping("/events/approvals/{approvalRequestId}/approve")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     public ResponseEntity<String> approveApprovalRequest(
             @PathVariable Long approvalRequestId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
@@ -163,7 +169,7 @@ public class EventAdminController {
 
     @EventApiDocs.RejectApprovalRequest
     @PostMapping("/events/approvals/{approvalRequestId}/reject")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     public ResponseEntity<String> rejectApprovalRequest(
             @PathVariable Long approvalRequestId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
@@ -177,7 +183,7 @@ public class EventAdminController {
 
     @EventApiDocs.ListPendingApprovals
     @GetMapping("/events/approvals")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     public ResponseEntity<java.util.List<EventApprovalRequestListResponse>> getPendingApprovals() {
         java.util.List<EventApprovalRequestListResponse> responses = eventAdminService.getPendingApprovalRequests();
         return ResponseEntity.ok(responses);
@@ -185,7 +191,7 @@ public class EventAdminController {
 
     @EventApiDocs.GetApprovalDetail
     @GetMapping("/events/approvals/{approvalRequestId}")
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     public ResponseEntity<EventApprovalRequestDetailResponse> getApprovalDetail(
             @PathVariable Long approvalRequestId
     ) {

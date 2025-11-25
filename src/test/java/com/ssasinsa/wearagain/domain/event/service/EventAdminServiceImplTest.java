@@ -244,7 +244,7 @@ class EventAdminServiceImplTest {
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of(new EventApplicationEventCount(101L, 20L)));
 
-        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10);
+        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, 11L, AdminRole.ADMIN);
 
         assertThat(response.events()).hasSize(1);
         EventAdminSummaryResponse summary = response.events().get(0);
@@ -281,7 +281,7 @@ class EventAdminServiceImplTest {
         ReflectionTestUtils.setField(application, "id", 5001L);
         when(eventApplicationRepository.findAllWithUserByEventId(101L)).thenReturn(List.of(application));
 
-        EventAdminDetailResponse response = eventAdminService.getEventDetail(101L);
+        EventAdminDetailResponse response = eventAdminService.getEventDetail(101L, 11L, AdminRole.ADMIN);
 
         assertThat(response.eventId()).isEqualTo(101L);
         assertThat(response.usageGuide()).isEqualTo("준비물은 개인 텀블러를 지참해주세요.");

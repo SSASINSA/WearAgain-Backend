@@ -1,26 +1,21 @@
 package com.ssasinsa.wearagain.domain.event.service;
 
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
-import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
+import com.ssasinsa.wearagain.domain.event.dto.admin.*;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
+import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
+
 import java.util.List;
 
 public interface EventAdminService {
 
     EventCreateResponse createEvent(EventAdminCreateRequest request, Long adminId);
 
-    EventAdminListResponse getEvents(String status, int page, int size);
+    EventAdminListResponse getEvents(String status, int page, int size, Long adminId, AdminRole role);
 
-    EventAdminDetailResponse getEventDetail(Long eventId);
+    EventAdminDetailResponse getEventDetail(Long eventId, Long adminId, AdminRole role);
 
     EventAdminDetailResponse updateEvent(Long eventId, EventAdminUpdateRequest request, Long adminId, AdminRole role);
 
