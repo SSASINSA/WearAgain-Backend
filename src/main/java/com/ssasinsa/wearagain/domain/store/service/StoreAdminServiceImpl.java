@@ -59,6 +59,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 normalizeText(request.category()),
                 request.price(),
                 request.stock(),
+                request.maxPurchasePerUser(),
                 request.status() == null ? StoreItemStatus.ACTIVE : request.status(),
                 List.of()
         );
@@ -113,7 +114,8 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 normalizeText(request.description()),
                 normalizeText(request.category()),
                 request.price(),
-                request.stock()
+                request.stock(),
+                request.maxPurchasePerUser()
         );
 
         if (request.status() != null) {
@@ -265,6 +267,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 item.getCategory(),
                 item.getPrice(),
                 item.getStock(),
+                item.getMaxPurchasePerUser(),
                 item.getStatus(),
                 toOffset(item.getCreatedAt()),
                 toOffset(item.getUpdatedAt())
@@ -287,6 +290,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 item.getCategory(),
                 item.getPrice(),
                 item.getStock(),
+                item.getMaxPurchasePerUser(),
                 item.getStatus(),
                 images,
                 toOffset(item.getCreatedAt()),

@@ -44,6 +44,9 @@ public class StoreItem extends BaseTimeEntity {
     @Builder.Default
     private StoreItemStatus status = StoreItemStatus.ACTIVE;
 
+    @Column(name = "max_purchase_per_user")
+    private Integer maxPurchasePerUser;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -55,14 +58,18 @@ public class StoreItem extends BaseTimeEntity {
     @Builder.Default
     private List<StoreItemImage> images = new ArrayList<>();
 
-    public static StoreItem create(String name, String description, String category, int price, Integer stock, StoreItemStatus status, List<String> imageUrls) {
+    public static StoreItem create(String name, String description, String category, int price, Integer stock, Integer maxPurchasePerUser, StoreItemStatus status, List<String> imageUrls) {
         int resolvedStock = stock == null ? 0 : stock;
         StoreItemStatus resolvedStatus = status == null ? StoreItemStatus.ACTIVE : status;
+        Integer resolvedMaxPurchasePerUser = maxPurchasePerUser;
         if (price < 0) {
             throw new IllegalArgumentException("price must be zero or positive");
         }
         if (resolvedStock < 0) {
             throw new IllegalArgumentException("stock must be zero or positive");
+        }
+        if (resolvedMaxPurchasePerUser != null && resolvedMaxPurchasePerUser <= 0) {
+            throw new IllegalArgumentException("maxPurchasePerUser must be positive");
         }
 
         StoreItem item = StoreItem.builder()
@@ -72,6 +79,7 @@ public class StoreItem extends BaseTimeEntity {
                 .price(price)
                 .stock(resolvedStock)
                 .status(resolvedStatus)
+                .maxPurchasePerUser(resolvedMaxPurchasePerUser)
                 .build();
 
         if (imageUrls != null) {
@@ -90,7 +98,7 @@ public class StoreItem extends BaseTimeEntity {
         this.deletedBy = admin;
     }
 
-    public void updateInformation(String name, String description, String category, Integer price, Integer stock) {
+    public void updateInformation(String name, String description, String category, Integer price, Integer stock, Integer maxPurchasePerUser) {
         if (name != null) {
             this.name = name;
         }
@@ -105,6 +113,12 @@ public class StoreItem extends BaseTimeEntity {
         }
         if (stock != null) {
             this.stock = stock;
+        }
+        if (maxPurchasePerUser != null) {
+            if (maxPurchasePerUser <= 0) {
+                throw new IllegalArgumentException("maxPurchasePerUser must be positive");
+            }
+            this.maxPurchasePerUser = maxPurchasePerUser;
         }
     }
 
