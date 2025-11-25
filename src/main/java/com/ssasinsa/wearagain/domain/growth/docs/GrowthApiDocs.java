@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.growth.docs;
 
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
+import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.lang.annotation.ElementType;
@@ -24,6 +25,18 @@ public final class GrowthApiDocs {
             description = "마스코트 레벨/경험치 및 환경 임팩트 누적치를 조회합니다."
     )
     public @interface GetStatus {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "환경 임팩트 누적치 조회",
+            description = "로그인한 사용자의 CO2/물/에너지 절감량을 반환합니다.",
+            responseSchema = ImpactSummary.class,
+            responseExample = GrowthExamples.IMPACT_SUMMARY_RESPONSE
+    )
+    public @interface GetImpactSummary {
     }
 
     @SecurityRequirement(name = "userJWT")

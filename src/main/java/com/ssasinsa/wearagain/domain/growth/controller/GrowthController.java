@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.growth.controller;
 import com.ssasinsa.wearagain.domain.growth.GrowthConstants;
 import com.ssasinsa.wearagain.domain.growth.docs.GrowthApiDocs;
 import com.ssasinsa.wearagain.domain.growth.dto.GrowthStatusResponse;
+import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseRequest;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResponse;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResult;
@@ -38,6 +39,16 @@ public class GrowthController {
     @GetMapping("/status")
     public ResponseEntity<GrowthStatusResponse> getStatus(@AuthenticationPrincipal AuthenticatedUser user) {
         GrowthStatusResponse response = GrowthStatusResponse.of(growthQueryService.getStatus(user.userId()));
+        return ResponseEntity.ok(response);
+    }
+
+    @GrowthApiDocs.GetImpactSummary
+    @GetMapping("/impact")
+    public ResponseEntity<ImpactSummary> getImpactSummary(@AuthenticationPrincipal AuthenticatedUser user) {
+        if (user == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+        ImpactSummary response = growthQueryService.getImpactSummary(user.userId());
         return ResponseEntity.ok(response);
     }
 
