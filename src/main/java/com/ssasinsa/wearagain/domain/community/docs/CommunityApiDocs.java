@@ -1,0 +1,80 @@
+package com.ssasinsa.wearagain.domain.community.docs;
+
+import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
+import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
+
+public final class CommunityApiDocs {
+
+    private CommunityApiDocs() {
+    }
+
+    public static final String TAG_NAME = "Community API";
+    public static final String TAG_DESCRIPTION = "커뮤니티 게시글 CRUD API";
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 상세 조회",
+            description = """
+                    게시글 ID로 상세 정보를 조회합니다.
+                    작성자 정보, 이미지, 좋아요 수, 댓글 수, 키워드(카테고리), 내 게시물 여부, 내 좋아요 게시물 여부를 포함합니다.
+                    """,
+            responseSchema = PostDetailResponse.class,
+            responseExample = CommunityExamples.POST_DETAIL_RESPONSE
+    )
+    public @interface GetPostDetail {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 등록",
+            description = """
+                    새로운 게시글을 등록합니다.
+                    제목, 내용, 키워드(카테고리), 이미지 URL 목록을 입력받습니다.
+                    """,
+            requestExample = CommunityExamples.POST_CREATE_REQUEST,
+            responseSchema = Void.class
+    )
+    public @interface CreatePost {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 수정",
+            description = """
+                    게시글을 수정합니다.
+                    작성자만 수정할 수 있으며, 제공된 필드만 업데이트됩니다.
+                    """,
+            requestExample = CommunityExamples.POST_UPDATE_REQUEST,
+            responseSchema = Void.class
+    )
+    public @interface UpdatePost {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 삭제",
+            description = """
+                    게시글을 삭제합니다.
+                    작성자만 삭제할 수 있으며, 실제로는 soft delete(active=false)로 처리됩니다.
+                    """,
+            responseSchema = Void.class
+    )
+    public @interface DeletePost {
+    }
+}
+
