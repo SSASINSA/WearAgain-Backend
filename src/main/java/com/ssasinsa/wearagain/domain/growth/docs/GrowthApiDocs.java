@@ -27,17 +27,7 @@ public final class GrowthApiDocs {
     public @interface GetStatus {
     }
 
-    @SecurityRequirement(name = "userJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "환경 임팩트 누적치 조회",
-            description = "로그인한 사용자의 CO2/물/에너지 절감량을 반환합니다.",
-            responseSchema = ImpactSummary.class,
-            responseExample = GrowthExamples.IMPACT_SUMMARY_RESPONSE
-    )
-    public @interface GetImpactSummary {
-    }
+
 
     @SecurityRequirement(name = "userJWT")
     @Target(ElementType.METHOD)

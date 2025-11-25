@@ -26,22 +26,12 @@ public class GrowthQueryService {
         UserGrowth userGrowth = userGrowthRepository.findByUserId(userId)
                 .orElseThrow(() -> new GrowthException(GrowthErrorCode.GROWTH_NOT_INITIALIZED));
 
-        ImpactSummary impactSummary = loadImpactSummary(userId);
-
-        return MascotStatusDto.of(userGrowth, GrowthConstants.LEVEL_EXP_THRESHOLD, scaleImpactForResponse(impactSummary));
-    }
-
-    public ImpactSummary getImpactSummary(Long userId) {
-        ImpactSummary impactSummary = loadImpactSummary(userId);
-        return scaleImpactForResponse(impactSummary);
-    }
-
-    private ImpactSummary loadImpactSummary(Long userId) {
         ImpactSummary impactSummary = impactAnalyticsRepository.aggregateByUserId(userId);
         if (impactSummary == null) {
             impactSummary = new ImpactSummary(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
         }
-        return impactSummary;
+
+        return MascotStatusDto.of(userGrowth, GrowthConstants.LEVEL_EXP_THRESHOLD, scaleImpactForResponse(impactSummary));
     }
 
     private ImpactSummary scaleImpactForResponse(ImpactSummary impactSummary) {

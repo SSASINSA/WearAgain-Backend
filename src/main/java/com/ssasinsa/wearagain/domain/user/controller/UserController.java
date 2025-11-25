@@ -27,9 +27,6 @@ public class UserController {
     @UserApiDocs.GetUserSummary
     @GetMapping("/summary")
     public ResponseEntity<UserSummaryResponse> getUserSummary(@AuthenticationPrincipal AuthenticatedUser user) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
         UserSummaryResponse response = userSummaryService.getUserSummary(user.userId());
         return ResponseEntity.ok(response);
     }

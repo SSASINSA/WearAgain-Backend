@@ -42,15 +42,7 @@ public class GrowthController {
         return ResponseEntity.ok(response);
     }
 
-    @GrowthApiDocs.GetImpactSummary
-    @GetMapping("/impact")
-    public ResponseEntity<ImpactSummary> getImpactSummary(@AuthenticationPrincipal AuthenticatedUser user) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
-        ImpactSummary response = growthQueryService.getImpactSummary(user.userId());
-        return ResponseEntity.ok(response);
-    }
+
 
     @GrowthApiDocs.UseMagicScissors
     @PostMapping("/magic-scissors/use")
