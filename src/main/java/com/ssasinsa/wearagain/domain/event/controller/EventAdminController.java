@@ -42,7 +42,6 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/v1/admin")
 @RequiredArgsConstructor
-@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','MANAGER')")
 public class EventAdminController {
 
     private final EventImageUploadService eventImageUploadService;
@@ -72,7 +71,6 @@ public class EventAdminController {
 
     @EventApiDocs.ListAdminEvents
     @GetMapping("/events")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','MANAGER')")
     public ResponseEntity<EventAdminListResponse> getEvents(
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
@@ -84,7 +82,6 @@ public class EventAdminController {
 
     @EventApiDocs.GetAdminEventDetail
     @GetMapping("/events/{eventId}")
-    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN','MANAGER')")
     public ResponseEntity<EventAdminDetailResponse> getEventDetail(
             @PathVariable Long eventId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal

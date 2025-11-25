@@ -105,7 +105,7 @@ public record EventAdminDetailResponse(
             @Schema(description = "옵션 이름", example = "11월 15일")
             String name,
 
-            @Schema(description = "옵션 타입/레벨", example = "DATE")
+            @Schema(description = "옵션 타입/레벨", example = "스태프")
             String type,
 
             @Schema(description = "정렬 순서", example = "1")
@@ -139,7 +139,7 @@ public record EventAdminDetailResponse(
             @Schema(description = "선택한 옵션 ID", example = "2003")
             Long optionId,
 
-            @Schema(description = "신청 상태", example = "APPLIED")
+            @Schema(description = "신청 상태", example = "DRAFT")
             String status,
 
             @Schema(description = "신청 시각(UTC)", example = "2025-11-12T04:00:00Z")
