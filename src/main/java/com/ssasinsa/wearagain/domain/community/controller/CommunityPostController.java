@@ -39,9 +39,6 @@ public class CommunityPostController {
             @PathVariable Long postId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
         PostDetailResponse response = communityPostService.getPostDetail(postId, user.userId());
         return ResponseEntity.ok(response);
     }
@@ -52,9 +49,6 @@ public class CommunityPostController {
             @Valid @RequestBody PostCreateRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
         communityPostService.createPost(request, user.userId());
         return ResponseEntity.status(HttpStatus.CREATED).build();
     }
@@ -66,9 +60,6 @@ public class CommunityPostController {
             @Valid @RequestBody PostUpdateRequest request,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
         communityPostService.updatePost(postId, request, user.userId());
         return ResponseEntity.ok().build();
     }
@@ -79,9 +70,6 @@ public class CommunityPostController {
             @PathVariable Long postId,
             @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        if (user == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
         communityPostService.deletePost(postId, user.userId());
         return ResponseEntity.ok().build();
     }
