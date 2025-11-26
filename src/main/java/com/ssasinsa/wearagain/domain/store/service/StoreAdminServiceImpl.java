@@ -55,19 +55,22 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     public StoreItemCreateResponse createItem(StoreItemCreateRequest request, Long adminId) {
         AdminUser adminUser = getAdmin(adminId);
 
-        List<String> pickupLocations = normalizePickupLocations(request.pickupLocations());
-
-        StoreItem item = StoreItem.create(
-                request.name().trim(),
-                normalizeText(request.description()),
-                normalizeText(request.category()),
-                request.price(),
-                request.stock(),
-                request.maxPurchasePerUser(),
-                request.status() == null ? StoreItemStatus.ACTIVE : request.status(),
-                List.of(),
-                pickupLocations
-        );
+        StoreItem item;
+        try {
+            item = StoreItem.create(
+                    request.name().trim(),
+                    normalizeText(request.description()),
+                    normalizeText(request.category()),
+                    request.price(),
+                    request.stock(),
+                    request.maxPurchasePerUser(),
+                    request.status() == null ? StoreItemStatus.ACTIVE : request.status(),
+                    List.of(),
+                    request.pickupLocations()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID, exception);
+        }
 
         List<SimpleImageRequest> imageRequests = mapCreateImageRequests(request.images());
         List<StoreItemImage> images = buildImages(item, imageRequests);
@@ -116,15 +119,19 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         StoreItem item = findItem(itemId);
         ensureNotDeleted(item);
 
-        item.updateInformation(
-                normalizeText(request.name()),
-                normalizeText(request.description()),
-                normalizeText(request.category()),
-                request.price(),
-                request.stock(),
-                request.maxPurchasePerUser(),
-                normalizePickupLocationsIfPresent(request.pickupLocations())
-        );
+        try {
+            item.updateInformation(
+                    normalizeText(request.name()),
+                    normalizeText(request.description()),
+                    normalizeText(request.category()),
+                    request.price(),
+                    request.stock(),
+                    request.maxPurchasePerUser(),
+                    request.pickupLocations()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID, exception);
+        }
 
         if (request.status() != null) {
             item.changeStatus(request.status());
@@ -335,33 +342,6 @@ public class StoreAdminServiceImpl implements StoreAdminService {
             return null;
         }
         return value.trim();
-    }
-
-    private List<String> normalizePickupLocations(List<String> pickupLocations) {
-        if (CollectionUtils.isEmpty(pickupLocations)) {
-            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID);
-        }
-        List<String> normalized = new ArrayList<>();
-        for (String pickupLocation : pickupLocations) {
-            String normalizedText = normalizeText(pickupLocation);
-            if (!StringUtils.hasText(normalizedText)) {
-                continue;
-            }
-            if (!normalized.contains(normalizedText)) {
-                normalized.add(normalizedText);
-            }
-        }
-        if (normalized.isEmpty()) {
-            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID);
-        }
-        return normalized;
-    }
-
-    private List<String> normalizePickupLocationsIfPresent(List<String> pickupLocations) {
-        if (pickupLocations == null) {
-            return null;
-        }
-        return normalizePickupLocations(pickupLocations);
     }
 
     private void saveImages(StoreItem item, List<StoreItemImage> images) {

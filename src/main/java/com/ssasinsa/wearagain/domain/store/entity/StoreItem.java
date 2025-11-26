@@ -149,6 +149,17 @@ public class StoreItem extends BaseTimeEntity {
         }
     }
 
+    public boolean hasPickupLocation(String pickupLocation) {
+        if (pickupLocation == null) {
+            return false;
+        }
+        String normalized = pickupLocation.trim();
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        return pickupLocations.stream().anyMatch(normalized::equals);
+    }
+
     public void updatePickupLocations(List<String> pickupLocations) {
         this.pickupLocations = normalizePickupLocations(pickupLocations);
     }
