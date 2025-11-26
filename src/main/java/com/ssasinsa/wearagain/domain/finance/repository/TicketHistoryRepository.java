@@ -14,7 +14,7 @@ public interface TicketHistoryRepository extends JpaRepository<TicketHistory, Lo
             + "GROUP BY th.user.id")
     List<TicketChargeSummary> calculateChargedTicketsByEvent(@Param("eventId") Long eventId);
 
-    @Query("SELECT COALESCE(SUM(ABS(th.changeAmount)), 0) FROM TicketHistory th WHERE th.user.id = :userId")
+    @Query("SELECT COALESCE(SUM(ABS(th.changeAmount)), 0) FROM TicketHistory th WHERE th.user.id = :userId AND th.changeAmount < 0")
     Long sumChangeAmountByUserId(@Param("userId") Long userId);
 
     interface TicketChargeSummary {
