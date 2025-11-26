@@ -13,7 +13,7 @@ public enum StoreErrorCode implements ErrorCode {
     STORE_IMAGE_INVALID("S1006", "스토어 상품 이미지 정보가 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value()),
     STORE_IMAGE_UPLOAD_FAILED("S1007", "스토어 상품 이미지 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()),
     STORE_STATUS_UPDATE_FORBIDDEN("S1008", "스토어 상품 상태를 변경할 수 없습니다.", HttpStatus.FORBIDDEN.value()),
-    STORE_PICKUP_LOCATION_INVALID("S3008", "허용되지 않은 픽업 장소 요청입니다.", HttpStatus.BAD_REQUEST.value());
+    STORE_PICKUP_LOCATION_INVALID("S1009", "허용되지 않은 픽업 장소 요청입니다.", HttpStatus.BAD_REQUEST.value());
 
     private final String code;
     private final String message;
