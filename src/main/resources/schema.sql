@@ -294,7 +294,7 @@ CREATE TABLE store_items (
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_store_items PRIMARY KEY (store_items_id),
     CONSTRAINT fk_store_items_deleted_by FOREIGN KEY (deleted_by) REFERENCES admin_users (admin_users_id),
-    CONSTRAINT chk_store_items_pickup_locations CHECK (json_valid(pickup_locations) AND JSON_TYPE(pickup_locations) = 'ARRAY')
+    CONSTRAINT chk_store_items_pickup_locations CHECK (json_valid(pickup_locations) AND JSON_TYPE(pickup_locations) = 'ARRAY' AND JSON_LENGTH(pickup_locations) > 0)
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
