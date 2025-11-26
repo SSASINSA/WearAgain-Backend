@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.growth.controller;
 import com.ssasinsa.wearagain.domain.growth.GrowthConstants;
 import com.ssasinsa.wearagain.domain.growth.docs.GrowthApiDocs;
 import com.ssasinsa.wearagain.domain.growth.dto.GrowthStatusResponse;
+import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseRequest;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResponse;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResult;
@@ -40,6 +41,8 @@ public class GrowthController {
         GrowthStatusResponse response = GrowthStatusResponse.of(growthQueryService.getStatus(user.userId()));
         return ResponseEntity.ok(response);
     }
+
+
 
     @GrowthApiDocs.UseMagicScissors
     @PostMapping("/magic-scissors/use")
