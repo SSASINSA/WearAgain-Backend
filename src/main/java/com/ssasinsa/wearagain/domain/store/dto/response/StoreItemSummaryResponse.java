@@ -27,6 +27,9 @@ public record StoreItemSummaryResponse(
         @Schema(description = "상품 상태", example = "ACTIVE")
         StoreItemStatus status,
 
+        @Schema(description = "대표 이미지 URL(없으면 null)", example = "https://cdn.wearagain.kr/store/items/1/main.jpg")
+        String thumbnailUrl,
+
         @Schema(description = "생성 시각 (UTC)", example = "2025-11-23T12:00:00Z")
         OffsetDateTime createdAt,
 

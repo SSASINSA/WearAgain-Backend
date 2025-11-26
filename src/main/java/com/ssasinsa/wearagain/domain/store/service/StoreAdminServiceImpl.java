@@ -22,8 +22,10 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -81,8 +83,10 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         Specification<StoreItem> spec = buildSpecification(statuses, category, keyword);
 
         Page<StoreItem> result = storeItemRepository.findAll(spec, pageable);
-        List<StoreItemSummaryResponse> items = result.getContent().stream()
-                .map(this::mapToSummary)
+        List<StoreItem> storeItems = result.getContent();
+        Map<Long, String> thumbnails = loadThumbnails(storeItems);
+        List<StoreItemSummaryResponse> items = storeItems.stream()
+                .map(item -> mapToSummary(item, thumbnails.get(item.getId())))
                 .toList();
 
         return new StoreItemListResponse(
@@ -260,7 +264,25 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         return statuses;
     }
 
-    private StoreItemSummaryResponse mapToSummary(StoreItem item) {
+    private Map<Long, String> loadThumbnails(List<StoreItem> items) {
+        if (CollectionUtils.isEmpty(items)) {
+            return Map.of();
+        }
+        List<Long> ids = items.stream()
+                .map(StoreItem::getId)
+                .toList();
+        List<StoreItemImage> thumbnailEntities = storeItemImageRepository.findThumbnailsByStoreItemIds(ids);
+        Map<Long, String> thumbnails = new HashMap<>();
+        for (StoreItemImage image : thumbnailEntities) {
+            Long storeItemId = image.getStoreItem() != null ? image.getStoreItem().getId() : null;
+            if (storeItemId != null && !thumbnails.containsKey(storeItemId)) {
+                thumbnails.put(storeItemId, image.getImageUrl());
+            }
+        }
+        return thumbnails;
+    }
+
+    private StoreItemSummaryResponse mapToSummary(StoreItem item, String thumbnailUrl) {
         return new StoreItemSummaryResponse(
                 item.getId(),
                 item.getName(),
@@ -269,6 +291,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 item.getStock(),
                 item.getMaxPurchasePerUser(),
                 item.getStatus(),
+                thumbnailUrl,
                 toOffset(item.getCreatedAt()),
                 toOffset(item.getUpdatedAt())
         );
