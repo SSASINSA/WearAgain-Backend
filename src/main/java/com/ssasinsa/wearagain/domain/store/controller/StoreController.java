@@ -1,12 +1,12 @@
 package com.ssasinsa.wearagain.domain.store.controller;
 
-import com.ssasinsa.wearagain.domain.auth.infrastructure.security.AdminAuthenticatedUser;
 import com.ssasinsa.wearagain.domain.store.docs.StoreApiDocs;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCursorListResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.service.StoreService;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
+import com.ssasinsa.wearagain.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,15 +27,15 @@ public class StoreController {
 
     @StoreApiDocs.GetItems
     @GetMapping("/items")
-    public ResponseEntity<StoreItemListResponse> getItems(
+    public ResponseEntity<StoreItemCursorListResponse> getItems(
             @RequestParam(name = "category", required = false) String category,
             @RequestParam(name = "keyword", required = false) String keyword,
-            @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "10") int size,
-            @AuthenticationPrincipal AdminAuthenticatedUser principal
+            @RequestParam(name = "cursor", required = false) String cursor,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @AuthenticationPrincipal AuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);
-        StoreItemListResponse response = storeService.getItems(category, keyword, page, size);
+        StoreItemCursorListResponse response = storeService.getItems(category, keyword, cursor, size);
         return ResponseEntity.ok(response);
     }
 
@@ -43,14 +43,14 @@ public class StoreController {
     @GetMapping("/items/{itemId}")
     public ResponseEntity<StoreItemDetailResponse> getItemDetail(
             @PathVariable Long itemId,
-            @AuthenticationPrincipal AdminAuthenticatedUser principal
+            @AuthenticationPrincipal AuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);
         StoreItemDetailResponse response = storeService.getItemDetail(itemId);
         return ResponseEntity.ok(response);
     }
 
-    private void ensureAuthenticated(AdminAuthenticatedUser principal) {
+    private void ensureAuthenticated(AuthenticatedUser principal) {
         if (principal == null) {
             throw new CustomException(CommonErrorCode.UNAUTHORIZED);
         }
