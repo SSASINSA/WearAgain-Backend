@@ -2,7 +2,9 @@ package com.ssasinsa.wearagain.domain.community.docs;
 
 import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.request.ReportRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
+import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.lang.annotation.ElementType;
@@ -17,6 +19,21 @@ public final class CommunityApiDocs {
 
     public static final String TAG_NAME = "Community API";
     public static final String TAG_DESCRIPTION = "커뮤니티 게시글 CRUD API";
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 리스트 조회",
+            description = """
+                    커서 기반 페이지네이션으로 게시글 리스트를 조회합니다.
+                    키워드 필터링이 가능하며, 토큰이 있으면 좋아요 여부를 포함합니다.
+                    """,
+            responseSchema = PostsResponse.class,
+            responseExample = CommunityExamples.POSTS_RESPONSE
+    )
+    public @interface GetPosts {
+    }
 
     @SecurityRequirement(name = "userJWT")
     @Target(ElementType.METHOD)
@@ -70,11 +87,27 @@ public final class CommunityApiDocs {
             summary = "게시글 삭제",
             description = """
                     게시글을 삭제합니다.
-                    작성자만 삭제할 수 있으며, 실제로는 soft delete(active=false)로 처리됩니다.
+                    작성자만 삭제할 수 있으며, 실제로는 soft delete(status=INACTIVE)로 처리됩니다.
                     """,
             responseSchema = Void.class
     )
     public @interface DeletePost {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 신고",
+            description = """
+                    게시글을 신고합니다.
+                    게시글 ID와 신고 사유를 입력받습니다.
+                    중복 신고는 불가능하며, 신고 시 게시글 상태가 REPORTED로 변경됩니다.
+                    """,
+            requestExample = CommunityExamples.REPORT_POST_REQUEST,
+            responseSchema = Void.class
+    )
+    public @interface ReportPost {
     }
 }
 

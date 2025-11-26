@@ -5,6 +5,8 @@ import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.EnumType;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -53,9 +55,10 @@ public class CommunityPost extends BaseTimeEntity {
     @Builder.Default
     private int likeCount = 0;
 
-    @Column(name = "is_active", nullable = false)
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
     @Builder.Default
-    private boolean active = true;
+    private PostStatus status = PostStatus.ACTIVE;
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY)
     @Builder.Default
@@ -109,7 +112,15 @@ public class CommunityPost extends BaseTimeEntity {
     }
 
     public void deactivate() {
-        this.active = false;
+        this.status = PostStatus.INACTIVE;
+    }
+
+    public void report() {
+        this.status = PostStatus.REPORTED;
+    }
+
+    public void activate() {
+        this.status = PostStatus.ACTIVE;
     }
 
     public void updateTitle(String title) {
