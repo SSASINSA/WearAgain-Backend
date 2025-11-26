@@ -47,7 +47,7 @@ class StoreAdminServiceImplTest {
     @DisplayName("상품 상태 변경 시 상태가 null이면 예외 발생")
     @Test
     void should_throw_when_status_null_on_update_status() {
-        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of());
+        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
         when(storeItemRepository.findById(1L)).thenReturn(java.util.Optional.of(item));
         when(adminUserRepository.findById(10L)).thenReturn(java.util.Optional.of(admin()));
 
@@ -61,7 +61,7 @@ class StoreAdminServiceImplTest {
     @DisplayName("삭제된 상품은 상태 변경 불가")
     @Test
     void should_throw_when_item_already_deleted_on_update_status() {
-        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.DELETED, List.of());
+        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.DELETED, List.of(), List.of("강남"));
         when(storeItemRepository.findById(1L)).thenReturn(java.util.Optional.of(item));
         when(adminUserRepository.findById(10L)).thenReturn(java.util.Optional.of(admin()));
 
@@ -75,7 +75,7 @@ class StoreAdminServiceImplTest {
     @DisplayName("상품 삭제 시 상태와 삭제자 정보가 설정된다")
     @Test
     void should_mark_deleted_on_delete() {
-        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of());
+        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
         AdminUser admin = admin();
         setId(admin, 5L);
 
@@ -95,7 +95,7 @@ class StoreAdminServiceImplTest {
         AdminUser admin = admin();
         when(adminUserRepository.findById(5L)).thenReturn(java.util.Optional.of(admin));
 
-        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 10, 1, StoreItemStatus.ACTIVE, List.of());
+        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 10, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
         setId(item, 100L);
         when(storeItemRepository.save(any(StoreItem.class))).thenReturn(item);
 
@@ -107,7 +107,8 @@ class StoreAdminServiceImplTest {
                 10,
                 1,
                 StoreItemStatus.ACTIVE,
-                List.of(new StoreItemImageRequest("https://cdn.test/main.jpg", 1))
+                List.of(new StoreItemImageRequest("https://cdn.test/main.jpg", 1)),
+                List.of("강남", "홍대")
         );
 
         StoreItemCreateResponse response = storeAdminService.createItem(request, 5L);
@@ -118,10 +119,33 @@ class StoreAdminServiceImplTest {
         verify(storeItemImageRepository).saveAll(any());
     }
 
+    @DisplayName("픽업 장소가 비어있으면 상품 등록 시 예외")
+    @Test
+    void should_throw_when_pickup_locations_empty_on_create() {
+        AdminUser admin = admin();
+        when(adminUserRepository.findById(5L)).thenReturn(java.util.Optional.of(admin));
+
+        StoreItemCreateRequest request = new StoreItemCreateRequest(
+                "name",
+                "desc",
+                "cat",
+                1000,
+                10,
+                1,
+                StoreItemStatus.ACTIVE,
+                List.of(new StoreItemImageRequest("https://cdn.test/main.jpg", 1)),
+                List.of()
+        );
+
+        assertThatThrownBy(() -> storeAdminService.createItem(request, 5L))
+                .isInstanceOf(StoreException.class)
+                .hasMessage(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID.getMessage());
+    }
+
     @DisplayName("이미지 교체 요청 시 기존 이미지를 삭제하고 새 이미지를 저장한다")
     @Test
     void should_replace_images_on_update() {
-        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of());
+        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
         when(storeItemRepository.findById(1L)).thenReturn(java.util.Optional.of(item));
         when(adminUserRepository.findById(5L)).thenReturn(java.util.Optional.of(admin()));
 
@@ -133,7 +157,8 @@ class StoreAdminServiceImplTest {
                 null,
                 null,
                 null,
-                List.of(new StoreItemUpdateRequest.StoreItemImageRequest("https://cdn.test/new.jpg", 1))
+                List.of(new StoreItemUpdateRequest.StoreItemImageRequest("https://cdn.test/new.jpg", 1)),
+                List.of("강남")
         );
 
         storeAdminService.updateItem(1L, request, 5L);

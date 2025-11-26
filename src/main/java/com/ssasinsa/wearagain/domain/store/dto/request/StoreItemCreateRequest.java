@@ -42,7 +42,12 @@ public record StoreItemCreateRequest(
 
         @Schema(description = "상품 이미지 목록(최대 10개)")
         @Size(max = 10)
-        List<@Valid StoreItemImageRequest> images
+        List<@Valid StoreItemImageRequest> images,
+
+        @Schema(description = "픽업 장소 목록", example = "[\"강남 팝업스토어\", \"홍대 매장\"]")
+        @NotNull
+        @Size(min = 1, max = 20)
+        List<@NotBlank @Size(max = 255) String> pickupLocations
 ) {
 
     @Schema(description = "스토어 상품 이미지 정보")

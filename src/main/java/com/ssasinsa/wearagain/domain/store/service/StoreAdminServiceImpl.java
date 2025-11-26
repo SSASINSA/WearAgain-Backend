@@ -55,16 +55,22 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     public StoreItemCreateResponse createItem(StoreItemCreateRequest request, Long adminId) {
         AdminUser adminUser = getAdmin(adminId);
 
-        StoreItem item = StoreItem.create(
-                request.name().trim(),
-                normalizeText(request.description()),
-                normalizeText(request.category()),
-                request.price(),
-                request.stock(),
-                request.maxPurchasePerUser(),
-                request.status() == null ? StoreItemStatus.ACTIVE : request.status(),
-                List.of()
-        );
+        StoreItem item;
+        try {
+            item = StoreItem.create(
+                    request.name().trim(),
+                    normalizeText(request.description()),
+                    normalizeText(request.category()),
+                    request.price(),
+                    request.stock(),
+                    request.maxPurchasePerUser(),
+                    request.status() == null ? StoreItemStatus.ACTIVE : request.status(),
+                    List.of(),
+                    request.pickupLocations()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID, exception);
+        }
 
         List<SimpleImageRequest> imageRequests = mapCreateImageRequests(request.images());
         List<StoreItemImage> images = buildImages(item, imageRequests);
@@ -113,14 +119,19 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         StoreItem item = findItem(itemId);
         ensureNotDeleted(item);
 
-        item.updateInformation(
-                normalizeText(request.name()),
-                normalizeText(request.description()),
-                normalizeText(request.category()),
-                request.price(),
-                request.stock(),
-                request.maxPurchasePerUser()
-        );
+        try {
+            item.updateInformation(
+                    normalizeText(request.name()),
+                    normalizeText(request.description()),
+                    normalizeText(request.category()),
+                    request.price(),
+                    request.stock(),
+                    request.maxPurchasePerUser(),
+                    request.pickupLocations()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID, exception);
+        }
 
         if (request.status() != null) {
             item.changeStatus(request.status());
@@ -316,6 +327,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 item.getMaxPurchasePerUser(),
                 item.getStatus(),
                 images,
+                List.copyOf(item.getPickupLocations()),
                 toOffset(item.getCreatedAt()),
                 toOffset(item.getUpdatedAt())
         );
