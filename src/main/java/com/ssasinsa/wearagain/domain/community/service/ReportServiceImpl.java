@@ -4,6 +4,7 @@ import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.community.dto.request.ReportRequest;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityPost;
+import com.ssasinsa.wearagain.domain.community.entity.PostStatus;
 import com.ssasinsa.wearagain.domain.community.entity.Report;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityErrorCode;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityException;
@@ -31,7 +32,7 @@ public class ReportServiceImpl implements ReportService {
         User reporter = userRepository.findById(userId)
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.INVALID_POST_DATA));
 
-        CommunityPost post = communityPostRepository.findByIdAndStatusNot(request.postId(), com.ssasinsa.wearagain.domain.community.entity.PostStatus.INACTIVE)
+        CommunityPost post = communityPostRepository.findByIdAndStatusNot(request.postId(), PostStatus.INACTIVE)
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.POST_NOT_FOUND));
 
         // 중복 신고 체크
