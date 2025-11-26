@@ -2,13 +2,29 @@ package com.ssasinsa.wearagain.domain.store.entity;
 
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
-import jakarta.persistence.*;
-import lombok.*;
-
+import com.ssasinsa.wearagain.global.jpa.converter.StringListJsonConverter;
+import jakarta.persistence.Column;
+import jakarta.persistence.Convert;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Entity
@@ -58,7 +74,12 @@ public class StoreItem extends BaseTimeEntity {
     @Builder.Default
     private List<StoreItemImage> images = new ArrayList<>();
 
-    public static StoreItem create(String name, String description, String category, int price, Integer stock, Integer maxPurchasePerUser, StoreItemStatus status, List<String> imageUrls) {
+    @Convert(converter = StringListJsonConverter.class)
+    @Column(name = "pickup_locations", columnDefinition = "json", nullable = false)
+    @Builder.Default
+    private List<String> pickupLocations = new ArrayList<>();
+
+    public static StoreItem create(String name, String description, String category, int price, Integer stock, Integer maxPurchasePerUser, StoreItemStatus status, List<String> imageUrls, List<String> pickupLocations) {
         int resolvedStock = stock == null ? 0 : stock;
         StoreItemStatus resolvedStatus = status == null ? StoreItemStatus.ACTIVE : status;
         Integer resolvedMaxPurchasePerUser = maxPurchasePerUser;
@@ -80,7 +101,10 @@ public class StoreItem extends BaseTimeEntity {
                 .stock(resolvedStock)
                 .status(resolvedStatus)
                 .maxPurchasePerUser(resolvedMaxPurchasePerUser)
+                .pickupLocations(new ArrayList<>())
                 .build();
+
+        item.updatePickupLocations(pickupLocations);
 
         if (imageUrls != null) {
             int order = 0;
@@ -98,7 +122,7 @@ public class StoreItem extends BaseTimeEntity {
         this.deletedBy = admin;
     }
 
-    public void updateInformation(String name, String description, String category, Integer price, Integer stock, Integer maxPurchasePerUser) {
+    public void updateInformation(String name, String description, String category, Integer price, Integer stock, Integer maxPurchasePerUser, List<String> pickupLocations) {
         if (name != null) {
             this.name = name;
         }
@@ -120,6 +144,13 @@ public class StoreItem extends BaseTimeEntity {
             }
             this.maxPurchasePerUser = maxPurchasePerUser;
         }
+        if (pickupLocations != null) {
+            updatePickupLocations(pickupLocations);
+        }
+    }
+
+    public void updatePickupLocations(List<String> pickupLocations) {
+        this.pickupLocations = normalizePickupLocations(pickupLocations);
     }
 
     public void changeStatus(StoreItemStatus status) {
@@ -154,6 +185,29 @@ public class StoreItem extends BaseTimeEntity {
 
     void addImage(StoreItemImage image) {
         images.add(image);
+    }
+
+    private List<String> normalizePickupLocations(List<String> pickupLocations) {
+        if (pickupLocations == null) {
+            throw new IllegalArgumentException("pickupLocations must not be null");
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String location : pickupLocations) {
+            if (location == null) {
+                continue;
+            }
+            String trimmed = location.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            if (!normalized.contains(trimmed)) {
+                normalized.add(trimmed);
+            }
+        }
+        if (normalized.isEmpty()) {
+            throw new IllegalArgumentException("pickupLocations must not be empty");
+        }
+        return normalized;
     }
 
     @Override

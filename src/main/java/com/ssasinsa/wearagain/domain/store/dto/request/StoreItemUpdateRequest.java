@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.store.dto.request;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
@@ -38,7 +39,11 @@ public record StoreItemUpdateRequest(
         StoreItemStatus status,
 
         @Schema(description = "상품 이미지 목록(전체 교체 시 사용)")
-        List<@Valid StoreItemImageRequest> images
+        List<@Valid StoreItemImageRequest> images,
+
+        @Schema(description = "픽업 장소 목록(전체 교체 시 사용)", example = "[\"강남 팝업스토어\", \"홍대 매장\"]")
+        @Size(min = 1, max = 20)
+        List<@NotBlank @Size(max = 255) String> pickupLocations
 ) {
 
     @Schema(description = "스토어 상품 이미지 정보")

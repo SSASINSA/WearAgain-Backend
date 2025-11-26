@@ -55,6 +55,8 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     public StoreItemCreateResponse createItem(StoreItemCreateRequest request, Long adminId) {
         AdminUser adminUser = getAdmin(adminId);
 
+        List<String> pickupLocations = normalizePickupLocations(request.pickupLocations());
+
         StoreItem item = StoreItem.create(
                 request.name().trim(),
                 normalizeText(request.description()),
@@ -63,7 +65,8 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 request.stock(),
                 request.maxPurchasePerUser(),
                 request.status() == null ? StoreItemStatus.ACTIVE : request.status(),
-                List.of()
+                List.of(),
+                pickupLocations
         );
 
         List<SimpleImageRequest> imageRequests = mapCreateImageRequests(request.images());
@@ -119,7 +122,8 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 normalizeText(request.category()),
                 request.price(),
                 request.stock(),
-                request.maxPurchasePerUser()
+                request.maxPurchasePerUser(),
+                normalizePickupLocationsIfPresent(request.pickupLocations())
         );
 
         if (request.status() != null) {
@@ -316,6 +320,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 item.getMaxPurchasePerUser(),
                 item.getStatus(),
                 images,
+                List.copyOf(item.getPickupLocations()),
                 toOffset(item.getCreatedAt()),
                 toOffset(item.getUpdatedAt())
         );
@@ -330,6 +335,33 @@ public class StoreAdminServiceImpl implements StoreAdminService {
             return null;
         }
         return value.trim();
+    }
+
+    private List<String> normalizePickupLocations(List<String> pickupLocations) {
+        if (CollectionUtils.isEmpty(pickupLocations)) {
+            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID);
+        }
+        List<String> normalized = new ArrayList<>();
+        for (String pickupLocation : pickupLocations) {
+            String normalizedText = normalizeText(pickupLocation);
+            if (!StringUtils.hasText(normalizedText)) {
+                continue;
+            }
+            if (!normalized.contains(normalizedText)) {
+                normalized.add(normalizedText);
+            }
+        }
+        if (normalized.isEmpty()) {
+            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID);
+        }
+        return normalized;
+    }
+
+    private List<String> normalizePickupLocationsIfPresent(List<String> pickupLocations) {
+        if (pickupLocations == null) {
+            return null;
+        }
+        return normalizePickupLocations(pickupLocations);
     }
 
     private void saveImages(StoreItem item, List<StoreItemImage> images) {

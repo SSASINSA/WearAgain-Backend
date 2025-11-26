@@ -34,6 +34,9 @@ public record StoreItemDetailResponse(
         @Schema(description = "이미지 목록")
         List<StoreItemImageResponse> images,
 
+        @Schema(description = "픽업 장소 목록", example = "[\"강남 팝업스토어\", \"홍대 매장\"]")
+        List<String> pickupLocations,
+
         @Schema(description = "생성 시각 (UTC)", example = "2025-11-23T12:00:00Z")
         OffsetDateTime createdAt,
 

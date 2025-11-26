@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain.domain.store.docs;
 
+import com.ssasinsa.wearagain.domain.store.docs.StoreExamples;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import java.lang.annotation.ElementType;
@@ -30,7 +31,9 @@ public final class StoreApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 스토어 상품 등록",
-            description = "관리자 페이지에서 스토어 상품과 이미지를 등록합니다."
+            description = "관리자 페이지에서 스토어 상품과 이미지를 등록합니다. 픽업 장소 목록(pickupLocations)까지 함께 등록해야 합니다.",
+            requestExample = StoreExamples.ADMIN_STORE_ITEM_CREATE_REQUEST,
+            responseExample = StoreExamples.ADMIN_STORE_ITEM_CREATE_RESPONSE
     )
     public @interface CreateItem {
     }
@@ -60,7 +63,9 @@ public final class StoreApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 스토어 상품 수정",
-            description = "상품 기본 정보, 가격, 재고, 상태, 이미지를 수정합니다."
+            description = "상품 기본 정보, 가격, 재고, 상태, 이미지, 픽업 장소 목록을 수정합니다.",
+            requestExample = StoreExamples.ADMIN_STORE_ITEM_UPDATE_REQUEST,
+            responseExample = StoreExamples.ADMIN_STORE_ITEM_UPDATE_RESPONSE
     )
     public @interface UpdateItem {
     }

@@ -285,6 +285,7 @@ CREATE TABLE store_items (
     category VARCHAR(50),
     price INT NOT NULL,
     stock INT NOT NULL DEFAULT 0,
+    pickup_locations JSON NOT NULL,
     max_purchase_per_user INT,
     status ENUM('ACTIVE','INACTIVE','DELETED') NOT NULL DEFAULT 'ACTIVE',
     deleted_at DATETIME(6),
@@ -292,7 +293,8 @@ CREATE TABLE store_items (
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_store_items PRIMARY KEY (store_items_id),
-    CONSTRAINT fk_store_items_deleted_by FOREIGN KEY (deleted_by) REFERENCES admin_users (admin_users_id)
+    CONSTRAINT fk_store_items_deleted_by FOREIGN KEY (deleted_by) REFERENCES admin_users (admin_users_id),
+    CONSTRAINT chk_store_items_pickup_locations CHECK (json_valid(pickup_locations) AND JSON_TYPE(pickup_locations) = 'ARRAY')
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
@@ -322,6 +324,7 @@ CREATE TABLE store_orders (
     status ENUM('PURCHASED','CANCELED','FAILED') NOT NULL DEFAULT 'PURCHASED',
     price INT NOT NULL,
     quantity INT NOT NULL DEFAULT 1,
+    pickup_location VARCHAR(255) NOT NULL,
     purchased_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     canceled_at DATETIME(6),
     CONSTRAINT pk_store_orders PRIMARY KEY (store_orders_id),

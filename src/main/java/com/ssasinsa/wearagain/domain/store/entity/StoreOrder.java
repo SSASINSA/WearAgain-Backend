@@ -54,23 +54,29 @@ public class StoreOrder extends BaseTimeEntity {
     @Column(nullable = false)
     private int quantity;
 
+    @Column(name = "pickup_location", nullable = false, length = 255)
+    private String pickupLocation;
+
     @Builder(access = AccessLevel.PRIVATE)
-    private StoreOrder(User user, StoreItem item, StoreOrderStatus status, int price, int quantity) {
+    private StoreOrder(User user, StoreItem item, StoreOrderStatus status, int price, int quantity, String pickupLocation) {
         validatePrice(price);
         validateQuantity(quantity);
+        validatePickupLocation(pickupLocation);
         this.user = user;
         this.item = item;
         this.status = status == null ? StoreOrderStatus.PURCHASED : status;
         this.price = price;
         this.quantity = quantity;
+        this.pickupLocation = pickupLocation.trim();
     }
 
-    public static StoreOrder create(User user, StoreItem item, int price, int quantity) {
+    public static StoreOrder create(User user, StoreItem item, int price, int quantity, String pickupLocation) {
         return StoreOrder.builder()
                 .user(user)
                 .item(item)
                 .price(price)
                 .quantity(quantity)
+                .pickupLocation(pickupLocation)
                 .build();
     }
 
@@ -87,6 +93,12 @@ public class StoreOrder extends BaseTimeEntity {
     private void validateQuantity(int quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("quantity must be positive");
+        }
+    }
+
+    private void validatePickupLocation(String pickupLocation) {
+        if (pickupLocation == null || pickupLocation.trim().isEmpty()) {
+            throw new IllegalArgumentException("pickupLocation must not be blank");
         }
     }
 
