@@ -10,9 +10,13 @@ import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreImageUploadResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.service.StoreAdminService;
-import com.ssasinsa.wearagain.domain.store.service.StoreImageUploadService;
+import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
+import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
+import com.ssasinsa.wearagain.global.storage.ImageStorageErrorCode;
+import com.ssasinsa.wearagain.global.storage.ImageStorageException;
+import com.ssasinsa.wearagain.global.storage.ImageStorageService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -41,12 +45,20 @@ import org.springframework.web.multipart.MultipartFile;
 public class StoreAdminController {
 
     private final StoreAdminService storeAdminService;
-    private final StoreImageUploadService storeImageUploadService;
+    private final ImageStorageService imageStorageService;
 
     @StoreApiDocs.UploadItemImage
     @PostMapping(value = "/items/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<StoreImageUploadResponse> uploadItemImage(@RequestPart("file") MultipartFile file) {
-        String imageName = storeImageUploadService.uploadImage(file);
+        String imageName;
+        try {
+            imageName = imageStorageService.storeStoreImage(file);
+        } catch (ImageStorageException exception) {
+            if (exception.getErrorCode() == ImageStorageErrorCode.INVALID_FILE) {
+                throw new StoreException(StoreErrorCode.STORE_IMAGE_INVALID, exception);
+            }
+            throw new StoreException(StoreErrorCode.STORE_IMAGE_UPLOAD_FAILED, exception);
+        }
         String imageUrl = ServletUriComponentsBuilder.fromCurrentContextPath()
                 .path("/uploads/")
                 .path(imageName)

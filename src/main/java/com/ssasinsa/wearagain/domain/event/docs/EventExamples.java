@@ -106,8 +106,8 @@ public final class EventExamples {
 
     public static final String ADMIN_EVENT_IMAGE_UPLOAD_RESPONSE = """
             {
-              "imageName": "events/20251103/1a2b3c4d5e6f7g8h9i0j.jpg",
-              "imageUrl": "https://admin.wearagain.kr/uploads/events/20251103/1a2b3c4d5e6f7g8h9i0j.jpg"
+              "imageName": "6f7e4a1b2c3d4e5f6a7b8c9d0e1f2a3b.jpg",
+              "imageUrl": "https://admin.wearagain.kr/uploads/6f7e4a1b2c3d4e5f6a7b8c9d0e1f2a3b.jpg"
             }
             """;
 
