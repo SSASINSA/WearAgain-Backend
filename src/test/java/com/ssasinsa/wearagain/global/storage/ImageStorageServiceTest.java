@@ -17,10 +17,7 @@ class ImageStorageServiceTest {
 
     @Test
     void should_store_image_when_request_is_valid() throws IOException {
-        ImageStorageService service = new ImageStorageService(
-                tempDir.resolve("event").toString(),
-                tempDir.resolve("store").toString()
-        );
+        ImageStorageService service = new ImageStorageService(tempDir.toString());
         byte[] content = "fake-image-data".getBytes();
         MockMultipartFile multipartFile = new MockMultipartFile(
                 "file",
@@ -29,20 +26,17 @@ class ImageStorageServiceTest {
                 content
         );
 
-        String imageName = service.storeEventImage(multipartFile);
+        String imageName = service.store(multipartFile);
 
         assertThat(imageName).endsWith(".jpg");
-        Path storedFile = tempDir.resolve("event").resolve(imageName);
+        Path storedFile = tempDir.resolve(imageName);
         assertThat(Files.exists(storedFile)).isTrue();
         assertThat(Files.readAllBytes(storedFile)).containsExactly(content);
     }
 
     @Test
     void should_fail_when_file_size_exceeds_limit() {
-        ImageStorageService service = new ImageStorageService(
-                tempDir.resolve("event").toString(),
-                tempDir.resolve("store").toString()
-        );
+        ImageStorageService service = new ImageStorageService(tempDir.toString());
         byte[] large = new byte[(int) (5 * 1024 * 1024L + 1)];
         MockMultipartFile multipartFile = new MockMultipartFile(
                 "file",
@@ -51,17 +45,14 @@ class ImageStorageServiceTest {
                 large
         );
 
-        assertThatThrownBy(() -> service.storeEventImage(multipartFile))
+        assertThatThrownBy(() -> service.store(multipartFile))
                 .isInstanceOf(ImageStorageException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ImageStorageErrorCode.INVALID_FILE);
     }
 
     @Test
     void should_fail_when_content_type_is_not_supported() {
-        ImageStorageService service = new ImageStorageService(
-                tempDir.resolve("event").toString(),
-                tempDir.resolve("store").toString()
-        );
+        ImageStorageService service = new ImageStorageService(tempDir.toString());
         MockMultipartFile multipartFile = new MockMultipartFile(
                 "file",
                 "text.txt",
@@ -69,7 +60,7 @@ class ImageStorageServiceTest {
                 "text".getBytes()
         );
 
-        assertThatThrownBy(() -> service.storeEventImage(multipartFile))
+        assertThatThrownBy(() -> service.store(multipartFile))
                 .isInstanceOf(ImageStorageException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ImageStorageErrorCode.INVALID_FILE);
     }

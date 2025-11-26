@@ -27,7 +27,7 @@ public class UploadSampleController {
     private final Path uploadRoot;
 
     public UploadSampleController(
-            @Value("${app.upload.store-image-root:/data/uploads}") String uploadRoot
+            @Value("${app.upload.image-root:${app.upload.event-image-root:${app.upload.store-image-root:/data/uploads}}}") String uploadRoot
     ) {
         this.uploadRoot = Paths.get(uploadRoot).toAbsolutePath().normalize();
     }
