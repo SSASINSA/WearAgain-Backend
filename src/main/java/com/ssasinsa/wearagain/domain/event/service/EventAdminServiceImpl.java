@@ -23,6 +23,7 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestList
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
+import com.ssasinsa.wearagain.domain.event.entity.EventKeywordScope;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
@@ -35,10 +36,11 @@ import com.ssasinsa.wearagain.domain.event.repository.EventApplicationEventCount
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventCapacitySummary;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
-import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
-import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.entity.EventApprovalRequest;
 import com.ssasinsa.wearagain.domain.event.repository.EventApprovalRequestRepository;
+import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
+import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
+import com.ssasinsa.wearagain.domain.event.repository.EventSpecifications;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -55,18 +57,19 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
+import java.util.StringTokenizer;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
@@ -148,21 +151,33 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventAdminListResponse getEvents(String status, int page, int size, Long adminId, AdminRole role) {
+    public EventAdminListResponse getEvents(
+            String status,
+            int page,
+            int size,
+            Long adminId,
+            AdminRole role,
+            String keyword,
+            String keywordScope
+    ) {
         if (page < 0 || size <= 0 || size > 50) {
             throw new EventException(EventErrorCode.INVALID_EVENT_QUERY);
         }
         EnumSet<EventStatus> statuses = resolveStatuses(status);
+        String normalizedKeyword = normalizeText(keyword);
+        EventKeywordScope scope = resolveKeywordScope(keywordScope);
+
         Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "startDate").and(Sort.by("id")));
-        Page<Event> result;
+        Specification<Event> spec = EventSpecifications.statusIn(statuses);
         if (role == AdminRole.MANAGER) {
             if (adminId == null) {
                 throw new EventException(EventErrorCode.EVENT_UPDATE_FORBIDDEN);
             }
-            result = eventRepository.findByStatusInAndOrganizerAdmin_Id(statuses, adminId, pageable);
-        } else {
-            result = eventRepository.findByStatusIn(statuses, pageable);
+            spec = spec.and(EventSpecifications.organizerIs(adminId));
         }
+        spec = spec.and(EventSpecifications.keywordMatches(normalizedKeyword, scope));
+
+        Page<Event> result = eventRepository.findAll(spec, pageable);
 
         List<Event> events = result.getContent();
 
@@ -791,6 +806,17 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.INVALID_EVENT_QUERY);
         }
         return statuses;
+    }
+
+    private EventKeywordScope resolveKeywordScope(String param) {
+        if (!StringUtils.hasText(param)) {
+            return EventKeywordScope.ALL;
+        }
+        try {
+            return EventKeywordScope.valueOf(param.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
+        }
     }
 
     private Set<Long> collectOptionIds(Collection<EventOption> roots) {

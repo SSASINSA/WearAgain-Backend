@@ -87,9 +87,19 @@ public class EventAdminController {
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "keywordScope", required = false) String keywordScope,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        return ResponseEntity.ok(eventAdminService.getEvents(status, page, size, principal.adminId(), principal.role()));
+        return ResponseEntity.ok(eventAdminService.getEvents(
+                status,
+                page,
+                size,
+                principal.adminId(),
+                principal.role(),
+                keyword,
+                keywordScope
+        ));
     }
 
     @EventApiDocs.GetAdminEventDetail

@@ -238,13 +238,14 @@ class EventAdminServiceImplTest {
     @Test
     void should_list_events_with_statistics() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 20);
-        when(eventRepository.findByStatusIn(anyCollection(), any(Pageable.class))).thenReturn(pageResult);
+        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+                .thenReturn(pageResult);
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of(new EventApplicationEventCount(101L, 20L)));
 
-        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, 11L, AdminRole.ADMIN);
+        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, 11L, AdminRole.ADMIN, null, null);
 
         assertThat(response.events()).hasSize(1);
         EventAdminSummaryResponse summary = response.events().get(0);
