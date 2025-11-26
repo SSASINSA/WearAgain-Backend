@@ -19,6 +19,7 @@ import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityCategory;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityPost;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityPostImage;
+import com.ssasinsa.wearagain.domain.community.entity.PostStatus;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityErrorCode;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityException;
 import com.ssasinsa.wearagain.domain.community.repository.CommunityCategoryRepository;
@@ -585,7 +586,7 @@ class CommunityPostServiceImplTest {
         communityPostService.deletePost(postId, userId);
 
         // Then
-        assertThat(post.isActive()).isFalse();
+        assertThat(post.getStatus()).isEqualTo(PostStatus.INACTIVE);
     }
 
     @Test

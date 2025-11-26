@@ -3,8 +3,8 @@ package com.ssasinsa.wearagain.domain.community.service;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse.AuthorInfo;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
@@ -18,16 +18,16 @@ import com.ssasinsa.wearagain.domain.community.repository.CommunityCategoryRepos
 import com.ssasinsa.wearagain.domain.community.repository.CommunityPostImageRepository;
 import com.ssasinsa.wearagain.domain.community.repository.CommunityPostRepository;
 import com.ssasinsa.wearagain.domain.community.repository.PostLikeRepository;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -72,11 +72,11 @@ public class CommunityPostServiceImpl implements CommunityPostService {
         // 각 게시물의 좋아요 여부 조회
         List<Boolean> likedStatuses = userId != null
                 ? postIds.stream()
-                        .map(postId -> postLikeRepository.existsByPostIdAndUserId(postId, userId))
-                        .toList()
+                .map(postId -> postLikeRepository.existsByPostIdAndUserId(postId, userId))
+                .toList()
                 : postIds.stream()
-                        .map(postId -> false)
-                        .toList();
+                .map(postId -> false)
+                .toList();
 
         List<PostsItem> posts = new ArrayList<>();
         for (int i = 0; i < limited.size(); i++) {
