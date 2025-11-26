@@ -32,17 +32,15 @@ public class UploadSampleController {
         this.uploadRoot = Paths.get(uploadRoot).toAbsolutePath().normalize();
     }
 
-    @GetMapping("/{type}/{date}/{filename}")
+    @GetMapping("/{filename:.+}")
     public ResponseEntity<Resource> serveFile(
-            @PathVariable String type,
-            @PathVariable String date,
             @PathVariable String filename
     ) {
-        if (!StringUtils.hasText(type) || !StringUtils.hasText(date) || !StringUtils.hasText(filename)) {
+        if (!StringUtils.hasText(filename)) {
             return ResponseEntity.badRequest().build();
         }
 
-        Path filePath = uploadRoot.resolve(type).resolve(date).resolve(filename).normalize();
+        Path filePath = uploadRoot.resolve(filename).normalize();
         if (!filePath.startsWith(uploadRoot) || !Files.exists(filePath) || !Files.isReadable(filePath)) {
             return ResponseEntity.notFound().build();
         }
