@@ -28,26 +28,15 @@ public class ImageStorageService {
             "image/webp", "webp"
     );
 
-    private final Path eventUploadRoot;
-    private final Path storeUploadRoot;
+    private final Path uploadRoot;
 
     public ImageStorageService(
-            @Value("${app.upload.event-image-root:/data/uploads}") String eventUploadRoot,
-            @Value("${app.upload.store-image-root:/data/uploads}") String storeUploadRoot
+            @Value("${app.upload.image-root:${app.upload.event-image-root:${app.upload.store-image-root:/data/uploads}}}") String uploadRoot
     ) {
-        this.eventUploadRoot = Paths.get(eventUploadRoot).toAbsolutePath().normalize();
-        this.storeUploadRoot = Paths.get(storeUploadRoot).toAbsolutePath().normalize();
+        this.uploadRoot = Paths.get(uploadRoot).toAbsolutePath().normalize();
     }
 
-    public String storeEventImage(MultipartFile file) {
-        return store(file, eventUploadRoot);
-    }
-
-    public String storeStoreImage(MultipartFile file) {
-        return store(file, storeUploadRoot);
-    }
-
-    public String store(MultipartFile file, Path uploadRoot) {
+    public String store(MultipartFile file) {
         validateFile(file);
 
         String extension = resolveExtension(file.getContentType());

@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.growth.docs;
 
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
+import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 import java.lang.annotation.ElementType;
@@ -25,6 +26,8 @@ public final class GrowthApiDocs {
     )
     public @interface GetStatus {
     }
+
+
 
     @SecurityRequirement(name = "userJWT")
     @Target(ElementType.METHOD)

@@ -66,7 +66,7 @@ public class EventAdminController {
     public ResponseEntity<EventImageUploadResponse> uploadEventImage(@RequestPart("file") MultipartFile file) {
         String imageName;
         try {
-            imageName = imageStorageService.storeEventImage(file);
+            imageName = imageStorageService.store(file);
         } catch (ImageStorageException exception) {
             if (exception.getErrorCode() == ImageStorageErrorCode.INVALID_FILE) {
                 throw new EventException(EventErrorCode.INVALID_IMAGE_INFORMATION, exception);

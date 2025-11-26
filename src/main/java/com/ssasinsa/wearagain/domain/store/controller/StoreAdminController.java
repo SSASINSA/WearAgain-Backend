@@ -52,7 +52,7 @@ public class StoreAdminController {
     public ResponseEntity<StoreImageUploadResponse> uploadItemImage(@RequestPart("file") MultipartFile file) {
         String imageName;
         try {
-            imageName = imageStorageService.storeStoreImage(file);
+            imageName = imageStorageService.store(file);
         } catch (ImageStorageException exception) {
             if (exception.getErrorCode() == ImageStorageErrorCode.INVALID_FILE) {
                 throw new StoreException(StoreErrorCode.STORE_IMAGE_INVALID, exception);

@@ -1,10 +1,14 @@
 package com.ssasinsa.wearagain.domain.community.service;
 
 import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
+import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 
 public interface CommunityPostService {
+
+    PostsResponse getPosts(PostsRequest request, Long userId);
 
     PostDetailResponse getPostDetail(Long postId, Long userId);
 
