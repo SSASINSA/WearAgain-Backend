@@ -85,5 +85,12 @@ public final class CommunityExamples {
               ]
             }
             """;
+
+    public static final String REPORT_POST_REQUEST = """
+            {
+              "postId": 1,
+              "reason": "부적절한 언어 사용"
+            }
+            """;
 }
 

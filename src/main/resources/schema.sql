@@ -472,18 +472,19 @@ CREATE TABLE community_posts (
     title VARCHAR(255),
     content TEXT NOT NULL,
     like_count INT NOT NULL DEFAULT 0,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6) ON UPDATE CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_community_posts PRIMARY KEY (community_posts_id),
     CONSTRAINT fk_community_posts_user FOREIGN KEY (users_id) REFERENCES users (users_id),
-    CONSTRAINT fk_community_posts_category FOREIGN KEY (community_categories_id) REFERENCES community_categories (community_categories_id)
+    CONSTRAINT fk_community_posts_category FOREIGN KEY (community_categories_id) REFERENCES community_categories (community_categories_id),
+    CONSTRAINT chk_community_posts_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'REPORTED'))
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
 CREATE INDEX idx_community_posts_user ON community_posts (users_id);
-CREATE INDEX idx_community_posts_active ON community_posts (is_active, created_at);
+CREATE INDEX idx_community_posts_status ON community_posts (status, created_at);
 CREATE INDEX idx_community_posts_category ON community_posts (community_categories_id);
 
 CREATE TABLE community_post_images (

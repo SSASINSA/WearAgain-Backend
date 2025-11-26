@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.community.docs;
 
 import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.request.ReportRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
@@ -86,11 +87,27 @@ public final class CommunityApiDocs {
             summary = "게시글 삭제",
             description = """
                     게시글을 삭제합니다.
-                    작성자만 삭제할 수 있으며, 실제로는 soft delete(active=false)로 처리됩니다.
+                    작성자만 삭제할 수 있으며, 실제로는 soft delete(status=INACTIVE)로 처리됩니다.
                     """,
             responseSchema = Void.class
     )
     public @interface DeletePost {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 신고",
+            description = """
+                    게시글을 신고합니다.
+                    게시글 ID와 신고 사유를 입력받습니다.
+                    중복 신고는 불가능하며, 신고 시 게시글 상태가 REPORTED로 변경됩니다.
+                    """,
+            requestExample = CommunityExamples.REPORT_POST_REQUEST,
+            responseSchema = Void.class
+    )
+    public @interface ReportPost {
     }
 }
 
