@@ -27,7 +27,6 @@ import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
-import jakarta.persistence.criteria.Predicate;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -51,7 +50,6 @@ import org.springframework.util.StringUtils;
 public class StoreServiceImpl implements StoreService {
 
     private static final int MAX_PAGE_SIZE = 50;
-    private static final Sort ITEM_SORT = Sort.by(Sort.Direction.DESC, "createdAt", "id");
 
     private final StoreItemRepository storeItemRepository;
     private final StoreItemImageRepository storeItemImageRepository;
@@ -64,11 +62,16 @@ public class StoreServiceImpl implements StoreService {
     public StoreItemCursorListResponse getItems(String category, String keyword, String cursor, int size) {
         int pageSize = resolveSize(size);
         Long cursorId = decodeIdCursor(cursor);
-        Specification<StoreItem> spec = buildItemSpecification(category, keyword, cursorId);
+        String normalizedCategory = normalizeText(category);
+        String normalizedKeyword = normalizeText(keyword);
         Pageable pageable = PageRequest.of(0, pageSize + 1, Sort.by(Sort.Direction.DESC, "id"));
 
-        Page<StoreItem> page = storeItemRepository.findAll(spec, pageable);
-        List<StoreItem> content = new ArrayList<>(page.getContent());
+        List<StoreItem> content = new ArrayList<>(storeItemRepository.findActiveItemsWithCursor(
+                normalizedCategory,
+                normalizedKeyword,
+                cursorId,
+                pageable
+        ));
         boolean hasNext = content.size() > pageSize;
         if (hasNext) {
             content = content.subList(0, pageSize);
@@ -340,28 +343,6 @@ public class StoreServiceImpl implements StoreService {
         return String.valueOf(id);
     }
 
-    private Specification<StoreItem> buildItemSpecification(String category, String keyword, Long cursorId) {
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            predicates.add(cb.equal(root.get("status"), StoreItemStatus.ACTIVE));
-            if (StringUtils.hasText(category)) {
-                predicates.add(cb.equal(cb.lower(root.get("category")), category.trim().toLowerCase()));
-            }
-            if (StringUtils.hasText(keyword)) {
-                String pattern = "%" + keyword.trim().toLowerCase() + "%";
-                predicates.add(cb.or(
-                        cb.like(cb.lower(root.get("name")), pattern),
-                        cb.like(cb.lower(root.get("description")), pattern)
-                ));
-            }
-            if (cursorId != null) {
-                predicates.add(cb.lessThan(root.get("id"), cursorId));
-            }
-            query.orderBy(cb.desc(root.get("id")));
-            return cb.and(predicates.toArray(Predicate[]::new));
-        };
-    }
-
     private StoreOrder findOrderOwnedBy(Long orderId, User user) {
         return storeOrderRepository.findById(orderId)
                 .filter(order -> order.getUser().equals(user))
@@ -383,5 +364,12 @@ public class StoreServiceImpl implements StoreService {
     }
 
     private record Cursor(LocalDateTime createdAt, Long id) {
+    }
+
+    private String normalizeText(String value) {
+        if (!StringUtils.hasText(value)) {
+            return null;
+        }
+        return value.trim();
     }
 }

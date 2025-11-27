@@ -128,8 +128,8 @@ class StoreServiceImplTest {
         StoreItem inactive = item(11L, 1200, 5, 2);
         inactive.changeStatus(StoreItemStatus.INACTIVE);
 
-        when(storeItemRepository.findAll(any(Specification.class), any(Pageable.class)))
-                .thenReturn(new PageImpl<>(List.of(active), PageRequest.of(0, 2), 1));
+        when(storeItemRepository.findActiveItemsWithCursor(eq(null), eq(null), eq(null), any(Pageable.class)))
+                .thenReturn(List.of(active, inactive));
         when(storeItemImageRepository.findThumbnailsByStoreItemIds(List.of(10L)))
                 .thenReturn(List.of());
 
