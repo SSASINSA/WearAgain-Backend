@@ -130,15 +130,7 @@ public class EventUserServiceImpl implements EventUserService {
         Set<Long> optionIds = collectOptionIds(rootOptions);
         Map<Long, Long> counts = loadApplicationCounts(optionIds);
 
-        EventDetailResponse.UserApplicationSummary userApplication = null;
-        if (userId != null) {
-            userApplication = eventApplicationRepository
-                    .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(userId, eventId)
-                    .map(this::mapToUserApplicationSummary)
-                    .orElse(null);
-        }
-
-        return mapToDetail(event, rootOptions, counts, userApplication);
+        return mapToDetail(event, rootOptions, counts);
     }
 
     @Override
@@ -450,8 +442,7 @@ public class EventUserServiceImpl implements EventUserService {
     private EventDetailResponse mapToDetail(
             Event event,
             List<EventOption> rootOptions,
-            Map<Long, Long> counts,
-            EventDetailResponse.UserApplicationSummary userApplication
+            Map<Long, Long> counts
     ) {
         List<EventDetailImageResponse> images = event.getImages()
                 .stream()
@@ -483,8 +474,7 @@ public class EventUserServiceImpl implements EventUserService {
                 event.getEndDate(),
                 event.getStatus().name(),
                 images,
-                options,
-                userApplication
+                options
         );
     }
 
@@ -510,23 +500,6 @@ public class EventUserServiceImpl implements EventUserService {
                 remaining,
                 children
         );
-    }
-
-    private EventDetailResponse.UserApplicationSummary mapToUserApplicationSummary(EventApplication application) {
-        return new EventDetailResponse.UserApplicationSummary(
-                application.getId(),
-                application.getStatus().name(),
-                application.getCreatedAt(),
-                buildUserApplicationTrail(application.getEventOption())
-        );
-    }
-
-    private List<EventDetailResponse.UserApplicationSummary.OptionTrailResponse> buildUserApplicationTrail(EventOption option) {
-        return buildOptionTrail(option, step -> new EventDetailResponse.UserApplicationSummary.OptionTrailResponse(
-                step.getId(),
-                step.getName(),
-                step.getType()
-        ));
     }
 
     private Integer safeToInteger(long value) {
