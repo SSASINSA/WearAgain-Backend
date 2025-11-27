@@ -25,9 +25,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -72,16 +71,16 @@ public class CommunityPostServiceImpl implements CommunityPostService {
 
         // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
         List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(limitedIds);
-        java.util.Map<Long, Long> commentCountMap = commentCountResults.stream()
-                .collect(java.util.stream.Collectors.toMap(
+        Map<Long, Long> commentCountMap = commentCountResults.stream()
+                .collect(Collectors.toMap(
                         result -> (Long) result[0],
                         result -> (Long) result[1]
                 ));
 
         // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
-        java.util.Set<Long> likedPostIds = userId != null
-                ? new java.util.HashSet<>(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
-                : java.util.Collections.emptySet();
+        Set<Long> likedPostIds = userId != null
+                ? new HashSet<>(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
+                : Collections.emptySet();
 
         List<PostsItem> postsItems = new ArrayList<>();
         for (CommunityPost post : posts) {
