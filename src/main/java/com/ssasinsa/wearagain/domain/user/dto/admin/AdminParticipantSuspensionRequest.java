@@ -1,4 +1,6 @@
 package com.ssasinsa.wearagain.domain.user.dto.admin;
 
-public record AdminParticipantSuspensionRequest(Boolean suspended) {
+import jakarta.validation.constraints.NotNull;
+
+public record AdminParticipantSuspensionRequest(@NotNull Boolean suspended) {
 }

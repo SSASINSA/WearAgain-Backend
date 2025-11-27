@@ -1,10 +1,12 @@
 package com.ssasinsa.wearagain.domain.user.dto.admin;
 
+import jakarta.validation.constraints.PositiveOrZero;
+
 public record AdminParticipantUpdateRequest(
         String name,
         String avatarUrl,
-        Integer ticketBalance,
-        Integer creditBalance,
+        @PositiveOrZero Integer ticketBalance,
+        @PositiveOrZero Integer creditBalance,
         Boolean suspended
 ) {
 }

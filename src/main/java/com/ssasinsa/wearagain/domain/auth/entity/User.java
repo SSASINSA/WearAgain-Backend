@@ -126,6 +126,32 @@ public class User extends BaseTimeEntity {
         return this.creditBalance;
     }
 
+    public void updateDisplayName(String displayName) {
+        this.displayName = displayName;
+    }
+
+    public void updateProfileImageUrl(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    public void updateTicketBalance(int ticketBalance) {
+        if (ticketBalance < 0) {
+            throw new IllegalArgumentException("ticketBalance must be non-negative");
+        }
+        this.ticketBalance = ticketBalance;
+    }
+
+    public void updateCreditBalance(int creditBalance) {
+        if (creditBalance < 0) {
+            throw new IllegalArgumentException("creditBalance must be non-negative");
+        }
+        this.creditBalance = creditBalance;
+    }
+
+    public void updateSuspended(boolean suspended) {
+        this.suspended = suspended;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {

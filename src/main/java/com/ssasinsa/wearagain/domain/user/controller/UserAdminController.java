@@ -8,6 +8,8 @@ import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantUpdateReques
 import com.ssasinsa.wearagain.domain.user.service.UserAdminService;
 import com.ssasinsa.wearagain.global.dto.MessageResponse;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
@@ -21,13 +23,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/v1/admin/participants")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
+@RequiredArgsConstructor
 public class UserAdminController {
 
     private final UserAdminService userAdminService;
-
-    public UserAdminController(UserAdminService userAdminService) {
-        this.userAdminService = userAdminService;
-    }
 
     @GetMapping
     public ResponseEntity<AdminParticipantListResponse> getParticipants(
