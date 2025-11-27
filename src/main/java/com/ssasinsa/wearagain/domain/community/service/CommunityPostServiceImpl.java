@@ -62,12 +62,8 @@ public class CommunityPostServiceImpl implements CommunityPostService {
         boolean hasNext = postIds.size() > limit;
         List<Long> limitedIds = hasNext ? postIds.subList(0, limit) : postIds;
 
-        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join
+        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join (user, category, images 포함)
         List<CommunityPost> posts = communityPostRepository.findPostsByIds(limitedIds);
-
-        // 3단계: images 동시 로딩 최적화 (Batch Fetching 자동 적용)
-        // @BatchSize로 인해 한 번의 쿼리로 모든 images 로딩됨
-        posts.forEach(post -> post.getImages().size());
 
         // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
         List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(limitedIds);
@@ -265,11 +261,8 @@ public class CommunityPostServiceImpl implements CommunityPostService {
     }
 
     private PostsResponse buildPostsResponse(List<Long> postIds, Long userId, int limit, boolean hasNext) {
-        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join
+        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join (user, category, images 포함)
         List<CommunityPost> posts = communityPostRepository.findPostsByIds(postIds);
-
-        // 3단계: images 동시 로딩 최적화 (Batch Fetching 자동 적용)
-        posts.forEach(post -> post.getImages().size());
 
         // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
         List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(postIds);

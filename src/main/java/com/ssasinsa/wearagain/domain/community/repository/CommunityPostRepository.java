@@ -63,6 +63,7 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             SELECT DISTINCT p FROM CommunityPost p
                 LEFT JOIN FETCH p.user
                 LEFT JOIN FETCH p.category
+                LEFT JOIN FETCH p.images
             WHERE p.id IN :ids
             ORDER BY p.id DESC
             """)
