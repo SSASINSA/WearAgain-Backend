@@ -95,13 +95,13 @@ public final class CommunityExamples {
 
     public static final String COMMENT_CREATE_REQUEST = """
             {
-              "content": "좋은 후기네요! 저도 다녀왔어요 😄"
+              "content": "좋은 후기네요! 저도 다녀왔어요"
             }
             """;
 
     public static final String COMMENT_UPDATE_REQUEST = """
             {
-              "content": "좋은 후기네요! 저도 다녀왔어요 😄 (수정)"
+              "content": "좋은 후기네요! 저도 다녀왔어요(수정)"
             }
             """;
 
@@ -118,7 +118,7 @@ public final class CommunityExamples {
                     "name": "홍길동"
                   },
                   "createdAt": "2025-01-15T10:30:00",
-                  "content": "좋은 후기네요! 저도 다녀왔어요 😄",
+                  "content": "좋은 후기네요! 저도 다녀왔어요",
                   "isMine": true
                 },
                 {
