@@ -523,11 +523,12 @@ CREATE TABLE comments (
     community_posts_id BIGINT NOT NULL,
     users_id BIGINT NOT NULL,
     content TEXT NOT NULL,
-    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     CONSTRAINT pk_comments PRIMARY KEY (comments_id),
     CONSTRAINT fk_comments_post FOREIGN KEY (community_posts_id) REFERENCES community_posts (community_posts_id),
-    CONSTRAINT fk_comments_user FOREIGN KEY (users_id) REFERENCES users (users_id)
+    CONSTRAINT fk_comments_user FOREIGN KEY (users_id) REFERENCES users (users_id),
+    CONSTRAINT chk_community_posts_status CHECK (status IN ('ACTIVE', 'INACTIVE', 'REPORTED'))
 ) ENGINE = InnoDB
   DEFAULT CHARSET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;

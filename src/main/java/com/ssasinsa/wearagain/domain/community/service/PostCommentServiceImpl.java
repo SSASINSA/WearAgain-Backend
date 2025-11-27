@@ -104,7 +104,7 @@ public class PostCommentServiceImpl implements PostCommentService {
 
         // 1단계: Comment ID만 먼저 조회
         Pageable pageable = PageRequest.of(0, limit + 1);
-        List<Long> commentIds = postCommentRepository.findCommentIdsByPostId(
+        List<Long> commentIds = postCommentRepository.findActiveCommentIdsByPostId(
                 postId,
                 request.cursor(),
                 pageable
@@ -118,7 +118,7 @@ public class PostCommentServiceImpl implements PostCommentService {
         List<Long> limitedIds = hasNext ? commentIds.subList(0, limit) : commentIds;
 
         // 2단계: ID 목록으로 Comment + user fetch join
-        List<PostComment> comments = postCommentRepository.findCommentsByIds(limitedIds);
+        List<PostComment> comments = postCommentRepository.findActiveCommentsByIds(limitedIds);
 
         List<CommentItem> commentItems = comments.stream()
                 .map(comment -> {

@@ -15,6 +15,7 @@ import com.ssasinsa.wearagain.domain.community.dto.request.CommentCreateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.CommentUpdateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.CommentsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.CommentsResponse;
+import com.ssasinsa.wearagain.domain.community.entity.CommentStatus;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityCategory;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityPost;
 import com.ssasinsa.wearagain.domain.community.entity.PostComment;
@@ -96,7 +97,7 @@ class PostCommentServiceImplTest {
         assertThat(savedComment.getContent()).isEqualTo(content);
         assertThat(savedComment.getUser().getId()).isEqualTo(userId);
         assertThat(savedComment.getPost().getId()).isEqualTo(postId);
-        assertThat(savedComment.isActive()).isTrue();
+        assertThat(savedComment.getStatus()).isEqualTo(CommentStatus.ACTIVE);
     }
 
     @Test
@@ -261,7 +262,7 @@ class PostCommentServiceImplTest {
         postCommentService.deleteComment(postId, commentId, userId);
 
         // Then
-        assertThat(comment.isActive()).isFalse();
+        assertThat(comment.getStatus()).isEqualTo(CommentStatus.INACTIVE);
     }
 
     @Test
@@ -353,9 +354,9 @@ class PostCommentServiceImplTest {
         CommentsRequest request = new CommentsRequest(null, 10);
 
         when(communityPostRepository.findByIdAndActiveTrue(postId)).thenReturn(Optional.of(post));
-        when(postCommentRepository.findCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
+        when(postCommentRepository.findActiveCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
                 .thenReturn(commentIds);
-        when(postCommentRepository.findCommentsByIds(commentIds)).thenReturn(comments);
+        when(postCommentRepository.findActiveCommentsByIds(commentIds)).thenReturn(comments);
 
         // When
         CommentsResponse response = postCommentService.getComments(postId, request, userId1);
@@ -402,9 +403,9 @@ class PostCommentServiceImplTest {
         List<PostComment> limitedComments = comments.subList(0, 10);
 
         when(communityPostRepository.findByIdAndActiveTrue(postId)).thenReturn(Optional.of(post));
-        when(postCommentRepository.findCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
+        when(postCommentRepository.findActiveCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
                 .thenReturn(commentIds);
-        when(postCommentRepository.findCommentsByIds(limitedIds)).thenReturn(limitedComments);
+        when(postCommentRepository.findActiveCommentsByIds(limitedIds)).thenReturn(limitedComments);
 
         // When
         CommentsResponse response = postCommentService.getComments(postId, request, 1L);
@@ -481,9 +482,9 @@ class PostCommentServiceImplTest {
         CommentsRequest request = new CommentsRequest(cursor, 10);
 
         when(communityPostRepository.findByIdAndActiveTrue(postId)).thenReturn(Optional.of(post));
-        when(postCommentRepository.findCommentIdsByPostId(postId, cursor, PageRequest.of(0, 11)))
+        when(postCommentRepository.findActiveCommentIdsByPostId(postId, cursor, PageRequest.of(0, 11)))
                 .thenReturn(commentIds);
-        when(postCommentRepository.findCommentsByIds(commentIds)).thenReturn(comments);
+        when(postCommentRepository.findActiveCommentsByIds(commentIds)).thenReturn(comments);
 
         // When
         CommentsResponse response = postCommentService.getComments(postId, request, 1L);
@@ -516,9 +517,9 @@ class PostCommentServiceImplTest {
         CommentsRequest request = new CommentsRequest(null, 10);
 
         when(communityPostRepository.findByIdAndActiveTrue(postId)).thenReturn(Optional.of(post));
-        when(postCommentRepository.findCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
+        when(postCommentRepository.findActiveCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
                 .thenReturn(commentIds);
-        when(postCommentRepository.findCommentsByIds(commentIds)).thenReturn(comments);
+        when(postCommentRepository.findActiveCommentsByIds(commentIds)).thenReturn(comments);
 
         // When
         CommentsResponse response = postCommentService.getComments(postId, request, userId);
@@ -552,9 +553,9 @@ class PostCommentServiceImplTest {
         CommentsRequest request = new CommentsRequest(null, 10);
 
         when(communityPostRepository.findByIdAndActiveTrue(postId)).thenReturn(Optional.of(post));
-        when(postCommentRepository.findCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
+        when(postCommentRepository.findActiveCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
                 .thenReturn(commentIds);
-        when(postCommentRepository.findCommentsByIds(commentIds)).thenReturn(comments);
+        when(postCommentRepository.findActiveCommentsByIds(commentIds)).thenReturn(comments);
 
         // When
         CommentsResponse response = postCommentService.getComments(postId, request, viewerId);
@@ -587,9 +588,9 @@ class PostCommentServiceImplTest {
         CommentsRequest request = new CommentsRequest(null, 10);
 
         when(communityPostRepository.findByIdAndActiveTrue(postId)).thenReturn(Optional.of(post));
-        when(postCommentRepository.findCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
+        when(postCommentRepository.findActiveCommentIdsByPostId(postId, null, PageRequest.of(0, 11)))
                 .thenReturn(commentIds);
-        when(postCommentRepository.findCommentsByIds(commentIds)).thenReturn(comments);
+        when(postCommentRepository.findActiveCommentsByIds(commentIds)).thenReturn(comments);
 
         // When
         CommentsResponse response = postCommentService.getComments(postId, request, null);
