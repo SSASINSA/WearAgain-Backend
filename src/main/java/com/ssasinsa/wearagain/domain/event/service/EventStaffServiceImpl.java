@@ -7,6 +7,7 @@ import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCodeVerifyRespons
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
+import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
@@ -42,6 +43,10 @@ public class EventStaffServiceImpl implements EventStaffService {
             throw new EventException(EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
         }
 
+        if (event.getStatus() == EventStatus.CLOSED) {
+            throw new EventException(EventErrorCode.EVENT_CHECKIN_NOT_AVAILABLE);
+        }
+
         CheckinTokenPayload payload = eventQrTokenStore.getTokenByToken(qrToken)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_CHECKIN_TOKEN_NOT_FOUND));
 
@@ -56,8 +61,14 @@ public class EventStaffServiceImpl implements EventStaffService {
             throw new EventException(EventErrorCode.EVENT_CHECKIN_TOKEN_INVALID);
         }
 
-        if (application.getStatus() != EventApplicationStatus.APPLIED) {
-            throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
+        switch (application.getStatus()) {
+            case APPLIED -> {
+                // continue
+            }
+            case CHECKED_IN -> throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
+            case CANCELED -> throw new EventException(EventErrorCode.EVENT_APPLICATION_CANCELED);
+            case REJECTED -> throw new EventException(EventErrorCode.EVENT_APPLICATION_REJECTED);
+            default -> throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
         }
 
         OffsetDateTime checkedInAt = OffsetDateTime.now(ZoneOffset.UTC);
