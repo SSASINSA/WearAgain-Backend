@@ -318,6 +318,10 @@ public class EventUserServiceImpl implements EventUserService {
         EventApplication application = eventApplicationRepository.findByIdAndUserId(applicationId, userId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND));
 
+        if (application.getEvent().getStatus() == EventStatus.CLOSED) {
+            throw new EventException(EventErrorCode.EVENT_CHECKIN_NOT_AVAILABLE);
+        }
+
         if (application.getStatus() != EventApplicationStatus.APPLIED) {
             throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
         }
