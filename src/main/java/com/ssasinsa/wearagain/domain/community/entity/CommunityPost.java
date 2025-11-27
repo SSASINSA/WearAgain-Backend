@@ -15,7 +15,6 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
-import org.hibernate.annotations.BatchSize;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -70,7 +69,6 @@ public class CommunityPost extends BaseTimeEntity {
     private List<PostComment> comments = new ArrayList<>();
 
     @OneToMany(mappedBy = "post", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
-    @BatchSize(size = 100)
     @Builder.Default
     private List<CommunityPostImage> images = new ArrayList<>();
 
