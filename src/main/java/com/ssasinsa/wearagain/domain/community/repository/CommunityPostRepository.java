@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain.domain.community.repository;
 
+import com.ssasinsa.wearagain.domain.community.entity.CommentStatus;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityPost;
 import com.ssasinsa.wearagain.domain.community.entity.PostStatus;
 import java.util.List;
@@ -22,8 +23,27 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
         return findByIdAndStatusNot(postId, PostStatus.INACTIVE);
     }
 
-    @Query("SELECT COUNT(c) FROM PostComment c WHERE c.post.id = :postId AND c.active = true")
-    long countActiveCommentsByPostId(@Param("postId") Long postId);
+    @Query("SELECT COUNT(c) FROM PostComment c WHERE c.post.id = :postId AND c.status != :excludedStatus")
+    long countActiveCommentsByPostId(@Param("postId") Long postId, @Param("excludedStatus") CommentStatus excludedStatus);
+
+    default long countActiveCommentsByPostId(Long postId) {
+        return countActiveCommentsByPostId(postId, CommentStatus.INACTIVE);
+    }
+
+    @Query("""
+            SELECT c.post.id, COUNT(c)
+            FROM PostComment c
+            WHERE c.post.id IN :postIds AND c.status != :excludedStatus
+            GROUP BY c.post.id
+            """)
+    List<Object[]> countActiveCommentsByPostIds(
+            @Param("postIds") List<Long> postIds,
+            @Param("excludedStatus") CommentStatus excludedStatus
+    );
+
+    default List<Object[]> countActiveCommentsByPostIds(List<Long> postIds) {
+        return countActiveCommentsByPostIds(postIds, CommentStatus.INACTIVE);
+    }
 
     @Query("""
             SELECT c.post.id, COUNT(c)

@@ -4,6 +4,8 @@ import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.common.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -13,6 +15,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.util.Objects;
 import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -21,6 +24,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Table(name = "comments")
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class PostComment extends BaseTimeEntity {
 
     @Id
@@ -39,15 +43,16 @@ public class PostComment extends BaseTimeEntity {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(name = "is_active", nullable = false)
-    private boolean active;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 20)
+    private CommentStatus status;
 
     @Builder(access = AccessLevel.PRIVATE)
-    private PostComment(CommunityPost post, User user, String content, Boolean active) {
+    private PostComment(CommunityPost post, User user, String content, CommentStatus status) {
         this.post = post;
         this.user = user;
         this.content = content;
-        this.active = active == null || active;
+        this.status = status != null ? status : CommentStatus.ACTIVE;
     }
 
     public static PostComment create(CommunityPost post, User user, String content) {
@@ -63,7 +68,19 @@ public class PostComment extends BaseTimeEntity {
     }
 
     public void deactivate() {
-        this.active = false;
+        this.status = CommentStatus.INACTIVE;
+    }
+
+    public void report() {
+        this.status = CommentStatus.REPORTED;
+    }
+
+    public void activate() {
+        this.status = CommentStatus.ACTIVE;
+    }
+
+    public void updateContent(String content) {
+        this.content = content;
     }
 
     @Override
