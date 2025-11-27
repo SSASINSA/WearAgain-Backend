@@ -28,12 +28,10 @@ import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import jakarta.persistence.criteria.Predicate;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -65,9 +63,9 @@ public class StoreServiceImpl implements StoreService {
     @Transactional(readOnly = true)
     public StoreItemCursorListResponse getItems(String category, String keyword, String cursor, int size) {
         int pageSize = resolveSize(size);
-        Cursor token = decodeCursor(cursor);
-        Specification<StoreItem> spec = buildItemSpecification(category, keyword, token);
-        Pageable pageable = PageRequest.of(0, pageSize + 1, ITEM_SORT);
+        Long cursorId = decodeIdCursor(cursor);
+        Specification<StoreItem> spec = buildItemSpecification(category, keyword, cursorId);
+        Pageable pageable = PageRequest.of(0, pageSize + 1, Sort.by(Sort.Direction.DESC, "id"));
 
         Page<StoreItem> page = storeItemRepository.findAll(spec, pageable);
         List<StoreItem> content = new ArrayList<>(page.getContent());
@@ -81,7 +79,7 @@ public class StoreServiceImpl implements StoreService {
                 .map(item -> mapToSummary(item, thumbnails.get(item.getId())))
                 .toList();
         String nextCursor = hasNext && !content.isEmpty()
-                ? encodeCursor(content.get(content.size() - 1).getCreatedAt(), content.get(content.size() - 1).getId())
+                ? encodeCursor(content.get(content.size() - 1).getId())
                 : null;
 
         return new StoreItemCursorListResponse(items, nextCursor, hasNext);
@@ -169,14 +167,13 @@ public class StoreServiceImpl implements StoreService {
     public StoreOrderListResponse getOrders(String cursor, int size, StoreOrderStatus status, Long userId) {
         int pageSize = resolveSize(size);
         User user = findUser(userId);
-        Cursor token = decodeCursor(cursor);
+        Long cursorId = decodeIdCursor(cursor);
         Pageable pageable = PageRequest.of(0, pageSize + 1);
 
         List<StoreOrder> orders = storeOrderRepository.findAllWithCursor(
                 user,
                 status,
-                token == null ? null : token.createdAt(),
-                token == null ? null : token.id(),
+                cursorId,
                 pageable
         );
 
@@ -190,7 +187,7 @@ public class StoreServiceImpl implements StoreService {
                 .toList();
 
         String nextCursor = hasNext && !orders.isEmpty()
-                ? encodeCursor(orders.get(orders.size() - 1).getCreatedAt(), orders.get(orders.size() - 1).getId())
+                ? encodeCursor(orders.get(orders.size() - 1).getId())
                 : null;
 
         return new StoreOrderListResponse(responses, nextCursor, hasNext);
@@ -328,30 +325,22 @@ public class StoreServiceImpl implements StoreService {
         return thumbnails;
     }
 
-    private Cursor decodeCursor(String cursor) {
+    private Long decodeIdCursor(String cursor) {
         if (!StringUtils.hasText(cursor)) {
             return null;
         }
         try {
-            String decoded = new String(Base64.getDecoder().decode(cursor), StandardCharsets.UTF_8);
-            String[] tokens = decoded.split(":");
-            if (tokens.length != 2) {
-                throw new IllegalArgumentException("invalid cursor");
-            }
-            OffsetDateTime dateTime = OffsetDateTime.parse(tokens[0]);
-            Long id = Long.parseLong(tokens[1]);
-            return new Cursor(dateTime.toLocalDateTime(), id);
+            return Long.parseLong(cursor);
         } catch (Exception exception) {
             throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
         }
     }
 
-    private String encodeCursor(LocalDateTime createdAt, Long id) {
-        String raw = createdAt.atOffset(ZoneOffset.UTC) + ":" + id;
-        return Base64.getEncoder().encodeToString(raw.getBytes(StandardCharsets.UTF_8));
+    private String encodeCursor(Long id) {
+        return String.valueOf(id);
     }
 
-    private Specification<StoreItem> buildItemSpecification(String category, String keyword, Cursor cursor) {
+    private Specification<StoreItem> buildItemSpecification(String category, String keyword, Long cursorId) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             predicates.add(cb.equal(root.get("status"), StoreItemStatus.ACTIVE));
@@ -365,16 +354,10 @@ public class StoreServiceImpl implements StoreService {
                         cb.like(cb.lower(root.get("description")), pattern)
                 ));
             }
-            if (cursor != null) {
-                predicates.add(cb.or(
-                        cb.lessThan(root.get("createdAt"), cursor.createdAt()),
-                        cb.and(
-                                cb.equal(root.get("createdAt"), cursor.createdAt()),
-                                cb.lessThan(root.get("id"), cursor.id())
-                        )
-                ));
+            if (cursorId != null) {
+                predicates.add(cb.lessThan(root.get("id"), cursorId));
             }
-            query.orderBy(cb.desc(root.get("createdAt")), cb.desc(root.get("id")));
+            query.orderBy(cb.desc(root.get("id")));
             return cb.and(predicates.toArray(Predicate[]::new));
         };
     }

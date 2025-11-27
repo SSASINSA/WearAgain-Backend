@@ -17,16 +17,14 @@ public interface StoreOrderRepository extends JpaRepository<StoreOrder, Long>, J
 
     @Query("""
             SELECT o FROM StoreOrder o
-            JOIN FETCH o.item i
             WHERE o.user = :user
               AND (:status IS NULL OR o.status = :status)
-              AND (:purchasedAt IS NULL OR o.createdAt < :purchasedAt OR (o.createdAt = :purchasedAt AND o.id < :orderId))
-            ORDER BY o.createdAt DESC, o.id DESC
+              AND (:orderId IS NULL OR o.id < :orderId)
+            ORDER BY o.id DESC
             """)
     List<StoreOrder> findAllWithCursor(
             @Param("user") User user,
             @Param("status") StoreOrderStatus status,
-            @Param("purchasedAt") java.time.LocalDateTime purchasedAt,
             @Param("orderId") Long orderId,
             Pageable pageable
     );

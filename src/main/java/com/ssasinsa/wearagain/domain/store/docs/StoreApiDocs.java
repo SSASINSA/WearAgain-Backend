@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
 public final class StoreApiDocs {
 
     public static final String TAG_NAME = "Store";
-    public static final String TAG_DESCRIPTION = "스토어 상품 관리 및 조회 API";
+    public static final String TAG_DESCRIPTION = "스토어 상품/주문 API";
 
     private StoreApiDocs() {
     }
