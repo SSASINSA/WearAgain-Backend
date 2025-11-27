@@ -649,15 +649,17 @@ class CommunityPostServiceImplTest {
         LocalDateTime createdAt2 = LocalDateTime.of(2025, 1, 14, 15, 20);
         ReflectionTestUtils.setField(post2, "createdAt", createdAt2);
 
+        List<Long> postIds = List.of(10L, 9L);
         List<CommunityPost> posts = List.of(post1, post2);
         PostsRequest request = new PostsRequest(null, 10, null);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 11)))
-                .thenReturn(posts);
-        when(communityPostRepository.countActiveCommentsByPostId(10L)).thenReturn(2L);
-        when(communityPostRepository.countActiveCommentsByPostId(9L)).thenReturn(1L);
-        when(postLikeRepository.existsByPostIdAndUserId(10L, userId)).thenReturn(true);
-        when(postLikeRepository.existsByPostIdAndUserId(9L, userId)).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of(new Object[]{10L, 2L}, new Object[]{9L, 1L}));
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of(10L));
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);
@@ -686,19 +688,27 @@ class CommunityPostServiceImplTest {
         CommunityCategory category = CommunityCategory.create("review");
         ReflectionTestUtils.setField(category, "id", 1L);
 
+        List<Long> postIds = new ArrayList<>();
         List<CommunityPost> posts = new ArrayList<>();
         for (int i = 0; i < 11; i++) {
+            long postId = 20L - i;
+            postIds.add(postId);
             CommunityPost post = CommunityPost.create(author, category, "제목" + i, "내용" + i, null);
-            ReflectionTestUtils.setField(post, "id", (long) (20 - i));
+            ReflectionTestUtils.setField(post, "id", postId);
             posts.add(post);
         }
 
         PostsRequest request = new PostsRequest(null, 10, null);
+        List<Long> limitedIds = postIds.subList(0, 10);
+        List<CommunityPost> limitedPosts = posts.subList(0, 10);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 11)))
-                .thenReturn(posts);
-        when(communityPostRepository.countActiveCommentsByPostId(anyLong())).thenReturn(0L);
-        when(postLikeRepository.existsByPostIdAndUserId(anyLong(), anyLong())).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(limitedIds)).thenReturn(limitedPosts);
+        when(communityPostRepository.countActiveCommentsByPostIds(limitedIds))
+                .thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);
@@ -706,7 +716,7 @@ class CommunityPostServiceImplTest {
         // Then
         assertThat(response.limit()).isEqualTo(10);
         assertThat(response.hasNext()).isTrue();
-        assertThat(response.nextCursor()).isEqualTo("11");
+        assertThat(response.nextCursor()).isEqualTo("11"); // limitedIds의 마지막 ID (20-9=11)
         assertThat(response.posts()).hasSize(10);
     }
 
@@ -728,11 +738,17 @@ class CommunityPostServiceImplTest {
         ReflectionTestUtils.setField(post3, "id", 8L);
 
         PostsRequest request = new PostsRequest(null, 2, null);
+        List<Long> postIds = List.of(10L, 9L, 8L);
+        List<Long> limitedIds = List.of(10L, 9L);
+        List<CommunityPost> limitedPosts = List.of(post1, post2);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 3)))
-                .thenReturn(List.of(post1, post2, post3));
-        when(communityPostRepository.countActiveCommentsByPostId(anyLong())).thenReturn(0L);
-        when(postLikeRepository.existsByPostIdAndUserId(anyLong(), anyLong())).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 3)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(limitedIds)).thenReturn(limitedPosts);
+        when(communityPostRepository.countActiveCommentsByPostIds(limitedIds))
+                .thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);
@@ -761,11 +777,16 @@ class CommunityPostServiceImplTest {
         ReflectionTestUtils.setField(questionPost, "id", 9L);
 
         PostsRequest request = new PostsRequest(null, 10, "review");
+        List<Long> postIds = List.of(10L);
+        List<CommunityPost> posts = List.of(reviewPost);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, "review", PageRequest.of(0, 11)))
-                .thenReturn(List.of(reviewPost));
-        when(communityPostRepository.countActiveCommentsByPostId(10L)).thenReturn(0L);
-        when(postLikeRepository.existsByPostIdAndUserId(10L, userId)).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(null, "review", PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);
@@ -791,11 +812,16 @@ class CommunityPostServiceImplTest {
         ReflectionTestUtils.setField(post, "id", 9L);
 
         PostsRequest request = new PostsRequest(cursor, 10, null);
+        List<Long> postIds = List.of(9L);
+        List<CommunityPost> posts = List.of(post);
 
-        when(communityPostRepository.findActivePostsWithCursor(cursor, null, PageRequest.of(0, 11)))
-                .thenReturn(List.of(post));
-        when(communityPostRepository.countActiveCommentsByPostId(9L)).thenReturn(0L);
-        when(postLikeRepository.existsByPostIdAndUserId(9L, userId)).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(cursor, null, PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);
@@ -803,7 +829,7 @@ class CommunityPostServiceImplTest {
         // Then
         assertThat(response.posts()).hasSize(1);
         assertThat(response.posts().get(0).id()).isEqualTo(9L);
-        verify(communityPostRepository).findActivePostsWithCursor(cursor, null, PageRequest.of(0, 11));
+        verify(communityPostRepository).findActivePostIdsForCursor(cursor, null, PageRequest.of(0, 11));
     }
 
     @Test
@@ -819,10 +845,14 @@ class CommunityPostServiceImplTest {
         ReflectionTestUtils.setField(post, "id", 10L);
 
         PostsRequest request = new PostsRequest(null, 10, null);
+        List<Long> postIds = List.of(10L);
+        List<CommunityPost> posts = List.of(post);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 11)))
-                .thenReturn(List.of(post));
-        when(communityPostRepository.countActiveCommentsByPostId(10L)).thenReturn(0L);
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, null);
@@ -830,7 +860,7 @@ class CommunityPostServiceImplTest {
         // Then
         assertThat(response.posts()).hasSize(1);
         assertThat(response.posts().get(0).isLiked()).isFalse();
-        verify(postLikeRepository, never()).existsByPostIdAndUserId(anyLong(), anyLong());
+        verify(postLikeRepository, never()).findLikedPostIdsByPostIdsAndUserId(any(), anyLong());
     }
 
     @Test
@@ -847,11 +877,16 @@ class CommunityPostServiceImplTest {
         ReflectionTestUtils.setField(post, "id", 10L);
 
         PostsRequest request = new PostsRequest(null, null, null);
+        List<Long> postIds = List.of(10L);
+        List<CommunityPost> posts = List.of(post);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 11)))
-                .thenReturn(List.of(post));
-        when(communityPostRepository.countActiveCommentsByPostId(10L)).thenReturn(0L);
-        when(postLikeRepository.existsByPostIdAndUserId(10L, userId)).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);
@@ -874,11 +909,16 @@ class CommunityPostServiceImplTest {
         ReflectionTestUtils.setField(post, "id", 10L);
 
         PostsRequest request = new PostsRequest(null, 100, null); // limit > 50
+        List<Long> postIds = List.of(10L);
+        List<CommunityPost> posts = List.of(post);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 11)))
-                .thenReturn(List.of(post));
-        when(communityPostRepository.countActiveCommentsByPostId(10L)).thenReturn(0L);
-        when(postLikeRepository.existsByPostIdAndUserId(10L, userId)).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of());
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);
@@ -893,7 +933,7 @@ class CommunityPostServiceImplTest {
         Long userId = 1L;
         PostsRequest request = new PostsRequest(null, 10, null);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 11)))
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 11)))
                 .thenReturn(List.of());
 
         // When
@@ -903,7 +943,7 @@ class CommunityPostServiceImplTest {
         assertThat(response.posts()).isEmpty();
         assertThat(response.hasNext()).isFalse();
         assertThat(response.nextCursor()).isNull();
-        verify(postLikeRepository, never()).existsByPostIdAndUserId(anyLong(), anyLong());
+        verify(postLikeRepository, never()).findLikedPostIdsByPostIdsAndUserId(any(), anyLong());
     }
 
     @Test
@@ -922,12 +962,16 @@ class CommunityPostServiceImplTest {
         ReflectionTestUtils.setField(post2, "id", 9L);
 
         PostsRequest request = new PostsRequest(null, 10, null);
+        List<Long> postIds = List.of(10L, 9L);
+        List<CommunityPost> posts = List.of(post1, post2);
 
-        when(communityPostRepository.findActivePostsWithCursor(null, null, PageRequest.of(0, 11)))
-                .thenReturn(List.of(post1, post2));
-        when(communityPostRepository.countActiveCommentsByPostId(10L)).thenReturn(5L);
-        when(communityPostRepository.countActiveCommentsByPostId(9L)).thenReturn(3L);
-        when(postLikeRepository.existsByPostIdAndUserId(anyLong(), anyLong())).thenReturn(false);
+        when(communityPostRepository.findActivePostIdsForCursor(null, null, PageRequest.of(0, 11)))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of(new Object[]{10L, 5L}, new Object[]{9L, 3L}));
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of());
 
         // When
         PostsResponse response = communityPostService.getPosts(request, userId);

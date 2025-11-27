@@ -70,39 +70,41 @@ public class CommunityPostServiceImpl implements CommunityPostService {
         // @BatchSize로 인해 한 번의 쿼리로 모든 images 로딩됨
         posts.forEach(post -> post.getImages().size());
 
-        // 각 게시물의 댓글 수 조회
-        List<Long> commentCounts = limitedIds.stream()
-                .map(communityPostRepository::countActiveCommentsByPostId)
-                .toList();
+        // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
+        List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(limitedIds);
+        java.util.Map<Long, Long> commentCountMap = commentCountResults.stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        result -> (Long) result[0],
+                        result -> (Long) result[1]
+                ));
 
-        // 각 게시물의 좋아요 여부 조회
-        List<Boolean> likedStatuses = userId != null
-                ? limitedIds.stream()
-                .map(postId -> postLikeRepository.existsByPostIdAndUserId(postId, userId))
-                .toList()
-                : limitedIds.stream()
-                .map(postId -> false)
-                .toList();
+        // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
+        java.util.Set<Long> likedPostIds = userId != null
+                ? new java.util.HashSet<>(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
+                : java.util.Collections.emptySet();
 
         List<PostsItem> postsItems = new ArrayList<>();
-        for (int i = 0; i < posts.size(); i++) {
-            CommunityPost post = posts.get(i);
+        for (CommunityPost post : posts) {
             String imageUrl = post.getImages().stream()
                     .min(Comparator.comparingInt(CommunityPostImage::getSortOrder))
                     .map(CommunityPostImage::getImageUrl)
                     .orElse(null);
 
+            Long postId = post.getId();
+            long commentCount = commentCountMap.getOrDefault(postId, 0L);
+            boolean isLiked = likedPostIds.contains(postId);
+
             postsItems.add(new PostsItem(
-                    post.getId(),
+                    postId,
                     imageUrl,
                     new PostsItem.AuthorInfo(post.getUser().getId(), post.getUser().getDisplayName()),
                     post.getCreatedAt(),
                     post.getTitle(),
                     post.getContent(),
                     post.getLikeCount(),
-                    commentCounts.get(i).intValue(),
+                    (int) commentCount,
                     post.getCategory().getName(),
-                    likedStatuses.get(i)
+                    isLiked
             ));
         }
 

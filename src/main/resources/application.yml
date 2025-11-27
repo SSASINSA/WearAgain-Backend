@@ -71,9 +71,6 @@ spring:
 #            jwk-set-uri: https://appleid.apple.com/auth/keys
 #            user-name-attribute: sub
 
-
-
-
 jwt:
   issuer: ${JWT_ISSUER:wearagain}
   access-token:
