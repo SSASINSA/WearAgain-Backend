@@ -7,6 +7,7 @@ import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCodeVerifyRespons
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
+import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
@@ -40,6 +41,10 @@ public class EventStaffServiceImpl implements EventStaffService {
 
         if (!StringUtils.hasText(event.getStaffCode())) {
             throw new EventException(EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
+        }
+
+        if (event.getStatus() == EventStatus.CLOSED) {
+            throw new EventException(EventErrorCode.EVENT_CHECKIN_NOT_AVAILABLE);
         }
 
         CheckinTokenPayload payload = eventQrTokenStore.getTokenByToken(qrToken)
