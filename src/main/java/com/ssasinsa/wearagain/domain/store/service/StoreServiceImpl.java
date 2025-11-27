@@ -363,9 +363,6 @@ public class StoreServiceImpl implements StoreService {
         return size;
     }
 
-    private record Cursor(LocalDateTime createdAt, Long id) {
-    }
-
     private String normalizeText(String value) {
         if (!StringUtils.hasText(value)) {
             return null;
