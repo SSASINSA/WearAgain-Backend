@@ -20,6 +20,7 @@ import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.global.storage.ImageStorageErrorCode;
 import com.ssasinsa.wearagain.global.storage.ImageStorageException;
 import com.ssasinsa.wearagain.global.storage.ImageStorageService;
+import com.ssasinsa.wearagain.global.dto.MessageResponse;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -177,11 +178,11 @@ public class EventAdminController {
     @EventApiDocs.ApproveApprovalRequest
     @PostMapping("/events/approvals/{approvalRequestId}/approve")
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<String> approveApprovalRequest(
+    public ResponseEntity<MessageResponse> approveApprovalRequest(
             @PathVariable Long approvalRequestId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        String response = eventAdminService.approveApprovalRequest(
+        MessageResponse response = eventAdminService.approveApprovalRequest(
                 approvalRequestId,
                 principal.adminId()
         );
@@ -191,11 +192,11 @@ public class EventAdminController {
     @EventApiDocs.RejectApprovalRequest
     @PostMapping("/events/approvals/{approvalRequestId}/reject")
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<String> rejectApprovalRequest(
+    public ResponseEntity<MessageResponse> rejectApprovalRequest(
             @PathVariable Long approvalRequestId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        String response = eventAdminService.rejectApprovalRequest(
+        MessageResponse response = eventAdminService.rejectApprovalRequest(
                 approvalRequestId,
                 principal.adminId()
         );

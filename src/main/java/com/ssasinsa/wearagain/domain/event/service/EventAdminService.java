@@ -6,6 +6,7 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDeta
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
+import com.ssasinsa.wearagain.global.dto.MessageResponse;
 
 import java.util.List;
 
@@ -41,7 +42,7 @@ public interface EventAdminService {
 
     EventApprovalRequestDetailResponse getApprovalRequestDetail(Long approvalRequestId);
 
-    String approveApprovalRequest(Long approvalRequestId, Long adminId);
+    MessageResponse approveApprovalRequest(Long approvalRequestId, Long adminId);
 
-    String rejectApprovalRequest(Long approvalRequestId, Long adminId);
+    MessageResponse rejectApprovalRequest(Long approvalRequestId, Long adminId);
 }

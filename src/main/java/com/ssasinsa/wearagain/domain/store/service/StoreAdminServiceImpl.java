@@ -13,11 +13,12 @@ import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemSummaryResponse
 import com.ssasinsa.wearagain.domain.store.entity.StoreItem;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemImage;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
+import com.ssasinsa.wearagain.domain.store.entity.StoreKeywordScope;
 import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
 import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
-import jakarta.persistence.criteria.Predicate;
+import com.ssasinsa.wearagain.domain.store.repository.StoreItemSpecifications;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -82,11 +83,16 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public StoreItemListResponse getItems(String status, String category, String keyword, int page, int size) {
+    public StoreItemListResponse getItems(String status, String category, String keyword, String keywordScope, int page, int size) {
         validatePage(page, size);
         List<StoreItemStatus> statuses = resolveStatuses(status);
         Pageable pageable = PageRequest.of(page, size, DEFAULT_SORT);
-        Specification<StoreItem> spec = buildSpecification(statuses, category, keyword);
+        String normalizedCategory = normalizeText(category);
+        String normalizedKeyword = normalizeText(keyword);
+        StoreKeywordScope scope = resolveKeywordScope(keywordScope);
+        Specification<StoreItem> spec = StoreItemSpecifications.statusIn(statuses)
+                .and(StoreItemSpecifications.categoryEquals(normalizedCategory))
+                .and(StoreItemSpecifications.keywordMatches(normalizedKeyword, scope));
 
         Page<StoreItem> result = storeItemRepository.findAll(spec, pageable);
         List<StoreItem> storeItems = result.getContent();
@@ -236,24 +242,6 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         return images;
     }
 
-    private Specification<StoreItem> buildSpecification(List<StoreItemStatus> statuses, String category, String keyword) {
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
-            if (!CollectionUtils.isEmpty(statuses)) {
-                predicates.add(root.get("status").in(statuses));
-            }
-            if (StringUtils.hasText(category)) {
-                predicates.add(cb.equal(cb.lower(root.get("category")), category.trim().toLowerCase()));
-            }
-            if (StringUtils.hasText(keyword)) {
-                String pattern = "%" + keyword.trim().toLowerCase() + "%";
-                predicates.add(cb.like(cb.lower(root.get("name")), pattern));
-            }
-            query.distinct(true);
-            return cb.and(predicates.toArray(Predicate[]::new));
-        };
-    }
-
     private List<StoreItemStatus> resolveStatuses(String param) {
         if (!StringUtils.hasText(param)) {
             return List.of(StoreItemStatus.ACTIVE, StoreItemStatus.INACTIVE, StoreItemStatus.DELETED);
@@ -273,6 +261,17 @@ public class StoreAdminServiceImpl implements StoreAdminService {
             throw new StoreException(StoreErrorCode.STORE_ITEM_STATUS_INVALID);
         }
         return statuses;
+    }
+
+    private StoreKeywordScope resolveKeywordScope(String param) {
+        if (!StringUtils.hasText(param)) {
+            return StoreKeywordScope.ALL;
+        }
+        try {
+            return StoreKeywordScope.valueOf(param.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
+        }
     }
 
     private Map<Long, String> loadThumbnails(List<StoreItem> items) {

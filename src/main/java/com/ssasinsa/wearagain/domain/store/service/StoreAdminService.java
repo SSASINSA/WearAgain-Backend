@@ -11,7 +11,7 @@ public interface StoreAdminService {
 
     StoreItemCreateResponse createItem(StoreItemCreateRequest request, Long adminId);
 
-    StoreItemListResponse getItems(String status, String category, String keyword, int page, int size);
+    StoreItemListResponse getItems(String status, String category, String keyword, String keywordScope, int page, int size);
 
     StoreItemDetailResponse getItemDetail(Long itemId);
 

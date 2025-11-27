@@ -41,6 +41,7 @@ import com.ssasinsa.wearagain.domain.event.repository.EventApprovalRequestReposi
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventSpecifications;
+import com.ssasinsa.wearagain.global.dto.MessageResponse;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -868,7 +869,7 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional
-    public String approveApprovalRequest(Long approvalRequestId, Long adminId) {
+    public MessageResponse approveApprovalRequest(Long approvalRequestId, Long adminId) {
         EventApprovalRequest approvalRequest = eventApprovalRequestRepository.findById(approvalRequestId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPROVAL_REQUEST_NOT_FOUND));
 
@@ -886,12 +887,12 @@ public class EventAdminServiceImpl implements EventAdminService {
 
         approvalRequest.approve(admin, LocalDateTime.now());
 
-        return "행사 승인이 완료되었습니다.";
+        return MessageResponse.of("Approval request approved");
     }
 
     @Override
     @Transactional
-    public String rejectApprovalRequest(Long approvalRequestId, Long adminId) {
+    public MessageResponse rejectApprovalRequest(Long approvalRequestId, Long adminId) {
         EventApprovalRequest approvalRequest = eventApprovalRequestRepository.findById(approvalRequestId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPROVAL_REQUEST_NOT_FOUND));
 
@@ -909,6 +910,6 @@ public class EventAdminServiceImpl implements EventAdminService {
 
         approvalRequest.reject(admin, LocalDateTime.now());
 
-        return "행사 승인이 거부되었습니다.";
+        return MessageResponse.of("Approval request rejected");
     }
 }
