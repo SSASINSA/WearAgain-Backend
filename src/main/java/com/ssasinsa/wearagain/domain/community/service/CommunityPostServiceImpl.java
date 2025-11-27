@@ -62,19 +62,15 @@ public class CommunityPostServiceImpl implements CommunityPostService {
         boolean hasNext = postIds.size() > limit;
         List<Long> limitedIds = hasNext ? postIds.subList(0, limit) : postIds;
 
-        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join
+        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join (user, category, images 포함)
         List<CommunityPost> posts = communityPostRepository.findPostsByIds(limitedIds);
-
-        // 3단계: images 동시 로딩 최적화 (Batch Fetching 자동 적용)
-        // @BatchSize로 인해 한 번의 쿼리로 모든 images 로딩됨
-        posts.forEach(post -> post.getImages().size());
 
         // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
         List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(limitedIds);
         Map<Long, Integer> commentCountMap = commentCountResults.stream()
                 .collect(Collectors.toMap(
                         result -> (Long) result[0],
-                        result -> (int) result[1]
+                        result -> ((Long) result[1]).intValue()
                 ));
 
         // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
@@ -207,8 +203,150 @@ public class CommunityPostServiceImpl implements CommunityPostService {
             throw new CommunityException(CommunityErrorCode.POST_DELETE_FORBIDDEN);
         }
 
-        post.deactivate();
-        log.info("게시글 삭제 완료: postId={}, userId={}", postId, userId);
+            post.deactivate();
+            log.info("게시글 삭제 완료: postId={}, userId={}", postId, userId);
+        }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostsResponse getMyPosts(Long cursor, Integer limit, Long userId) {
+        int limitValue = limit != null ? limit : 10;
+        if (limitValue <= 0 || limitValue > 50) {
+            limitValue = 10;
+        }
+
+        // 1단계: Post ID만 먼저 조회
+        Pageable pageable = PageRequest.of(0, limitValue + 1);
+        List<Long> postIds = communityPostRepository.findActivePostIdsByUserIdForCursor(
+                userId,
+                cursor,
+                pageable
+        );
+
+        if (postIds.isEmpty()) {
+            return new PostsResponse(limit, null, false, new ArrayList<>());
+        }
+
+        boolean hasNext = postIds.size() > limitValue;
+        List<Long> limitedIds = hasNext ? postIds.subList(0, limitValue) : postIds;
+
+        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join (user, category, images 포함)
+        List<CommunityPost> posts = communityPostRepository.findPostsByIds(limitedIds);
+
+        // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
+        List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(limitedIds);
+        Map<Long, Integer> commentCountMap = commentCountResults.stream()
+                .collect(Collectors.toMap(
+                        result -> (Long) result[0],
+                        result -> ((Long) result[1]).intValue()
+                ));
+
+        // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
+        Set<Long> likedPostIds = userId != null
+                ? new HashSet<>(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
+                : Collections.emptySet();
+
+        List<PostsItem> postsItems = new ArrayList<>();
+        for (CommunityPost post : posts) {
+            String imageUrl = post.getImages().stream()
+                    .min(Comparator.comparingInt(CommunityPostImage::getSortOrder))
+                    .map(CommunityPostImage::getImageUrl)
+                    .orElse(null);
+
+            long postId = post.getId();
+            int commentCount = commentCountMap.getOrDefault(postId, 0);
+            boolean isLiked = likedPostIds.contains(postId);
+
+            postsItems.add(new PostsItem(
+                    postId,
+                    imageUrl,
+                    new PostsItem.AuthorInfo(post.getUser().getId(), post.getUser().getDisplayName()),
+                    post.getCreatedAt(),
+                    post.getTitle(),
+                    post.getContent(),
+                    post.getLikeCount(),
+                    commentCount,
+                    post.getCategory().getName(),
+                    isLiked
+            ));
+        }
+
+        String nextCursor = hasNext && !limitedIds.isEmpty()
+                ? String.valueOf(limitedIds.get(limitedIds.size() - 1))
+                : null;
+
+        return new PostsResponse(limitValue, nextCursor, hasNext, postsItems);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostsResponse getMyCommentedPosts(Long cursor, Integer limit, Long userId) {
+        int limitValue = limit != null ? limit : 10;
+        if (limitValue <= 0 || limitValue > 50) {
+            limitValue = 10;
+        }
+
+        // 1단계: Post ID만 먼저 조회 (댓글을 쓴 게시물)
+        Pageable pageable = PageRequest.of(0, limitValue + 1);
+        List<Long> postIds = communityPostRepository.findActivePostIdsByCommentUserIdForCursor(
+                userId,
+                cursor,
+                pageable
+        );
+
+        if (postIds.isEmpty()) {
+            return new PostsResponse(limit, null, false, new ArrayList<>());
+        }
+
+        boolean hasNext = postIds.size() > limitValue;
+        List<Long> limitedIds = hasNext ? postIds.subList(0, limitValue) : postIds;
+
+        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join (user, category, images 포함)
+        List<CommunityPost> posts = communityPostRepository.findPostsByIds(limitedIds);
+
+        // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
+        List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(limitedIds);
+        Map<Long, Integer> commentCountMap = commentCountResults.stream()
+                .collect(Collectors.toMap(
+                        result -> (Long) result[0],
+                        result -> ((Long) result[1]).intValue()
+                ));
+
+        // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
+        Set<Long> likedPostIds = userId != null
+                ? new HashSet<>(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
+                : Collections.emptySet();
+
+        List<PostsItem> postsItems = new ArrayList<>();
+        for (CommunityPost post : posts) {
+            String imageUrl = post.getImages().stream()
+                    .min(Comparator.comparingInt(CommunityPostImage::getSortOrder))
+                    .map(CommunityPostImage::getImageUrl)
+                    .orElse(null);
+
+            long postId = post.getId();
+            int commentCount = commentCountMap.getOrDefault(postId, 0);
+            boolean isLiked = likedPostIds.contains(postId);
+
+            postsItems.add(new PostsItem(
+                    postId,
+                    imageUrl,
+                    new PostsItem.AuthorInfo(post.getUser().getId(), post.getUser().getDisplayName()),
+                    post.getCreatedAt(),
+                    post.getTitle(),
+                    post.getContent(),
+                    post.getLikeCount(),
+                    commentCount,
+                    post.getCategory().getName(),
+                    isLiked
+            ));
+        }
+
+        String nextCursor = hasNext && !limitedIds.isEmpty()
+                ? String.valueOf(limitedIds.get(limitedIds.size() - 1))
+                : null;
+
+        return new PostsResponse(limitValue, nextCursor, hasNext, postsItems);
     }
 }
 

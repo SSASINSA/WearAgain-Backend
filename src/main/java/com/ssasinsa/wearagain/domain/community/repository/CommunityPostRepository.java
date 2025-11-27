@@ -46,14 +46,6 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
     }
 
     @Query("""
-            SELECT c.post.id, COUNT(c)
-            FROM PostComment c
-            WHERE c.post.id IN :postIds AND c.active = true
-            GROUP BY c.post.id
-            """)
-    List<Object[]> countActiveCommentsByPostIds(@Param("postIds") List<Long> postIds);
-
-    @Query("""
             SELECT p.id FROM CommunityPost p
             WHERE p.status != :excludedStatus
               AND (:cursor IS NULL OR p.id < :cursor)
@@ -71,6 +63,7 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
             SELECT DISTINCT p FROM CommunityPost p
                 LEFT JOIN FETCH p.user
                 LEFT JOIN FETCH p.category
+                LEFT JOIN FETCH p.images
             WHERE p.id IN :ids
             ORDER BY p.id DESC
             """)
@@ -78,6 +71,42 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
 
     default List<Long> findActivePostIdsForCursor(Long cursor, String keyword, Pageable pageable) {
         return findPostIdsForCursor(PostStatus.INACTIVE, cursor, keyword, pageable);
+    }
+
+    @Query("""
+            SELECT p.id FROM CommunityPost p
+            WHERE p.status != :excludedStatus
+              AND p.user.id = :userId
+              AND (:cursor IS NULL OR p.id < :cursor)
+            ORDER BY p.id DESC
+            """)
+    List<Long> findPostIdsByUserIdForCursor(
+            @Param("userId") Long userId,
+            @Param("excludedStatus") PostStatus excludedStatus,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
+
+    default List<Long> findActivePostIdsByUserIdForCursor(Long userId, Long cursor, Pageable pageable) {
+        return findPostIdsByUserIdForCursor(userId, PostStatus.INACTIVE, cursor, pageable);
+    }
+
+    @Query("""
+            SELECT DISTINCT c.post.id FROM PostComment c
+            WHERE c.status != :excludedStatus
+              AND c.user.id = :userId
+              AND (:cursor IS NULL OR c.post.id < :cursor)
+            ORDER BY c.post.id DESC
+            """)
+    List<Long> findPostIdsByCommentUserIdForCursor(
+            @Param("userId") Long userId,
+            @Param("excludedStatus") CommentStatus excludedStatus,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
+
+    default List<Long> findActivePostIdsByCommentUserIdForCursor(Long userId, Long cursor, Pageable pageable) {
+        return findPostIdsByCommentUserIdForCursor(userId, CommentStatus.INACTIVE, cursor, pageable);
     }
 }
 
