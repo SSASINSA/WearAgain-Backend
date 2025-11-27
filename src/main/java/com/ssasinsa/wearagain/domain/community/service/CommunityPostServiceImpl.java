@@ -74,10 +74,14 @@ public class CommunityPostServiceImpl implements CommunityPostService {
         Map<Long, Integer> commentCountMap = commentCountResults.stream()
                 .collect(Collectors.toMap(
                         result -> (Long) result[0],
-                        result -> (int) result[1]
+                        result -> (Integer) result[1]
                 ));
 
         // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
+        return getPostsResponse(userId, limit, hasNext, limitedIds, posts, commentCountMap);
+    }
+
+    private PostsResponse getPostsResponse(Long userId, int limit, boolean hasNext, List<Long> limitedIds, List<CommunityPost> posts, Map<Long, Integer> commentCountMap) {
         Set<Long> likedPostIds = userId != null
                 ? new HashSet<>(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(limitedIds, userId))
                 : Collections.emptySet();
@@ -207,8 +211,76 @@ public class CommunityPostServiceImpl implements CommunityPostService {
             throw new CommunityException(CommunityErrorCode.POST_DELETE_FORBIDDEN);
         }
 
-        post.deactivate();
-        log.info("게시글 삭제 완료: postId={}, userId={}", postId, userId);
+            post.deactivate();
+            log.info("게시글 삭제 완료: postId={}, userId={}", postId, userId);
+        }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostsResponse getMyPosts(Long cursor, Integer limit, Long userId) {
+        int limitValue = limit != null ? limit : 10;
+        if (limitValue <= 0 || limitValue > 50) {
+            limitValue = 10;
+        }
+
+        // 1단계: Post ID만 먼저 조회
+        Pageable pageable = PageRequest.of(0, limitValue + 1);
+        List<Long> postIds = communityPostRepository.findActivePostIdsByUserIdForCursor(
+                userId,
+                cursor,
+                pageable
+        );
+
+        return getPostsResponse(userId, limitValue, postIds);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PostsResponse getMyCommentedPosts(Long cursor, Integer limit, Long userId) {
+        int limitValue = limit != null ? limit : 10;
+        if (limitValue <= 0 || limitValue > 50) {
+            limitValue = 10;
+        }
+
+        // 1단계: Post ID만 먼저 조회 (댓글을 쓴 게시물)
+        Pageable pageable = PageRequest.of(0, limitValue + 1);
+        List<Long> postIds = communityPostRepository.findActivePostIdsByCommentUserIdForCursor(
+                userId,
+                cursor,
+                pageable
+        );
+
+        return getPostsResponse(userId, limitValue, postIds);
+    }
+
+    private PostsResponse getPostsResponse(Long userId, int limitValue, List<Long> postIds) {
+        if (postIds.isEmpty()) {
+            return new PostsResponse(limitValue, null, false, new ArrayList<>());
+        }
+
+        boolean hasNext = postIds.size() > limitValue;
+        List<Long> limitedIds = hasNext ? postIds.subList(0, limitValue) : postIds;
+
+        return buildPostsResponse(limitedIds, userId, limitValue, hasNext);
+    }
+
+    private PostsResponse buildPostsResponse(List<Long> postIds, Long userId, int limit, boolean hasNext) {
+        // 2단계: ID 목록으로 필요한 연관 엔티티 Fetch Join
+        List<CommunityPost> posts = communityPostRepository.findPostsByIds(postIds);
+
+        // 3단계: images 동시 로딩 최적화 (Batch Fetching 자동 적용)
+        posts.forEach(post -> post.getImages().size());
+
+        // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
+        List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(postIds);
+        Map<Long, Integer> commentCountMap = commentCountResults.stream()
+                .collect(Collectors.toMap(
+                        result -> (Long) result[0],
+                        result -> ((Long) result[1]).intValue()
+                ));
+
+        // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
+        return getPostsResponse(userId, limit, hasNext, postIds, posts, commentCountMap);
     }
 }
 

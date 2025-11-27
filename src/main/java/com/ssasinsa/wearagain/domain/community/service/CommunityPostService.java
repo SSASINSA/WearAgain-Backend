@@ -17,5 +17,9 @@ public interface CommunityPostService {
     void updatePost(Long postId, PostUpdateRequest request, Long userId);
 
     void deletePost(Long postId, Long userId);
+
+    PostsResponse getMyPosts(Long cursor, Integer limit, Long userId);
+
+    PostsResponse getMyCommentedPosts(Long cursor, Integer limit, Long userId);
 }
 

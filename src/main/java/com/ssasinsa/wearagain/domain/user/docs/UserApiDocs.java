@@ -1,5 +1,6 @@
 package com.ssasinsa.wearagain.domain.user.docs;
 
+import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.domain.user.dto.UserSummaryResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -26,5 +27,35 @@ public final class UserApiDocs {
             responseExample = UserExamples.USER_SUMMARY_RESPONSE
     )
     public @interface GetUserSummary {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "내가 쓴 게시물 리스트 조회",
+            description = """
+                    커서 기반 페이지네이션으로 내가 작성한 게시물 리스트를 조회합니다.
+                    좋아요 여부를 포함합니다.
+                    """,
+            responseSchema = PostsResponse.class,
+            responseExample = UserExamples.MY_POSTS_RESPONSE
+    )
+    public @interface GetMyPosts {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "내가 댓글을 쓴 게시물 리스트 조회",
+            description = """
+                    커서 기반 페이지네이션으로 내가 댓글을 작성한 게시물 리스트를 조회합니다.
+                    좋아요 여부를 포함합니다.
+                    """,
+            responseSchema = PostsResponse.class,
+            responseExample = UserExamples.MY_COMMENTED_POSTS_RESPONSE
+    )
+    public @interface GetMyCommentedPosts {
     }
 }

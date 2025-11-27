@@ -946,6 +946,136 @@ class CommunityPostServiceImplTest {
         verify(postLikeRepository, never()).findLikedPostIdsByPostIdsAndUserId(any(), anyLong());
     }
 
+    // --- getMyPosts Tests ---
+    @Test
+    void should_return_my_posts_list_when_posts_exist() {
+        // Given
+        Long userId = 1L;
+        User author = User.create("author@wearagain.kr", "작성자", null);
+        ReflectionTestUtils.setField(author, "id", userId);
+
+        CommunityCategory category = CommunityCategory.create("review");
+        ReflectionTestUtils.setField(category, "id", 1L);
+
+        CommunityPost post1 = CommunityPost.create(author, category, "제목1", "내용1", List.of("image1.jpg"));
+        ReflectionTestUtils.setField(post1, "id", 10L);
+        ReflectionTestUtils.setField(post1, "likeCount", 5);
+        LocalDateTime createdAt1 = LocalDateTime.of(2025, 1, 15, 10, 30);
+        ReflectionTestUtils.setField(post1, "createdAt", createdAt1);
+
+        CommunityPost post2 = CommunityPost.create(author, category, "제목2", "내용2", null);
+        ReflectionTestUtils.setField(post2, "id", 9L);
+        ReflectionTestUtils.setField(post2, "likeCount", 3);
+        LocalDateTime createdAt2 = LocalDateTime.of(2025, 1, 14, 15, 20);
+        ReflectionTestUtils.setField(post2, "createdAt", createdAt2);
+
+        List<Long> postIds = List.of(10L, 9L);
+        List<CommunityPost> posts = List.of(post1, post2);
+        Pageable pageable = PageRequest.of(0, 11);
+
+        when(communityPostRepository.findActivePostIdsByUserIdForCursor(userId, null, pageable))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(List.of(new Object[]{10L, 2L}, new Object[]{9L, 1L}));
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of(10L));
+
+        // When
+        PostsResponse response = communityPostService.getMyPosts(null, 10, userId);
+
+        // Then
+        assertThat(response.limit()).isEqualTo(10);
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+        assertThat(response.posts()).hasSize(2);
+        assertThat(response.posts().get(0).id()).isEqualTo(10L);
+        assertThat(response.posts().get(0).title()).isEqualTo("제목1");
+        assertThat(response.posts().get(0).isLiked()).isTrue();
+        assertThat(response.posts().get(1).id()).isEqualTo(9L);
+        assertThat(response.posts().get(1).isLiked()).isFalse();
+    }
+
+    @Test
+    void should_return_empty_list_when_no_my_posts_exist() {
+        // Given
+        Long userId = 1L;
+        Pageable pageable = PageRequest.of(0, 11);
+
+        when(communityPostRepository.findActivePostIdsByUserIdForCursor(userId, null, pageable))
+                .thenReturn(List.of());
+
+        // When
+        PostsResponse response = communityPostService.getMyPosts(null, 10, userId);
+
+        // Then
+        assertThat(response.posts()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
+    // --- getMyCommentedPosts Tests ---
+    @Test
+    void should_return_my_commented_posts_list_when_posts_exist() {
+        // Given
+        Long userId = 1L;
+        User author = User.create("author@wearagain.kr", "작성자", null);
+        ReflectionTestUtils.setField(author, "id", 2L);
+
+        CommunityCategory category = CommunityCategory.create("review");
+        ReflectionTestUtils.setField(category, "id", 1L);
+
+        CommunityPost post1 = CommunityPost.create(author, category, "제목1", "내용1", List.of("image1.jpg"));
+        ReflectionTestUtils.setField(post1, "id", 10L);
+        ReflectionTestUtils.setField(post1, "likeCount", 5);
+        LocalDateTime createdAt1 = LocalDateTime.of(2025, 1, 15, 10, 30);
+        ReflectionTestUtils.setField(post1, "createdAt", createdAt1);
+
+        List<Long> postIds = List.of(10L);
+        List<CommunityPost> posts = List.of(post1);
+        Pageable pageable = PageRequest.of(0, 11);
+
+        when(communityPostRepository.findActivePostIdsByCommentUserIdForCursor(userId, null, pageable))
+                .thenReturn(postIds);
+        when(communityPostRepository.findPostsByIds(postIds)).thenReturn(posts);
+        List<Object[]> commentCountResults = new ArrayList<>();
+        commentCountResults.add(new Object[]{10L, 2L});
+        when(communityPostRepository.countActiveCommentsByPostIds(postIds))
+                .thenReturn(commentCountResults);
+        when(postLikeRepository.findLikedPostIdsByPostIdsAndUserId(postIds, userId))
+                .thenReturn(List.of(10L));
+
+        // When
+        PostsResponse response = communityPostService.getMyCommentedPosts(null, 10, userId);
+
+        // Then
+        assertThat(response.limit()).isEqualTo(10);
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+        assertThat(response.posts()).hasSize(1);
+        assertThat(response.posts().get(0).id()).isEqualTo(10L);
+        assertThat(response.posts().get(0).title()).isEqualTo("제목1");
+        assertThat(response.posts().get(0).isLiked()).isTrue();
+    }
+
+    @Test
+    void should_return_empty_list_when_no_my_commented_posts_exist() {
+        // Given
+        Long userId = 1L;
+        Pageable pageable = PageRequest.of(0, 11);
+
+        when(communityPostRepository.findActivePostIdsByCommentUserIdForCursor(userId, null, pageable))
+                .thenReturn(List.of());
+
+        // When
+        PostsResponse response = communityPostService.getMyCommentedPosts(null, 10, userId);
+
+        // Then
+        assertThat(response.posts()).isEmpty();
+        assertThat(response.hasNext()).isFalse();
+        assertThat(response.nextCursor()).isNull();
+    }
+
     @Test
     void should_return_correct_comment_counts() {
         // Given
