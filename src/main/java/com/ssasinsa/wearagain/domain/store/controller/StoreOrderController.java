@@ -37,7 +37,6 @@ public class StoreOrderController {
             @Valid @RequestBody StoreOrderCreateRequest request,
             @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreOrderCreateResponse response = storeService.createOrder(request, principal.userId());
         return ResponseEntity.status(201).body(response);
     }
@@ -48,7 +47,6 @@ public class StoreOrderController {
             @PathVariable Long orderId,
             @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreOrderCancelResponse response = storeService.cancelOrder(orderId, principal.userId());
         return ResponseEntity.ok(response);
     }
@@ -61,7 +59,6 @@ public class StoreOrderController {
             @RequestParam(name = "status", required = false) StoreOrderStatus status,
             @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreOrderListResponse response = storeService.getOrders(cursor, size, status, principal.userId());
         return ResponseEntity.ok(response);
     }
@@ -72,14 +69,7 @@ public class StoreOrderController {
             @PathVariable Long orderId,
             @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreOrderDetailResponse response = storeService.getOrderDetail(orderId, principal.userId());
         return ResponseEntity.ok(response);
-    }
-
-    private void ensureAuthenticated(AuthenticatedUser principal) {
-        if (principal == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
     }
 }

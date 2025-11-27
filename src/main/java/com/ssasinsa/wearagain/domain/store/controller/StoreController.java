@@ -34,7 +34,6 @@ public class StoreController {
             @RequestParam(name = "size", defaultValue = "20") int size,
             @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreItemCursorListResponse response = storeService.getItems(category, keyword, cursor, size);
         return ResponseEntity.ok(response);
     }
@@ -45,14 +44,7 @@ public class StoreController {
             @PathVariable Long itemId,
             @AuthenticationPrincipal AuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreItemDetailResponse response = storeService.getItemDetail(itemId);
         return ResponseEntity.ok(response);
-    }
-
-    private void ensureAuthenticated(AuthenticatedUser principal) {
-        if (principal == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
     }
 }
