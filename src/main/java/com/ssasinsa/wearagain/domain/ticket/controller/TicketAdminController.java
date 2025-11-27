@@ -5,8 +5,6 @@ import com.ssasinsa.wearagain.domain.ticket.docs.TicketApiDocs;
 import com.ssasinsa.wearagain.domain.ticket.dto.TicketChargeRequest;
 import com.ssasinsa.wearagain.domain.ticket.dto.TicketChargeResponse;
 import com.ssasinsa.wearagain.domain.ticket.service.TicketAdminService;
-import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
-import com.ssasinsa.wearagain.global.exception.CustomException;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -31,14 +29,7 @@ public class TicketAdminController {
             @AuthenticationPrincipal AdminAuthenticatedUser principal,
             @Valid @RequestBody TicketChargeRequest request
     ) {
-        ensureAuthenticated(principal);
         TicketChargeResponse response = ticketAdminService.chargeTicket(request, principal.adminId());
         return ResponseEntity.ok(response);
-    }
-
-    private void ensureAuthenticated(AdminAuthenticatedUser principal) {
-        if (principal == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
     }
 }

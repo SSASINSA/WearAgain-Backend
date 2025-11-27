@@ -12,8 +12,6 @@ import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.service.StoreAdminService;
 import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
 import com.ssasinsa.wearagain.domain.store.exception.StoreException;
-import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
-import com.ssasinsa.wearagain.global.exception.CustomException;
 import com.ssasinsa.wearagain.global.storage.ImageStorageErrorCode;
 import com.ssasinsa.wearagain.global.storage.ImageStorageException;
 import com.ssasinsa.wearagain.global.storage.ImageStorageService;
@@ -73,7 +71,6 @@ public class StoreAdminController {
             @Valid @RequestBody StoreItemCreateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreItemCreateResponse response = storeAdminService.createItem(request, principal.adminId());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
@@ -105,7 +102,6 @@ public class StoreAdminController {
             @Valid @RequestBody StoreItemUpdateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreItemDetailResponse response = storeAdminService.updateItem(itemId, request, principal.adminId());
         return ResponseEntity.ok(response);
     }
@@ -117,7 +113,6 @@ public class StoreAdminController {
             @Valid @RequestBody StoreItemStatusUpdateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         StoreItemDetailResponse response = storeAdminService.updateItemStatus(itemId, request, principal.adminId());
         return ResponseEntity.ok(response);
     }
@@ -128,14 +123,7 @@ public class StoreAdminController {
             @PathVariable Long itemId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        ensureAuthenticated(principal);
         storeAdminService.deleteItem(itemId, principal.adminId());
         return ResponseEntity.noContent().build();
-    }
-
-    private void ensureAuthenticated(AdminAuthenticatedUser principal) {
-        if (principal == null) {
-            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
-        }
     }
 }
