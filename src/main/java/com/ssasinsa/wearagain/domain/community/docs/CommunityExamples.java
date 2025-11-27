@@ -92,5 +92,47 @@ public final class CommunityExamples {
               "reason": "부적절한 언어 사용"
             }
             """;
+
+    public static final String COMMENT_CREATE_REQUEST = """
+            {
+              "content": "좋은 후기네요! 저도 다녀왔어요 😄"
+            }
+            """;
+
+    public static final String COMMENT_UPDATE_REQUEST = """
+            {
+              "content": "좋은 후기네요! 저도 다녀왔어요 😄 (수정)"
+            }
+            """;
+
+    public static final String COMMENTS_RESPONSE = """
+            {
+              "limit": 10,
+              "nextCursor": "100",
+              "hasNext": true,
+              "comments": [
+                {
+                  "id": 101,
+                  "author": {
+                    "id": 1,
+                    "name": "홍길동"
+                  },
+                  "createdAt": "2025-01-15T10:30:00",
+                  "content": "좋은 후기네요! 저도 다녀왔어요 😄",
+                  "isMine": true
+                },
+                {
+                  "id": 100,
+                  "author": {
+                    "id": 2,
+                    "name": "김철수"
+                  },
+                  "createdAt": "2025-01-15T09:20:00",
+                  "content": "정말 유용한 정보 감사합니다!",
+                  "isMine": false
+                }
+              ]
+            }
+            """;
 }
 

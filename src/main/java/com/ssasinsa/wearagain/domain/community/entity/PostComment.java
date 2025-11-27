@@ -66,6 +66,10 @@ public class PostComment extends BaseTimeEntity {
         this.active = false;
     }
 
+    public void updateContent(String content) {
+        this.content = content;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
