@@ -71,10 +71,10 @@ public class CommunityPostServiceImpl implements CommunityPostService {
 
         // 각 게시물의 댓글 수 일괄 조회 (N+1 문제 해결)
         List<Object[]> commentCountResults = communityPostRepository.countActiveCommentsByPostIds(limitedIds);
-        Map<Long, Long> commentCountMap = commentCountResults.stream()
+        Map<Long, Integer> commentCountMap = commentCountResults.stream()
                 .collect(Collectors.toMap(
                         result -> (Long) result[0],
-                        result -> (Long) result[1]
+                        result -> (int) result[1]
                 ));
 
         // 각 게시물의 좋아요 여부 일괄 조회 (N+1 문제 해결)
@@ -89,8 +89,8 @@ public class CommunityPostServiceImpl implements CommunityPostService {
                     .map(CommunityPostImage::getImageUrl)
                     .orElse(null);
 
-            Long postId = post.getId();
-            long commentCount = commentCountMap.getOrDefault(postId, 0L);
+            long postId = post.getId();
+            int commentCount = commentCountMap.getOrDefault(postId, 0);
             boolean isLiked = likedPostIds.contains(postId);
 
             postsItems.add(new PostsItem(
@@ -101,7 +101,7 @@ public class CommunityPostServiceImpl implements CommunityPostService {
                     post.getTitle(),
                     post.getContent(),
                     post.getLikeCount(),
-                    (int) commentCount,
+                    commentCount,
                     post.getCategory().getName(),
                     isLiked
             ));
