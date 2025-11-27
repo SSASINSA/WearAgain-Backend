@@ -265,4 +265,116 @@ class EventStaffServiceImplTest {
                 .extracting(throwable -> ((EventException) throwable).getErrorCode())
                 .isEqualTo(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
     }
+
+    @Test
+    void should_throw_when_application_was_canceled() {
+        // Given
+        User user = User.create("user@wearagain.kr", "사용자", null);
+        ReflectionTestUtils.setField(user, "id", 1L);
+
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", 10L);
+
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                "서울시 마포구",
+                EventStatus.OPEN,
+                admin,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(event, "id", 45L);
+        event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
+
+        EventOption option = EventOption.create(event, null, "옵션", "TYPE", 1, null);
+        ReflectionTestUtils.setField(option, "id", 2001L);
+
+        EventApplication application = EventApplication.create(
+                user,
+                event,
+                option,
+                EventApplicationStatus.CANCELED,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(application, "id", 123L);
+
+        EventStaffCheckInRequest request = new EventStaffCheckInRequest(QR_TOKEN, STAFF_CODE);
+        CheckinTokenPayload payload = new CheckinTokenPayload(
+                user.getId(),
+                application.getId(),
+                QR_TOKEN,
+                OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1),
+                OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(9)
+        );
+
+        when(eventRepository.findByStaffCode(STAFF_CODE)).thenReturn(Optional.of(event));
+        when(eventQrTokenStore.getTokenByToken(QR_TOKEN)).thenReturn(Optional.of(payload));
+        when(eventApplicationRepository.findById(application.getId())).thenReturn(Optional.of(application));
+
+        // When & Then
+        assertThatThrownBy(() -> eventStaffService.checkIn(request))
+                .isInstanceOf(EventException.class)
+                .extracting(throwable -> ((EventException) throwable).getErrorCode())
+                .isEqualTo(EventErrorCode.EVENT_APPLICATION_CANCELED);
+    }
+
+    @Test
+    void should_throw_when_application_was_rejected() {
+        // Given
+        User user = User.create("user@wearagain.kr", "사용자", null);
+        ReflectionTestUtils.setField(user, "id", 1L);
+
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", 10L);
+
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                "서울시 마포구",
+                EventStatus.OPEN,
+                admin,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(event, "id", 45L);
+        event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
+
+        EventOption option = EventOption.create(event, null, "옵션", "TYPE", 1, null);
+        ReflectionTestUtils.setField(option, "id", 2001L);
+
+        EventApplication application = EventApplication.create(
+                user,
+                event,
+                option,
+                EventApplicationStatus.REJECTED,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(application, "id", 123L);
+
+        EventStaffCheckInRequest request = new EventStaffCheckInRequest(QR_TOKEN, STAFF_CODE);
+        CheckinTokenPayload payload = new CheckinTokenPayload(
+                user.getId(),
+                application.getId(),
+                QR_TOKEN,
+                OffsetDateTime.now(ZoneOffset.UTC).minusMinutes(1),
+                OffsetDateTime.now(ZoneOffset.UTC).plusMinutes(9)
+        );
+
+        when(eventRepository.findByStaffCode(STAFF_CODE)).thenReturn(Optional.of(event));
+        when(eventQrTokenStore.getTokenByToken(QR_TOKEN)).thenReturn(Optional.of(payload));
+        when(eventApplicationRepository.findById(application.getId())).thenReturn(Optional.of(application));
+
+        // When & Then
+        assertThatThrownBy(() -> eventStaffService.checkIn(request))
+                .isInstanceOf(EventException.class)
+                .extracting(throwable -> ((EventException) throwable).getErrorCode())
+                .isEqualTo(EventErrorCode.EVENT_APPLICATION_REJECTED);
+    }
 }

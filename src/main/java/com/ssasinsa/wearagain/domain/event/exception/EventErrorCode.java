@@ -34,7 +34,9 @@ public enum EventErrorCode implements ErrorCode {
     EVENT_CHECKIN_TOKEN_INVALID("E1028", "체크인 토큰이 유효하지 않습니다.", HttpStatus.BAD_REQUEST.value()),
     INVALID_EVENT_STATUS("E1029", "해당 행사 상태는 변경할 수 없습니다", HttpStatus.CONFLICT.value()),
     EVENT_APPROVAL_REQUEST_NOT_FOUND("E1030", "승인 요청 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
-    EVENT_CHECKIN_NOT_AVAILABLE("E1031", "종료된 행사에서는 체크인할 수 없습니다.", HttpStatus.CONFLICT.value());
+    EVENT_CHECKIN_NOT_AVAILABLE("E1031", "종료된 행사에서는 체크인할 수 없습니다.", HttpStatus.CONFLICT.value()),
+    EVENT_APPLICATION_CANCELED("E1032", "취소된 신청입니다.", HttpStatus.CONFLICT.value()),
+    EVENT_APPLICATION_REJECTED("E1033", "승인 거절된 신청입니다.", HttpStatus.CONFLICT.value());
 
     private final String code;
     private final String message;

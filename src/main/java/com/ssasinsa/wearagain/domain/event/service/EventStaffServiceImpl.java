@@ -61,8 +61,14 @@ public class EventStaffServiceImpl implements EventStaffService {
             throw new EventException(EventErrorCode.EVENT_CHECKIN_TOKEN_INVALID);
         }
 
-        if (application.getStatus() != EventApplicationStatus.APPLIED) {
-            throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
+        switch (application.getStatus()) {
+            case APPLIED -> {
+                // continue
+            }
+            case CHECKED_IN -> throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
+            case CANCELED -> throw new EventException(EventErrorCode.EVENT_APPLICATION_CANCELED);
+            case REJECTED -> throw new EventException(EventErrorCode.EVENT_APPLICATION_REJECTED);
+            default -> throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
         }
 
         OffsetDateTime checkedInAt = OffsetDateTime.now(ZoneOffset.UTC);
