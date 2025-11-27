@@ -13,7 +13,15 @@ public interface EventAdminService {
 
     EventCreateResponse createEvent(EventAdminCreateRequest request, Long adminId);
 
-    EventAdminListResponse getEvents(String status, int page, int size, Long adminId, AdminRole role);
+    EventAdminListResponse getEvents(
+            String status,
+            int page,
+            int size,
+            Long adminId,
+            AdminRole role,
+            String keyword,
+            String keywordScope
+    );
 
     EventAdminDetailResponse getEventDetail(Long eventId, Long adminId, AdminRole role);
 
