@@ -63,4 +63,35 @@ public final class StoreExamples {
               "updatedAt": "2025-02-12T01:00:00Z"
             }
             """;
+
+    public static final String USER_STORE_ORDER_CREATE_REQUEST = """
+            {
+              "itemId": 101,
+              "quantity": 2,
+              "pickupLocation": "강남 팝업스토어"
+            }
+            """;
+
+    public static final String USER_STORE_ORDER_CREATE_RESPONSE = """
+            {
+              "orderId": 501,
+              "itemId": 101,
+              "itemName": "웰컴 티셔츠",
+              "quantity": 2,
+              "unitPrice": 1200,
+              "usedCredit": 2400,
+              "pickupLocation": "강남 팝업스토어",
+              "status": "PURCHASED",
+              "purchasedAt": "2025-02-11T04:00:00Z"
+            }
+            """;
+
+    public static final String USER_STORE_ORDER_CANCEL_RESPONSE = """
+            {
+              "orderId": 501,
+              "status": "CANCELED",
+              "refundedCredit": 2400,
+              "canceledAt": "2025-02-11T04:10:00Z"
+            }
+            """;
 }

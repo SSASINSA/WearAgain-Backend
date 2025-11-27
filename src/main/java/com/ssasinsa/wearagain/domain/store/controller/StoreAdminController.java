@@ -1,7 +1,7 @@
 package com.ssasinsa.wearagain.domain.store.controller;
 
 import com.ssasinsa.wearagain.domain.auth.infrastructure.security.AdminAuthenticatedUser;
-import com.ssasinsa.wearagain.domain.store.docs.StoreApiDocs;
+import com.ssasinsa.wearagain.domain.store.docs.StoreAdminApiDocs;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemStatusUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
@@ -38,7 +38,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.multipart.MultipartFile;
 
-@Tag(name = StoreApiDocs.TAG_NAME, description = StoreApiDocs.TAG_DESCRIPTION)
+@Tag(name = StoreAdminApiDocs.TAG_NAME, description = StoreAdminApiDocs.TAG_DESCRIPTION)
 @RestController
 @RequestMapping("/api/v1/admin/store")
 @RequiredArgsConstructor
@@ -47,7 +47,7 @@ public class StoreAdminController {
     private final StoreAdminService storeAdminService;
     private final ImageStorageService imageStorageService;
 
-    @StoreApiDocs.UploadItemImage
+    @StoreAdminApiDocs.UploadItemImage
     @PostMapping(value = "/items/images", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<StoreImageUploadResponse> uploadItemImage(@RequestPart("file") MultipartFile file) {
         String imageName;
@@ -67,7 +67,7 @@ public class StoreAdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @StoreApiDocs.CreateItem
+    @StoreAdminApiDocs.CreateItem
     @PostMapping("/items")
     public ResponseEntity<StoreItemCreateResponse> createItem(
             @Valid @RequestBody StoreItemCreateRequest request,
@@ -78,7 +78,7 @@ public class StoreAdminController {
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
-    @StoreApiDocs.GetAdminItems
+    @StoreAdminApiDocs.GetAdminItems
     @GetMapping("/items")
     public ResponseEntity<StoreItemListResponse> getItems(
             @RequestParam(name = "status", required = false) String status,
@@ -91,14 +91,14 @@ public class StoreAdminController {
         return ResponseEntity.ok(response);
     }
 
-    @StoreApiDocs.GetAdminItemDetail
+    @StoreAdminApiDocs.GetAdminItemDetail
     @GetMapping("/items/{itemId}")
     public ResponseEntity<StoreItemDetailResponse> getItemDetail(@PathVariable Long itemId) {
         StoreItemDetailResponse response = storeAdminService.getItemDetail(itemId);
         return ResponseEntity.ok(response);
     }
 
-    @StoreApiDocs.UpdateItem
+    @StoreAdminApiDocs.UpdateItem
     @PutMapping("/items/{itemId}")
     public ResponseEntity<StoreItemDetailResponse> updateItem(
             @PathVariable Long itemId,
@@ -110,7 +110,7 @@ public class StoreAdminController {
         return ResponseEntity.ok(response);
     }
 
-    @StoreApiDocs.UpdateItemStatus
+    @StoreAdminApiDocs.UpdateItemStatus
     @PatchMapping("/items/{itemId}/status")
     public ResponseEntity<StoreItemDetailResponse> updateItemStatus(
             @PathVariable Long itemId,
@@ -122,7 +122,7 @@ public class StoreAdminController {
         return ResponseEntity.ok(response);
     }
 
-    @StoreApiDocs.DeleteItem
+    @StoreAdminApiDocs.DeleteItem
     @DeleteMapping("/items/{itemId}")
     public ResponseEntity<Void> deleteItem(
             @PathVariable Long itemId,
