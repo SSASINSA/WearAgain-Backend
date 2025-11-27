@@ -154,8 +154,8 @@ public class EventUserServiceImpl implements EventUserService {
         EventOption option = eventOptionRepository.findByIdAndEventId(request.optionId(), eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_OPTION_NOT_FOUND));
 
-        if (eventApplicationRepository.existsByUserIdAndEventIdAndStatusIn(
-                userId, eventId, ACTIVE_APPLICATION_STATUSES
+        if (eventApplicationRepository.existsByUserIdAndEventOptionIdAndStatusIn(
+                userId, option.getId(), ACTIVE_APPLICATION_STATUSES
         )) {
             throw new EventException(EventErrorCode.EVENT_ALREADY_APPLIED);
         }

@@ -16,7 +16,7 @@ public enum EventErrorCode implements ErrorCode {
     EVENT_NOT_FOUND("E1010", "행사를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     EVENT_NOT_OPEN("E1011", "행사를 신청할 수 없는 상태입니다.", HttpStatus.BAD_REQUEST.value()),
     EVENT_OPTION_NOT_FOUND("E1012", "행사 옵션을 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
-    EVENT_ALREADY_APPLIED("E1013", "이미 신청한 행사입니다.", HttpStatus.CONFLICT.value()),
+    EVENT_ALREADY_APPLIED("E1013", "이미 신청한 옵션입니다.", HttpStatus.CONFLICT.value()),
     EVENT_CAPACITY_EXCEEDED("E1014", "신청 가능 인원이 초과되었습니다.", HttpStatus.CONFLICT.value()),
     EVENT_APPLICATION_NOT_FOUND("E1015", "신청 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     EVENT_APPLICATION_NOT_CANCELABLE("E1016", "취소할 수 없는 신청 상태입니다.", HttpStatus.CONFLICT.value()),

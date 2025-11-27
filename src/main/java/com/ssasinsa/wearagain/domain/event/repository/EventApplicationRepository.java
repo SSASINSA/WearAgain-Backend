@@ -14,6 +14,8 @@ import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface EventApplicationRepository extends JpaRepository<EventApplication, Long> {
 
+    boolean existsByUserIdAndEventOptionIdAndStatusIn(Long userId, Long eventOptionId, Collection<EventApplicationStatus> statuses);
+
     boolean existsByUserIdAndEventIdAndStatusIn(Long userId, Long eventId, Collection<EventApplicationStatus> statuses);
 
     long countByEventOptionIdAndStatusIn(Long eventOptionId, Collection<EventApplicationStatus> statuses);
