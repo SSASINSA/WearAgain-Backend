@@ -20,6 +20,7 @@ import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.global.storage.ImageStorageErrorCode;
 import com.ssasinsa.wearagain.global.storage.ImageStorageException;
 import com.ssasinsa.wearagain.global.storage.ImageStorageService;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -87,7 +88,8 @@ public class EventAdminController {
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
-            @RequestParam(name = "keyword", required = false) String keyword,
+            @Parameter(description = "검색 키워드") @RequestParam(name = "keyword", required = false) String keyword,
+            @Parameter(description = "검색 범위 (ALL, TITLE, DESCRIPTION, LOCATION)", example = "ALL")
             @RequestParam(name = "keywordScope", required = false) String keywordScope,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {

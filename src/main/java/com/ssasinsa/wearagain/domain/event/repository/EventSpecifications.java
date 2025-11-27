@@ -25,9 +25,9 @@ public final class EventSpecifications {
 
     public static Specification<Event> keywordMatches(String keyword, EventKeywordScope scope) {
         if (!StringUtils.hasText(keyword) || scope == null) {
-            return null;
+            return (root, query, builder) -> builder.conjunction();
         }
-        String pattern = "%" + keyword.toLowerCase() + "%";
+        String pattern = "%" + escapeLike(keyword.toLowerCase()) + "%";
         boolean searchTitle = scope == EventKeywordScope.ALL || scope == EventKeywordScope.TITLE;
         boolean searchDescription = scope == EventKeywordScope.ALL || scope == EventKeywordScope.DESCRIPTION;
         boolean searchLocation = scope == EventKeywordScope.ALL || scope == EventKeywordScope.LOCATION;
@@ -35,18 +35,25 @@ public final class EventSpecifications {
         return (root, query, builder) -> {
             List<Predicate> predicates = new ArrayList<>();
             if (searchTitle) {
-                predicates.add(builder.like(builder.lower(root.get("title")), pattern));
+                predicates.add(builder.like(builder.lower(root.get("title")), pattern, '\\'));
             }
             if (searchDescription) {
-                predicates.add(builder.like(builder.lower(root.get("description")), pattern));
+                predicates.add(builder.like(builder.lower(root.get("description")), pattern, '\\'));
             }
             if (searchLocation) {
-                predicates.add(builder.like(builder.lower(root.get("location")), pattern));
+                predicates.add(builder.like(builder.lower(root.get("location")), pattern, '\\'));
             }
             if (predicates.isEmpty()) {
-                return null;
+                return builder.conjunction();
             }
             return builder.or(predicates.toArray(new Predicate[0]));
         };
+    }
+
+    private static String escapeLike(String keyword) {
+        return keyword
+                .replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_");
     }
 }

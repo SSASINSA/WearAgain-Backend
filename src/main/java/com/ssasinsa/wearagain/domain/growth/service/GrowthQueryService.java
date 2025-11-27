@@ -34,14 +34,6 @@ public class GrowthQueryService {
         return MascotStatusDto.of(userGrowth, GrowthConstants.LEVEL_EXP_THRESHOLD, scaleImpactForResponse(impactSummary));
     }
 
-    public ImpactSummary getImpactSummary(Long userId) {
-        ImpactSummary impactSummary = impactAnalyticsRepository.aggregateByUserId(userId);
-        if (impactSummary == null) {
-            impactSummary = new ImpactSummary(BigDecimal.ZERO, BigDecimal.ZERO, BigDecimal.ZERO);
-        }
-        return scaleImpactForResponse(impactSummary);
-    }
-
     private ImpactSummary scaleImpactForResponse(ImpactSummary impactSummary) {
         return new ImpactSummary(
                 scale(impactSummary.co2Saved()),
