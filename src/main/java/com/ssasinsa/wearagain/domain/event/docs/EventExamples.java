@@ -460,17 +460,7 @@ public final class EventExamples {
                     }
                   ]
                 }
-              ],
-              "userApplication": {
-                "applicationId": 5001,
-                "status": "APPLIED",
-                "appliedAt": "2025-02-01T10:00:00",
-                "optionTrail": [
-                  { "eventOptionId": 2001, "name": "11월 15일", "type": "DATE" },
-                  { "eventOptionId": 2002, "name": "오전 세션", "type": "TIME" },
-                  { "eventOptionId": 2003, "name": "A조", "type": "GROUP" }
-                ]
-              }
+              ]
             }
             """;
 

@@ -28,7 +28,6 @@ import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -191,7 +190,7 @@ class EventUserServiceImplTest {
     }
 
     @Test
-    void should_include_user_application_summary_in_event_detail() {
+    void should_return_event_detail_without_user_application_for_authenticated_user() {
         // Given
         AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
         ReflectionTestUtils.setField(admin, "id", 10L);
@@ -216,35 +215,24 @@ class EventUserServiceImplTest {
         EventOption groupOption = EventOption.create(event, timeOption, "A조", "GROUP", 1, 10);
         ReflectionTestUtils.setField(groupOption, "id", 2003L);
 
-        EventApplication application = EventApplication.create(
-                User.create("user@wearagain.kr", "사용자", null),
-                event,
-                groupOption,
-                EventApplicationStatus.APPLIED,
-                null,
-                null
-        );
-        ReflectionTestUtils.setField(application, "id", 5001L);
-        LocalDateTime appliedAt = LocalDateTime.of(2025, 2, 1, 10, 0);
-        ReflectionTestUtils.setField(application, "createdAt", appliedAt);
-
         when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
         when(eventApplicationRepository.countActiveApplicationsByOptionIds(anySet(), any()))
                 .thenReturn(List.of());
-        when(eventApplicationRepository.findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(1L, 101L))
-                .thenReturn(Optional.of(application));
 
         // When
         EventDetailResponse response = eventUserService.getEventDetail(101L, 1L);
 
         // Then
-        assertThat(response.userApplication()).isNotNull();
-        assertThat(response.userApplication().applicationId()).isEqualTo(5001L);
-        assertThat(response.userApplication().status()).isEqualTo("APPLIED");
-        assertThat(response.userApplication().appliedAt()).isEqualTo(appliedAt);
-        assertThat(response.userApplication().optionTrail())
-                .extracting(EventDetailResponse.UserApplicationSummary.OptionTrailResponse::eventOptionId)
-                .containsExactly(2001L, 2002L, 2003L);
+        assertThat(response.eventId()).isEqualTo(101L);
+        assertThat(response.options()).hasSize(1);
+        EventDetailResponse.EventDetailOptionResponse root = response.options().get(0);
+        assertThat(root.children()).hasSize(1);
+        EventDetailResponse.EventDetailOptionResponse group = root.children().get(0).children().get(0);
+        assertThat(group.capacity()).isEqualTo(10);
+        assertThat(group.appliedCount()).isEqualTo(0);
+        assertThat(group.remainingCount()).isEqualTo(10);
+        verify(eventApplicationRepository, never())
+                .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(anyLong(), anyLong());
     }
 
     @Test
@@ -275,7 +263,6 @@ class EventUserServiceImplTest {
         EventDetailResponse response = eventUserService.getEventDetail(101L, null);
 
         // Then
-        assertThat(response.userApplication()).isNull();
         verify(eventApplicationRepository, never())
                 .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(anyLong(), anyLong());
     }

@@ -235,7 +235,6 @@ public final class EventApiDocs {
             description = """
                     단일 행사의 상세 정보와 이미지, 옵션 트리를 조회합니다.
                     DRAFT/ARCHIVED 상태의 행사는 노출되지 않습니다.
-                    로그인한 사용자가 있다면 응답의 `userApplication`에 자신의 최신 신청 상태가 포함됩니다.
                     """,
             responseSchema = EventDetailResponse.class,
             responseExample = EventExamples.USER_EVENT_DETAIL_RESPONSE

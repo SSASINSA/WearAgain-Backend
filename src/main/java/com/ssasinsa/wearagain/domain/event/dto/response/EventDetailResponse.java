@@ -2,7 +2,6 @@ package com.ssasinsa.wearagain.domain.event.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Schema(description = "사용자 행사 상세 응답")
@@ -38,10 +37,7 @@ public record EventDetailResponse(
         List<EventDetailImageResponse> images,
 
         @Schema(description = "옵션 트리")
-        List<EventDetailOptionResponse> options,
-
-        @Schema(description = "사용자 신청 요약 정보 (미신청 시 null)", nullable = true)
-        UserApplicationSummary userApplication
+        List<EventDetailOptionResponse> options
 ) {
 
     @Schema(description = "행사 이미지 상세")
@@ -86,32 +82,5 @@ public record EventDetailResponse(
             @Schema(description = "하위 옵션 목록")
             List<EventDetailOptionResponse> children
     ) {
-    }
-
-    @Schema(description = "사용자 신청 요약 정보")
-    public record UserApplicationSummary(
-            @Schema(description = "신청 ID", example = "5001")
-            Long applicationId,
-
-            @Schema(description = "신청 상태", example = "APPLIED")
-            String status,
-
-            @Schema(description = "신청 일시", example = "2025-02-01T10:00:00")
-            LocalDateTime appliedAt,
-
-            @Schema(description = "신청 시 선택한 옵션 경로")
-            List<OptionTrailResponse> optionTrail
-    ) {
-
-        @Schema(description = "선택한 옵션 단계")
-        public record OptionTrailResponse(
-                @Schema(description = "옵션 ID", example = "2001")
-                Long eventOptionId,
-                @Schema(description = "옵션 이름", example = "11월 15일")
-                String name,
-                @Schema(description = "옵션 타입", example = "DATE")
-                String type
-        ) {
-        }
     }
 }
