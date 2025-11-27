@@ -25,23 +25,31 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
     @Query("SELECT COUNT(c) FROM PostComment c WHERE c.post.id = :postId AND c.active = true")
     long countActiveCommentsByPostId(@Param("postId") Long postId);
 
-    @Query("SELECT p FROM CommunityPost p " +
-            "LEFT JOIN FETCH p.user " +
-            "LEFT JOIN FETCH p.category " +
-            "LEFT JOIN FETCH p.images " +
-            "WHERE p.status != :excludedStatus " +
-            "AND (:cursor IS NULL OR p.id < :cursor) " +
-            "AND (:keyword IS NULL OR p.category.name = :keyword) " +
-            "ORDER BY p.id DESC")
-    List<CommunityPost> findPostsWithCursor(
+    @Query("""
+            SELECT p.id FROM CommunityPost p
+            WHERE p.status != :excludedStatus
+              AND (:cursor IS NULL OR p.id < :cursor)
+              AND (:keyword IS NULL OR p.category.name = :keyword)
+            ORDER BY p.id DESC
+            """)
+    List<Long> findPostIdsForCursor(
             @Param("excludedStatus") PostStatus excludedStatus,
             @Param("cursor") Long cursor,
             @Param("keyword") String keyword,
             Pageable pageable
     );
 
-    default List<CommunityPost> findActivePostsWithCursor(Long cursor, String keyword, Pageable pageable) {
-        return findPostsWithCursor(PostStatus.INACTIVE, cursor, keyword, pageable);
+    @Query("""
+            SELECT DISTINCT p FROM CommunityPost p
+                LEFT JOIN FETCH p.user
+                LEFT JOIN FETCH p.category
+            WHERE p.id IN :ids
+            ORDER BY p.id DESC
+            """)
+    List<CommunityPost> findPostsByIds(@Param("ids") List<Long> ids);
+
+    default List<Long> findActivePostIdsForCursor(Long cursor, String keyword, Pageable pageable) {
+        return findPostIdsForCursor(PostStatus.INACTIVE, cursor, keyword, pageable);
     }
 }
 
