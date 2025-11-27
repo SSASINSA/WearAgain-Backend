@@ -28,6 +28,7 @@ import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -265,5 +266,51 @@ class EventUserServiceImplTest {
         // Then
         verify(eventApplicationRepository, never())
                 .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(anyLong(), anyLong());
+    }
+
+    @Test
+    void should_throw_when_request_qr_for_closed_event() {
+        // Given
+        User user = User.create("user@wearagain.kr", "사용자", null);
+        ReflectionTestUtils.setField(user, "id", 1L);
+
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", 10L);
+
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.of(2025, 2, 10),
+                LocalDate.of(2025, 2, 11),
+                "서울시 마포구",
+                EventStatus.CLOSED,
+                admin,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(event, "id", 45L);
+
+        EventOption option = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        ReflectionTestUtils.setField(option, "id", 2001L);
+
+        EventApplication application = EventApplication.create(
+                user,
+                event,
+                option,
+                EventApplicationStatus.APPLIED,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(application, "id", 5001L);
+        ReflectionTestUtils.setField(application, "createdAt", LocalDateTime.now());
+
+        when(eventApplicationRepository.findByIdAndUserId(5001L, 1L)).thenReturn(Optional.of(application));
+
+        // When & Then
+        assertThatThrownBy(() -> eventUserService.issueApplicationQr(5001L, 1L))
+                .isInstanceOf(EventException.class)
+                .extracting(throwable -> ((EventException) throwable).getErrorCode())
+                .isEqualTo(EventErrorCode.EVENT_CHECKIN_NOT_AVAILABLE);
+        verify(eventQrTokenStore, never()).generateToken();
     }
 }
