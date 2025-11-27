@@ -14,13 +14,14 @@ public interface StoreItemRepository extends JpaRepository<StoreItem, Long>, Jpa
 
     @Query("""
             SELECT i FROM StoreItem i
-            WHERE i.status = com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus.ACTIVE
+            WHERE i.status = :status
               AND (:category IS NULL OR LOWER(i.category) = LOWER(:category))
               AND (:keyword IS NULL OR (LOWER(i.name) LIKE CONCAT('%', LOWER(:keyword), '%') OR LOWER(i.description) LIKE CONCAT('%', LOWER(:keyword), '%')))
               AND (:cursorId IS NULL OR i.id < :cursorId)
             ORDER BY i.id DESC
             """)
     List<StoreItem> findActiveItemsWithCursor(
+            @Param("status") StoreItemStatus status,
             @Param("category") String category,
             @Param("keyword") String keyword,
             @Param("cursorId") Long cursorId,

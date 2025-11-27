@@ -4,8 +4,6 @@ import com.ssasinsa.wearagain.domain.store.docs.StoreApiDocs;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCursorListResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
 import com.ssasinsa.wearagain.domain.store.service.StoreService;
-import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
-import com.ssasinsa.wearagain.global.exception.CustomException;
 import com.ssasinsa.wearagain.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -31,8 +29,7 @@ public class StoreController {
             @RequestParam(name = "category", required = false) String category,
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "cursor", required = false) String cursor,
-            @RequestParam(name = "size", defaultValue = "20") int size,
-            @AuthenticationPrincipal AuthenticatedUser principal
+            @RequestParam(name = "size", defaultValue = "20") int size
     ) {
         StoreItemCursorListResponse response = storeService.getItems(category, keyword, cursor, size);
         return ResponseEntity.ok(response);
@@ -41,8 +38,7 @@ public class StoreController {
     @StoreApiDocs.GetItemDetail
     @GetMapping("/items/{itemId}")
     public ResponseEntity<StoreItemDetailResponse> getItemDetail(
-            @PathVariable Long itemId,
-            @AuthenticationPrincipal AuthenticatedUser principal
+            @PathVariable Long itemId
     ) {
         StoreItemDetailResponse response = storeService.getItemDetail(itemId);
         return ResponseEntity.ok(response);

@@ -67,6 +67,7 @@ public class StoreServiceImpl implements StoreService {
         Pageable pageable = PageRequest.of(0, pageSize + 1, Sort.by(Sort.Direction.DESC, "id"));
 
         List<StoreItem> content = new ArrayList<>(storeItemRepository.findActiveItemsWithCursor(
+                StoreItemStatus.ACTIVE,
                 normalizedCategory,
                 normalizedKeyword,
                 cursorId,

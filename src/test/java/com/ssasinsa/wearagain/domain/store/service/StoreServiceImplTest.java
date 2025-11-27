@@ -22,7 +22,6 @@ import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
-import java.lang.reflect.Field;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -38,6 +37,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
 class StoreServiceImplTest {
@@ -67,8 +67,8 @@ class StoreServiceImplTest {
         when(storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED)).thenReturn(0L);
         when(storeOrderRepository.save(any(StoreOrder.class))).thenAnswer(invocation -> {
             StoreOrder order = invocation.getArgument(0);
-            setField(order, "id", 50L);
-            setField(order, "createdAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
+            ReflectionTestUtils.setField(order, "id", 50L);
+            ReflectionTestUtils.setField(order, "createdAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
             return order;
         });
 
@@ -105,9 +105,9 @@ class StoreServiceImplTest {
         User user = user(1L, 0);
         StoreItem item = item(10L, 1000, 0, 2);
         StoreOrder order = StoreOrder.create(user, item, 1000, 2, "강남 팝업스토어");
-        setField(order, "id", 77L);
-        setField(order, "createdAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
-        setField(order, "updatedAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
+        ReflectionTestUtils.setField(order, "id", 77L);
+        ReflectionTestUtils.setField(order, "createdAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
+        ReflectionTestUtils.setField(order, "updatedAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(storeOrderRepository.findById(77L)).thenReturn(Optional.of(order));
@@ -128,7 +128,7 @@ class StoreServiceImplTest {
         StoreItem inactive = item(11L, 1200, 5, 2);
         inactive.changeStatus(StoreItemStatus.INACTIVE);
 
-        when(storeItemRepository.findActiveItemsWithCursor(eq(null), eq(null), eq(null), any(Pageable.class)))
+        when(storeItemRepository.findActiveItemsWithCursor(eq(StoreItemStatus.ACTIVE), eq(null), eq(null), eq(null), any(Pageable.class)))
                 .thenReturn(List.of(active, inactive));
         when(storeItemImageRepository.findThumbnailsByStoreItemIds(List.of(10L)))
                 .thenReturn(List.of());
@@ -141,38 +141,16 @@ class StoreServiceImplTest {
 
     private StoreItem item(Long id, int price, int stock, Integer maxPurchasePerUser) {
         StoreItem item = StoreItem.create("name", "desc", "cat", price, stock, maxPurchasePerUser, StoreItemStatus.ACTIVE, List.of(), List.of("강남 팝업스토어", "홍대 매장"));
-        setField(item, "id", id);
-        setField(item, "createdAt", LocalDateTime.now(ZoneOffset.UTC));
-        setField(item, "updatedAt", LocalDateTime.now(ZoneOffset.UTC));
+        ReflectionTestUtils.setField(item, "id", id);
+        ReflectionTestUtils.setField(item, "createdAt", LocalDateTime.now(ZoneOffset.UTC));
+        ReflectionTestUtils.setField(item, "updatedAt", LocalDateTime.now(ZoneOffset.UTC));
         return item;
     }
 
     private User user(Long id, int creditBalance) {
         User user = User.create("user@test.com", "유저", null);
-        setField(user, "id", id);
-        setField(user, "creditBalance", creditBalance);
+        ReflectionTestUtils.setField(user, "id", id);
+        ReflectionTestUtils.setField(user, "creditBalance", creditBalance);
         return user;
-    }
-
-    private void setField(Object target, String fieldName, Object value) {
-        try {
-            Class<?> type = target.getClass();
-            Field field = null;
-            while (type != null) {
-                try {
-                    field = type.getDeclaredField(fieldName);
-                    break;
-                } catch (NoSuchFieldException ignored) {
-                    type = type.getSuperclass();
-                }
-            }
-            if (field == null) {
-                throw new NoSuchFieldException(fieldName);
-            }
-            field.setAccessible(true);
-            field.set(target, value);
-        } catch (Exception exception) {
-            throw new RuntimeException(exception);
-        }
     }
 }
