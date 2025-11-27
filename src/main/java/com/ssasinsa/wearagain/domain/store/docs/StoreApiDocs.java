@@ -11,86 +11,12 @@ import java.lang.annotation.Target;
 public final class StoreApiDocs {
 
     public static final String TAG_NAME = "Store";
-    public static final String TAG_DESCRIPTION = "스토어 상품 관리 및 조회 API";
+    public static final String TAG_DESCRIPTION = "스토어 상품/주문 API (사용자)";
 
     private StoreApiDocs() {
     }
 
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "스토어 상품 이미지 업로드",
-            description = "이미지 파일을 업로드하고 저장 경로를 반환합니다."
-    )
-    public @interface UploadItemImage {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "관리자 스토어 상품 등록",
-            description = "관리자 페이지에서 스토어 상품과 이미지를 등록합니다. 픽업 장소 목록(pickupLocations)까지 함께 등록해야 합니다.",
-            requestExample = StoreExamples.ADMIN_STORE_ITEM_CREATE_REQUEST,
-            responseExample = StoreExamples.ADMIN_STORE_ITEM_CREATE_RESPONSE
-    )
-    public @interface CreateItem {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "관리자 스토어 상품 목록 조회",
-            description = "상태, 카테고리, 키워드로 필터링하여 페이지네이션된 상품 목록을 조회합니다."
-    )
-    public @interface GetAdminItems {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "관리자 스토어 상품 상세 조회",
-            description = "상품 기본 정보와 이미지 목록을 조회합니다."
-    )
-    public @interface GetAdminItemDetail {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "관리자 스토어 상품 수정",
-            description = "상품 기본 정보, 가격, 재고, 상태, 이미지, 픽업 장소 목록을 수정합니다.",
-            requestExample = StoreExamples.ADMIN_STORE_ITEM_UPDATE_REQUEST,
-            responseExample = StoreExamples.ADMIN_STORE_ITEM_UPDATE_RESPONSE
-    )
-    public @interface UpdateItem {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "관리자 스토어 상품 상태 변경",
-            description = "상품의 전시 상태를 변경합니다."
-    )
-    public @interface UpdateItemStatus {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "관리자 스토어 상품 삭제",
-            description = "스토어 상품을 비활성/삭제 상태로 전환합니다."
-    )
-    public @interface DeleteItem {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
+    @SecurityRequirement(name = "userJWT")
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
@@ -100,7 +26,7 @@ public final class StoreApiDocs {
     public @interface GetItems {
     }
 
-    @SecurityRequirement(name = "adminJWT")
+    @SecurityRequirement(name = "userJWT")
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
@@ -108,5 +34,49 @@ public final class StoreApiDocs {
             description = "사용자용 스토어 상품 상세 정보를 조회합니다."
     )
     public @interface GetItemDetail {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "스토어 주문 생성",
+            description = "사용자용 스토어 주문을 생성합니다.",
+            requestExample = StoreExamples.USER_STORE_ORDER_CREATE_REQUEST,
+            responseExample = StoreExamples.USER_STORE_ORDER_CREATE_RESPONSE,
+            successStatus = "201"
+    )
+    public @interface CreateOrder {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "스토어 주문 취소",
+            description = "사용자 소유의 스토어 주문을 취소합니다.",
+            responseExample = StoreExamples.USER_STORE_ORDER_CANCEL_RESPONSE
+    )
+    public @interface CancelOrder {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "스토어 주문 목록 조회",
+            description = "사용자용 스토어 주문 목록을 커서 기반으로 조회합니다."
+    )
+    public @interface GetOrders {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "스토어 주문 상세 조회",
+            description = "사용자용 스토어 주문 상세 정보를 조회합니다."
+    )
+    public @interface GetOrderDetail {
     }
 }

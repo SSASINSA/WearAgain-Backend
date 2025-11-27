@@ -20,6 +20,7 @@ spring:
     properties:
       hibernate:
         format_sql: true
+        default_batch_fetch_size: 100
 
   servlet:
     multipart:
@@ -69,9 +70,6 @@ spring:
 #            token-uri: https://appleid.apple.com/auth/token
 #            jwk-set-uri: https://appleid.apple.com/auth/keys
 #            user-name-attribute: sub
-
-
-
 
 jwt:
   issuer: ${JWT_ISSUER:wearagain}

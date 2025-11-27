@@ -13,7 +13,13 @@ public enum StoreErrorCode implements ErrorCode {
     STORE_IMAGE_INVALID("S1006", "스토어 상품 이미지 정보가 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value()),
     STORE_IMAGE_UPLOAD_FAILED("S1007", "스토어 상품 이미지 업로드에 실패했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value()),
     STORE_STATUS_UPDATE_FORBIDDEN("S1008", "스토어 상품 상태를 변경할 수 없습니다.", HttpStatus.FORBIDDEN.value()),
-    STORE_PICKUP_LOCATION_INVALID("S1009", "허용되지 않은 픽업 장소 요청입니다.", HttpStatus.BAD_REQUEST.value());
+    STORE_PICKUP_LOCATION_INVALID("S1009", "허용되지 않은 픽업 장소 요청입니다.", HttpStatus.BAD_REQUEST.value()),
+    STORE_ITEM_INACTIVE("S1010", "판매 불가 상태의 상품입니다.", HttpStatus.BAD_REQUEST.value()),
+    STORE_STOCK_SHORTAGE("S1011", "재고가 부족합니다.", HttpStatus.CONFLICT.value()),
+    STORE_CREDIT_NOT_ENOUGH("S1012", "크레딧이 부족합니다.", HttpStatus.CONFLICT.value()),
+    STORE_ORDER_NOT_FOUND("S1013", "주문을 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
+    STORE_ORDER_CANCEL_INVALID("S1014", "취소할 수 없는 주문 상태입니다.", HttpStatus.CONFLICT.value()),
+    STORE_PURCHASE_LIMIT_EXCEEDED("S1015", "사용자별 최대 구매 횟수를 초과했습니다.", HttpStatus.CONFLICT.value());
 
     private final String code;
     private final String message;
