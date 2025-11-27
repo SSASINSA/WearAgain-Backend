@@ -64,6 +64,7 @@ class EventUserServiceImplTest {
                 eventRepository,
                 eventOptionRepository,
                 eventApplicationRepository,
+                null,
                 userRepository,
                 eventQrTokenStore
         );

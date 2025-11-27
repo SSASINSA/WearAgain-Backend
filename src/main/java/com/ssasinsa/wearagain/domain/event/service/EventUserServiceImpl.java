@@ -28,6 +28,7 @@ import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
+import com.ssasinsa.wearagain.domain.event.repository.EventImageRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
 import com.ssasinsa.wearagain.domain.event.support.EventApplicationCursor;
@@ -45,6 +46,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.Deque;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -74,6 +76,7 @@ public class EventUserServiceImpl implements EventUserService {
     private final EventRepository eventRepository;
     private final EventOptionRepository eventOptionRepository;
     private final EventApplicationRepository eventApplicationRepository;
+    private final EventImageRepository eventImageRepository;
     private final UserRepository userRepository;
     private final QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
 
@@ -91,8 +94,14 @@ public class EventUserServiceImpl implements EventUserService {
         boolean hasNext = fetched.size() > size;
         List<Event> limited = hasNext ? fetched.subList(0, size) : fetched;
 
+        if (limited.isEmpty()) {
+            return new EventListResponse(List.of(), null, false);
+        }
+
+        Map<Long, String> thumbnails = loadThumbnails(limited);
+
         List<EventSummaryResponse> events = limited.stream()
-                .map(this::mapToSummary)
+                .map(event -> mapToSummary(event, thumbnails.get(event.getId())))
                 .toList();
 
         String nextCursor = hasNext && !limited.isEmpty()
@@ -400,13 +409,7 @@ public class EventUserServiceImpl implements EventUserService {
         return List.copyOf(trail);
     }
 
-    private EventSummaryResponse mapToSummary(Event event) {
-        String thumbnailUrl = event.getImages()
-                .stream()
-                .sorted(IMAGE_ORDER)
-                .map(EventImage::getUrl)
-                .findFirst()
-                .orElse(null);
+    private EventSummaryResponse mapToSummary(Event event, String thumbnailUrl) {
 
         return new EventSummaryResponse(
                 event.getId(),
@@ -565,6 +568,24 @@ public class EventUserServiceImpl implements EventUserService {
         );
         return aggregates.stream()
                 .collect(Collectors.toMap(EventOptionApplicationCount::eventOptionId, EventOptionApplicationCount::appliedCount));
+    }
+
+    private Map<Long, String> loadThumbnails(List<Event> events) {
+        if (events.isEmpty()) {
+            return Map.of();
+        }
+        List<Long> eventIds = events.stream()
+                .map(Event::getId)
+                .toList();
+        List<EventImage> images = eventImageRepository.findThumbnailsByEventIds(eventIds);
+        Map<Long, String> thumbnails = new HashMap<>();
+        for (EventImage image : images) {
+            Long eventId = image.getEvent() != null ? image.getEvent().getId() : null;
+            if (eventId != null && !thumbnails.containsKey(eventId)) {
+                thumbnails.put(eventId, image.getUrl());
+            }
+        }
+        return thumbnails;
     }
 
 }
