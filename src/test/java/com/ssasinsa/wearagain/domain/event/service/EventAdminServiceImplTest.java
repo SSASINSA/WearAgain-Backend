@@ -15,15 +15,22 @@ import com.ssasinsa.wearagain.domain.event.repository.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Path;
+import jakarta.persistence.criteria.Predicate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -238,13 +245,14 @@ class EventAdminServiceImplTest {
     @Test
     void should_list_events_with_statistics() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 20);
-        when(eventRepository.findByStatusIn(anyCollection(), any(Pageable.class))).thenReturn(pageResult);
+        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+                .thenReturn(pageResult);
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of(new EventApplicationEventCount(101L, 20L)));
 
-        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, 11L, AdminRole.ADMIN);
+        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, 11L, AdminRole.ADMIN, null, null);
 
         assertThat(response.events()).hasSize(1);
         EventAdminSummaryResponse summary = response.events().get(0);
@@ -262,6 +270,62 @@ class EventAdminServiceImplTest {
         assertThat(response.totalElements()).isEqualTo(20);
         assertThat(response.totalPages()).isEqualTo(2);
         assertThat(response.hasNext()).isTrue();
+    }
+
+    @Test
+    void should_throw_invalid_query_when_keyword_scope_is_invalid() {
+        assertThatThrownBy(() -> eventAdminService.getEvents("OPEN", 0, 10, 11L, AdminRole.ADMIN, "sale", "invalid"))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_QUERY);
+    }
+
+    @Test
+    void should_apply_manager_and_keyword_filters_together() {
+        PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 5), 5);
+        ArgumentCaptor<Specification<Event>> specCaptor = ArgumentCaptor.forClass(Specification.class);
+        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+                .thenReturn(pageResult);
+        when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
+                .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
+        when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of(new EventApplicationEventCount(101L, 10L)));
+
+        eventAdminService.getEvents("OPEN", 0, 5, 11L, AdminRole.MANAGER, "Sale%", "TITLE");
+
+        verify(eventRepository).findAll(specCaptor.capture(), any(Pageable.class));
+        Specification<Event> captured = specCaptor.getValue();
+
+        CriteriaBuilder builder = mock(CriteriaBuilder.class);
+        CriteriaQuery<?> query = mock(CriteriaQuery.class);
+        jakarta.persistence.criteria.Root<Event> root = mock(jakarta.persistence.criteria.Root.class);
+        Path statusPath = mock(Path.class);
+        Path organizerPath = mock(Path.class);
+        Path organizerIdPath = mock(Path.class);
+        Path titlePath = mock(Path.class);
+        Expression<String> lowerTitle = mock(Expression.class);
+        Predicate statusPredicate = mock(Predicate.class);
+        Predicate organizerPredicate = mock(Predicate.class);
+        Predicate keywordPredicate = mock(Predicate.class);
+        Predicate combinedPredicate = mock(Predicate.class);
+
+        when(root.get("status")).thenReturn(statusPath);
+        when(statusPath.in(anyCollection())).thenReturn(statusPredicate);
+        when(root.get("organizerAdmin")).thenReturn(organizerPath);
+        when(organizerPath.get("id")).thenReturn(organizerIdPath);
+        when(builder.equal(organizerIdPath, 11L)).thenReturn(organizerPredicate);
+        when(root.get("title")).thenReturn(titlePath);
+        when(builder.lower((Expression<String>) titlePath)).thenReturn(lowerTitle);
+        when(builder.like(lowerTitle, "%sale\\%%", '\\')).thenReturn(keywordPredicate);
+        when(builder.and(any(Predicate.class), any(Predicate.class))).thenReturn(combinedPredicate);
+        when(builder.and(any(Predicate.class), any(Predicate.class), any(Predicate.class))).thenReturn(combinedPredicate);
+        when(builder.and(any(Predicate[].class))).thenReturn(combinedPredicate);
+
+        Predicate predicate = captured.toPredicate(root, query, builder);
+
+        assertThat(predicate).isNotNull();
+        verify(statusPath).in(anyCollection());
+        verify(builder).equal(organizerIdPath, 11L);
+        verify(builder, atLeastOnce()).like(lowerTitle, "%sale\\%%", '\\');
     }
 
     @Test
