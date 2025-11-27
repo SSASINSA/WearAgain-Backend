@@ -16,6 +16,8 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.LazyToOne;
+import org.hibernate.annotations.LazyToOneOption;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -78,6 +80,7 @@ public class Event extends BaseTimeEntity {
     private List<EventImage> images = new ArrayList<>();
 
     @OneToOne(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @LazyToOne(LazyToOneOption.NO_PROXY)
     private EventApprovalRequest approvalRequest;
 
     @Column(name = "usage_guide", columnDefinition = "TEXT")
