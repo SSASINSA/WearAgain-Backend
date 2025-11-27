@@ -11,6 +11,7 @@ import com.ssasinsa.wearagain.domain.store.service.StoreService;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import com.ssasinsa.wearagain.global.security.AuthenticatedUser;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/store/orders")
 @RequiredArgsConstructor
-@io.swagger.v3.oas.annotations.tags.Tag(name = com.ssasinsa.wearagain.domain.store.docs.StoreApiDocs.TAG_NAME, description = com.ssasinsa.wearagain.domain.store.docs.StoreApiDocs.TAG_DESCRIPTION)
+@Tag(name = StoreApiDocs.TAG_NAME, description = StoreApiDocs.TAG_DESCRIPTION)
 public class StoreOrderController {
 
     private final StoreService storeService;
