@@ -12,7 +12,9 @@ public enum CommunityErrorCode implements ErrorCode {
     REPORT_ALREADY_EXISTS("CM1006", "이미 신고한 게시글입니다.", HttpStatus.BAD_REQUEST.value()),
     COMMENT_NOT_FOUND("CM1007", "댓글을 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     COMMENT_UPDATE_FORBIDDEN("CM1008", "댓글 수정 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
-    COMMENT_DELETE_FORBIDDEN("CM1009", "댓글 삭제 권한이 없습니다.", HttpStatus.FORBIDDEN.value());
+    COMMENT_DELETE_FORBIDDEN("CM1009", "댓글 삭제 권한이 없습니다.", HttpStatus.FORBIDDEN.value()),
+    INVALID_IMAGE_INFORMATION("CM1010", "이미지 정보가 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value()),
+    IMAGE_UPLOAD_FAILED("CM1011", "이미지 업로드 처리 중 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR.value());
 
     private final String code;
     private final String message;

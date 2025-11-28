@@ -134,5 +134,12 @@ public final class CommunityExamples {
               ]
             }
             """;
+
+    public static final String IMAGE_UPLOAD_RESPONSE = """
+            {
+              "imageName": "6f7e4a1b2c3d4e5f6a7b8c9d0e1f2a3b.jpg",
+              "imageUrl": "https://admin.wearagain.kr/uploads/6f7e4a1b2c3d4e5f6a7b8c9d0e1f2a3b.jpg"
+            }
+            """;
 }
 
