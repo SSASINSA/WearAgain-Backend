@@ -29,7 +29,7 @@ public record PostDetailResponse(
         @Schema(description = "댓글 수", example = "8")
         Integer commentCount,
 
-        @Schema(description = "게시물 키워드 (질문, 후기, 수선)", example = "review", allowableValues = {"question", "review", "repair"})
+        @Schema(description = "게시물 키워드", example = "review")
         String keyword,
 
         @Schema(description = "내가 작성한 글인지 여부", example = "true")

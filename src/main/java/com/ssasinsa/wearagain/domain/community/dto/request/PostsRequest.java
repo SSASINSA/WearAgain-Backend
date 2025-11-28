@@ -10,7 +10,7 @@ public record PostsRequest(
         @Schema(description = "한 번에 가져올 게시물 개수 (기본값: 10)", example = "10", defaultValue = "10")
         Integer limit,
 
-        @Schema(description = "키워드 필터 (question, review, repair)", example = "review", allowableValues = {"question", "review", "repair"}, nullable = true)
+        @Schema(description = "키워드 필터", example = "리뷰", nullable = true)
         String keyword
 ) {
     public PostsRequest {
