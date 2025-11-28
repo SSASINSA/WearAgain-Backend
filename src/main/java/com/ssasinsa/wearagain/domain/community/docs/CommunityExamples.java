@@ -149,6 +149,14 @@ public final class CommunityExamples {
                 "리뷰",
                 "수선"
               ]
+            }
+            """;
+
+    public static final String POST_LIKE_RESPONSE = """
+            {
+              "isLiked": true,
+              "likeCount": 16
+            }
             """;
 }
 

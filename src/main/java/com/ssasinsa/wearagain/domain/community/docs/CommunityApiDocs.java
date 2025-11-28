@@ -196,5 +196,21 @@ public final class CommunityApiDocs {
     )
     public @interface GetKeywords {
     }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 좋아요 토글",
+            description = """
+                    게시글에 좋아요를 추가하거나 취소합니다.
+                    이미 좋아요가 있으면 취소하고, 없으면 추가합니다.
+                    응답으로 좋아요 여부와 현재 좋아요 수를 반환합니다.
+                    """,
+            responseSchema = PostLikeResponse.class,
+            responseExample = CommunityExamples.POST_LIKE_RESPONSE
+    )
+    public @interface ToggleLike {
+    }
 }
 

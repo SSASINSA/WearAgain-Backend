@@ -7,6 +7,7 @@ import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.CommunityImageUploadResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.KeywordsResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
+import com.ssasinsa.wearagain.domain.community.dto.response.PostLikeResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityErrorCode;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityException;
@@ -117,6 +118,16 @@ public class CommunityPostController {
     @GetMapping("/keywords")
     public ResponseEntity<KeywordsResponse> getKeywords() {
         KeywordsResponse response = communityPostService.getKeywords();
+        return ResponseEntity.ok(response);
+    }
+
+    @CommunityApiDocs.ToggleLike
+    @PostMapping("/{postId}/likes")
+    public ResponseEntity<PostLikeResponse> toggleLike(
+            @PathVariable Long postId,
+            @AuthenticationPrincipal AuthenticatedUser user
+    ) {
+        PostLikeResponse response = communityPostService.toggleLike(postId, user.userId());
         return ResponseEntity.ok(response);
     }
 }

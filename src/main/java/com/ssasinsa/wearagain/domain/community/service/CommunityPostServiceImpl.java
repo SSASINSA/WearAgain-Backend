@@ -8,11 +8,13 @@ import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.KeywordsResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse.AuthorInfo;
+import com.ssasinsa.wearagain.domain.community.dto.response.PostLikeResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse.PostsItem;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityCategory;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityPost;
 import com.ssasinsa.wearagain.domain.community.entity.CommunityPostImage;
+import com.ssasinsa.wearagain.domain.community.entity.PostLike;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityErrorCode;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityException;
 import com.ssasinsa.wearagain.domain.community.repository.CommunityCategoryRepository;
@@ -27,6 +29,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -358,6 +361,32 @@ public class CommunityPostServiceImpl implements CommunityPostService {
                 .sorted()
                 .collect(Collectors.toList());
         return new KeywordsResponse(keywords);
+    }
+
+    @Override
+    @Transactional
+    public PostLikeResponse toggleLike(Long postId, Long userId) {
+        CommunityPost post = communityPostRepository.findByIdAndActiveTrue(postId)
+                .orElseThrow(() -> new CommunityException(CommunityErrorCode.POST_NOT_FOUND));
+
+        Optional<PostLike> existingLike = postLikeRepository.findByPostIdAndUserId(postId, userId);
+
+        if (existingLike.isPresent()) {
+            // 좋아요 취소
+            PostLike like = existingLike.get();
+            postLikeRepository.delete(like);
+            post.removeLike();
+            log.info("좋아요 취소: postId={}, userId={}", postId, userId);
+            return new PostLikeResponse(false, post.getLikeCount());
+        } else {
+            // 좋아요 추가
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new CommunityException(CommunityErrorCode.INVALID_POST_DATA));
+            PostLike like = PostLike.create(post, user);
+            postLikeRepository.save(like);
+            log.info("좋아요 추가: postId={}, userId={}", postId, userId);
+            return new PostLikeResponse(true, post.getLikeCount());
+        }
     }
 }
 
