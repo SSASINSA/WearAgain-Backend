@@ -5,6 +5,7 @@ import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.KeywordsResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
+import com.ssasinsa.wearagain.domain.community.dto.response.PostLikeResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 
 public interface CommunityPostService {
@@ -24,5 +25,7 @@ public interface CommunityPostService {
     PostsResponse getMyCommentedPosts(Long cursor, Integer limit, Long userId);
 
     KeywordsResponse getKeywords();
+
+    PostLikeResponse toggleLike(Long postId, Long userId);
 }
 

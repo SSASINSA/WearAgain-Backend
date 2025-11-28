@@ -95,7 +95,7 @@ public class CommunityPost extends BaseTimeEntity {
         likeCount = likeCount + 1;
     }
 
-    void removeLike() {
+    public void removeLike() {
         likeCount = Math.max(0, likeCount - 1);
     }
 
