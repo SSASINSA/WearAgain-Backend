@@ -43,7 +43,7 @@ public record PostsResponse(
             @Schema(description = "댓글 수", example = "8")
             Integer commentCount,
 
-            @Schema(description = "게시물 키워드 (question, review, repair)", example = "review", allowableValues = {"question", "review", "repair"})
+            @Schema(description = "게시물 키워드", example = "리뷰")
             String keyword,
 
             @Schema(description = "내가 좋아요를 한 게시물인지 여부", example = "true")

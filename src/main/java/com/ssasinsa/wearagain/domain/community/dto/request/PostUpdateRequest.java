@@ -13,7 +13,7 @@ public record PostUpdateRequest(
         @Schema(description = "게시물 내용", example = "첫 리폼 경험을 공유하고 싶어서 글을 올립니다... (수정)")
         String content,
 
-        @Schema(description = "게시물 키워드 (질문, 후기, 수선)", example = "review", allowableValues = {"question", "review", "repair"})
+        @Schema(description = "게시물 키워드 (질문, 후기, 수선)", example = "review")
         String keyword,
 
         @Schema(description = "이미지 URL 목록", example = "[\"https://cdn.wearagain.kr/community/posts/1/image1.jpg\"]")
