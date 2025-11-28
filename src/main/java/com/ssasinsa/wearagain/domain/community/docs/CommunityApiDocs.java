@@ -1,16 +1,9 @@
 package com.ssasinsa.wearagain.domain.community.docs;
 
-import com.ssasinsa.wearagain.domain.community.dto.request.CommentCreateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.CommentUpdateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.ReportRequest;
-import com.ssasinsa.wearagain.domain.community.dto.response.CommentsResponse;
-import com.ssasinsa.wearagain.domain.community.dto.response.CommunityImageUploadResponse;
-import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
-import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
+import com.ssasinsa.wearagain.domain.community.dto.response.*;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -159,7 +152,6 @@ public final class CommunityApiDocs {
     }
 
     @SecurityRequirement(name = "userJWT")
-    @SecurityRequirement(name = "userJWT")
     @Target(ElementType.METHOD)
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
@@ -186,7 +178,23 @@ public final class CommunityApiDocs {
             responseSchema = CommunityImageUploadResponse.class,
             responseExample = CommunityExamples.IMAGE_UPLOAD_RESPONSE
     )
+
     public @interface UploadImage {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 키워드(카테고리) 목록 조회",
+            description = """
+                    게시글 작성 시 사용할 수 있는 모든 키워드(카테고리) 목록을 조회합니다.
+                    인증 토큰이 없어도 접근 가능합니다.
+                    """,
+            responseSchema = KeywordsResponse.class,
+            responseExample = CommunityExamples.KEYWORDS_RESPONSE
+    )
+    public @interface GetKeywords {
     }
 }
 

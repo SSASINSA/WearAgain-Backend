@@ -2,16 +2,15 @@ package com.ssasinsa.wearagain.domain.community.controller;
 
 import com.ssasinsa.wearagain.domain.community.docs.CommunityApiDocs;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.response.CommunityImageUploadResponse;
+import com.ssasinsa.wearagain.domain.community.dto.response.KeywordsResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityErrorCode;
 import com.ssasinsa.wearagain.domain.community.exception.CommunityException;
 import com.ssasinsa.wearagain.domain.community.service.CommunityPostService;
-import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
-import com.ssasinsa.wearagain.global.exception.CustomException;
 import com.ssasinsa.wearagain.global.security.AuthenticatedUser;
 import com.ssasinsa.wearagain.global.storage.ImageStorageErrorCode;
 import com.ssasinsa.wearagain.global.storage.ImageStorageException;
@@ -24,16 +23,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -121,6 +111,13 @@ public class CommunityPostController {
                 .toUriString();
         CommunityImageUploadResponse response = new CommunityImageUploadResponse(imageName, imageUrl);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @CommunityApiDocs.GetKeywords
+    @GetMapping("/keywords")
+    public ResponseEntity<KeywordsResponse> getKeywords() {
+        KeywordsResponse response = communityPostService.getKeywords();
+        return ResponseEntity.ok(response);
     }
 }
 

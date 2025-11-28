@@ -5,6 +5,7 @@ import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
+import com.ssasinsa.wearagain.domain.community.dto.response.KeywordsResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse.AuthorInfo;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
@@ -347,6 +348,16 @@ public class CommunityPostServiceImpl implements CommunityPostService {
                 : null;
 
         return new PostsResponse(limitValue, nextCursor, hasNext, postsItems);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public KeywordsResponse getKeywords() {
+        List<String> keywords = communityCategoryRepository.findAll().stream()
+                .map(CommunityCategory::getName)
+                .sorted()
+                .collect(Collectors.toList());
+        return new KeywordsResponse(keywords);
     }
 }
 
