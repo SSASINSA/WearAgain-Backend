@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.finance.repository;
 
 import com.ssasinsa.wearagain.domain.finance.entity.TicketHistory;
 import java.util.List;
+import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +17,12 @@ public interface TicketHistoryRepository extends JpaRepository<TicketHistory, Lo
 
     @Query("SELECT COALESCE(SUM(ABS(th.changeAmount)), 0) FROM TicketHistory th WHERE th.user.id = :userId AND th.changeAmount < 0")
     Long sumChangeAmountByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT COALESCE(SUM(th.changeAmount), 0) "
+            + "FROM TicketHistory th "
+            + "WHERE th.createdAt >= :startInclusive AND th.createdAt < :endExclusive")
+    Long sumChangeAmountBetween(@Param("startInclusive") LocalDateTime startInclusive,
+                                @Param("endExclusive") LocalDateTime endExclusive);
 
     interface TicketChargeSummary {
 

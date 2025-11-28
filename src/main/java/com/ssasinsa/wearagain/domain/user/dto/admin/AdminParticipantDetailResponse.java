@@ -13,6 +13,7 @@ public record AdminParticipantDetailResponse(
         OffsetDateTime joinedAt,
         OffsetDateTime updatedAt,
         AdminImpactSummaryResponse impact,
-        AdminMascotResponse mascot
+        AdminMascotResponse mascot,
+        java.util.List<AdminRecentEventResponse> recentEvents
 ) {
 }

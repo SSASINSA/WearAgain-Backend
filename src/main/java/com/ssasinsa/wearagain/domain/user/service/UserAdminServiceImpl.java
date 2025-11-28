@@ -2,7 +2,12 @@ package com.ssasinsa.wearagain.domain.user.service;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
+import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
+import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
+import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
+import com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryRepository;
 import com.ssasinsa.wearagain.domain.growth.GrowthConstants;
 import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
@@ -11,15 +16,22 @@ import com.ssasinsa.wearagain.domain.user.dto.admin.AdminMascotResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListItemResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListResponse;
+import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListSummaryResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantStatsResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantSuspensionRequest;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantUpdateRequest;
+import com.ssasinsa.wearagain.domain.user.dto.admin.AdminRecentEventResponse;
 import com.ssasinsa.wearagain.domain.user.exception.UserErrorCode;
 import com.ssasinsa.wearagain.domain.user.exception.UserException;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.LinkedHashMap;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +48,9 @@ public class UserAdminServiceImpl implements UserAdminService {
     private final UserRepository userRepository;
     private final ImpactAnalyticsRepository impactAnalyticsRepository;
     private final UserGrowthRepository userGrowthRepository;
+    private final EventApplicationRepository eventApplicationRepository;
+    private final TicketHistoryRepository ticketHistoryRepository;
+    private final CreditHistoryRepository creditHistoryRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,7 +77,8 @@ public class UserAdminServiceImpl implements UserAdminService {
                 page.getSize(),
                 page.getNumber(),
                 page.hasNext(),
-                page.hasPrevious()
+                page.hasPrevious(),
+                resolveListSummary()
         );
     }
 
@@ -122,7 +138,8 @@ public class UserAdminServiceImpl implements UserAdminService {
                 user.getCreatedAt() == null ? null : user.getCreatedAt().atOffset(ZoneOffset.UTC),
                 user.getUpdatedAt() == null ? null : user.getUpdatedAt().atOffset(ZoneOffset.UTC),
                 resolveImpactSummary(userId),
-                resolveMascot(userId)
+                resolveMascot(userId),
+                resolveRecentEvents(userId)
         );
     }
 
@@ -163,11 +180,78 @@ public class UserAdminServiceImpl implements UserAdminService {
                 .orElse(null);
     }
 
+    private AdminParticipantListSummaryResponse resolveListSummary() {
+        LocalDateTime startOfCurrentMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime startOfNextMonth = startOfCurrentMonth.plusMonths(1);
+
+        long totalParticipants = userRepository.count();
+        long totalTickets = userRepository.sumTicketBalance();
+        long totalCredits = userRepository.sumCreditBalance();
+
+        long participantsAtEndOfLastMonth = userRepository.countByCreatedAtBefore(startOfCurrentMonth);
+        long participantsChange = totalParticipants - participantsAtEndOfLastMonth;
+
+        long ticketsChangeThisMonth = defaultLong(ticketHistoryRepository.sumChangeAmountBetween(startOfCurrentMonth, startOfNextMonth));
+        long ticketsAtEndOfLastMonth = totalTickets - ticketsChangeThisMonth;
+        long ticketsChange = totalTickets - ticketsAtEndOfLastMonth;
+
+        long creditsChangeThisMonth = defaultLong(creditHistoryRepository.sumChangeAmountBetween(startOfCurrentMonth, startOfNextMonth));
+        long creditsAtEndOfLastMonth = totalCredits - creditsChangeThisMonth;
+        long creditsChange = totalCredits - creditsAtEndOfLastMonth;
+
+        return new AdminParticipantListSummaryResponse(
+                totalParticipants,
+                totalTickets,
+                totalCredits,
+                participantsChange,
+                ticketsChange,
+                creditsChange
+        );
+    }
+
     private BigDecimal scaleImpact(BigDecimal value) {
         if (value == null) {
             return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
         }
         return value.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private List<AdminRecentEventResponse> resolveRecentEvents(Long userId) {
+        List<Long> applicationIds = eventApplicationRepository.findApplicationIdsForUser(
+                userId,
+                Set.of(EventApplicationStatus.APPLIED, EventApplicationStatus.CHECKED_IN),
+                null,
+                null,
+                null,
+                null,
+                PageRequest.of(0, 5)
+        );
+        if (applicationIds.isEmpty()) {
+            return List.of();
+        }
+
+        List<EventApplication> applications = eventApplicationRepository.findByIdsWithEventAndImages(applicationIds);
+        Map<Long, EventApplication> byId = new LinkedHashMap<>();
+        for (EventApplication application : applications) {
+            byId.put(application.getId(), application);
+        }
+
+        return applicationIds.stream()
+                .map(byId::get)
+                .filter(app -> app != null && app.getEvent() != null)
+                .map(app -> new AdminRecentEventResponse(
+                        app.getEvent().getId(),
+                        app.getEvent().getTitle(),
+                        app.getStatus(),
+                        app.getEvent().getStartDate(),
+                        app.getEvent().getEndDate(),
+                        app.getCreatedAt() == null ? null : app.getCreatedAt().atOffset(ZoneOffset.UTC)
+                ))
+                .toList();
+    }
+
+    private long defaultLong(Long value) {
+        return value == null ? 0L : value;
     }
 
 }

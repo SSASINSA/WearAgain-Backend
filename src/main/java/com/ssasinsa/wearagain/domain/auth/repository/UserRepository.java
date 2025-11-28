@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.auth.repository;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,4 +19,6 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("select coalesce(sum(u.creditBalance), 0) from User u")
     long sumCreditBalance();
+
+    long countByCreatedAtBefore(LocalDateTime before);
 }
