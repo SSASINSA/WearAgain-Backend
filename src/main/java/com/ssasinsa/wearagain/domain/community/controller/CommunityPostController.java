@@ -4,6 +4,7 @@ import com.ssasinsa.wearagain.domain.community.docs.CommunityApiDocs;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostsRequest;
 import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
+import com.ssasinsa.wearagain.domain.community.dto.response.KeywordsResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
 import com.ssasinsa.wearagain.domain.community.service.CommunityPostService;
@@ -90,6 +91,13 @@ public class CommunityPostController {
     ) {
         communityPostService.deletePost(postId, user.userId());
         return ResponseEntity.ok().build();
+    }
+
+    @CommunityApiDocs.GetKeywords
+    @GetMapping("/keywords")
+    public ResponseEntity<KeywordsResponse> getKeywords() {
+        KeywordsResponse response = communityPostService.getKeywords();
+        return ResponseEntity.ok(response);
     }
 }
 

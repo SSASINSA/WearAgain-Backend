@@ -134,5 +134,15 @@ public final class CommunityExamples {
               ]
             }
             """;
+
+    public static final String KEYWORDS_RESPONSE = """
+            {
+              "keywords": [
+                "질문",
+                "리뷰",
+                "수선"
+              ]
+            }
+            """;
 }
 
