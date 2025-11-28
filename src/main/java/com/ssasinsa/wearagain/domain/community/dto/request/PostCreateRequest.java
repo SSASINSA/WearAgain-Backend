@@ -18,7 +18,7 @@ public record PostCreateRequest(
         String content,
 
         @NotBlank
-        @Schema(description = "게시물 키워드 (질문, 후기, 수선)", example = "review", allowableValues = {"question", "review", "repair"}, requiredMode = Schema.RequiredMode.REQUIRED)
+        @Schema(description = "게시물 키워드 (질문, 후기, 수선)", example = "review", requiredMode = Schema.RequiredMode.REQUIRED)
         String keyword,
 
         @Schema(description = "이미지 URL 목록", example = "[\"https://cdn.wearagain.kr/community/posts/1/image1.jpg\"]")
