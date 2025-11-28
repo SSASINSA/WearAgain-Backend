@@ -11,6 +11,8 @@ public record AdminParticipantDetailResponse(
         int creditBalance,
         boolean suspended,
         OffsetDateTime joinedAt,
-        OffsetDateTime updatedAt
+        OffsetDateTime updatedAt,
+        AdminImpactSummaryResponse impact,
+        AdminMascotResponse mascot
 ) {
 }

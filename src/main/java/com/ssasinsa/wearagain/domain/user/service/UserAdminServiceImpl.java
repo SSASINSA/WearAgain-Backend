@@ -2,6 +2,12 @@ package com.ssasinsa.wearagain.domain.user.service;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
+import com.ssasinsa.wearagain.domain.growth.GrowthConstants;
+import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
+import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
+import com.ssasinsa.wearagain.domain.user.dto.admin.AdminImpactSummaryResponse;
+import com.ssasinsa.wearagain.domain.user.dto.admin.AdminMascotResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListItemResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListResponse;
@@ -11,6 +17,8 @@ import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantUpdateReques
 import com.ssasinsa.wearagain.domain.user.exception.UserErrorCode;
 import com.ssasinsa.wearagain.domain.user.exception.UserException;
 import java.time.ZoneOffset;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -26,6 +34,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserAdminServiceImpl implements UserAdminService {
 
     private final UserRepository userRepository;
+    private final ImpactAnalyticsRepository impactAnalyticsRepository;
+    private final UserGrowthRepository userGrowthRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -75,8 +85,6 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public AdminParticipantDetailResponse updateParticipant(Long participantId, AdminParticipantUpdateRequest request) {
-        // ??/?? ??? ??? ??? ?? ?? ??? ???? ???.
-        // ?? ?? ?? ?? ?? ????? ?? ??.
         throw new UserException(UserErrorCode.FEATURE_NOT_AVAILABLE);
     }
 
@@ -102,8 +110,9 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     private AdminParticipantDetailResponse toDetail(User user) {
+        Long userId = user.getId();
         return new AdminParticipantDetailResponse(
-                user.getId(),
+                userId,
                 user.getDisplayName(),
                 user.getEmail(),
                 user.getProfileImageUrl(),
@@ -111,7 +120,9 @@ public class UserAdminServiceImpl implements UserAdminService {
                 user.getCreditBalance(),
                 user.isSuspended(),
                 user.getCreatedAt() == null ? null : user.getCreatedAt().atOffset(ZoneOffset.UTC),
-                user.getUpdatedAt() == null ? null : user.getUpdatedAt().atOffset(ZoneOffset.UTC)
+                user.getUpdatedAt() == null ? null : user.getUpdatedAt().atOffset(ZoneOffset.UTC),
+                resolveImpactSummary(userId),
+                resolveMascot(userId)
         );
     }
 
@@ -126,6 +137,37 @@ public class UserAdminServiceImpl implements UserAdminService {
                 user.isSuspended(),
                 user.getCreatedAt() == null ? null : user.getCreatedAt().atOffset(ZoneOffset.UTC)
         );
+    }
+
+    private AdminImpactSummaryResponse resolveImpactSummary(Long userId) {
+        ImpactSummary summary = impactAnalyticsRepository.aggregateByUserId(userId);
+        if (summary == null) {
+            return AdminImpactSummaryResponse.zero();
+        }
+        return new AdminImpactSummaryResponse(
+                scaleImpact(summary.co2Saved()),
+                scaleImpact(summary.waterSaved()),
+                scaleImpact(summary.energySaved())
+        );
+    }
+
+    private AdminMascotResponse resolveMascot(Long userId) {
+        return userGrowthRepository.findByUserId(userId)
+                .map(growth -> new AdminMascotResponse(
+                        growth.getCurrentLevel(),
+                        growth.getExp(),
+                        GrowthConstants.LEVEL_EXP_THRESHOLD,
+                        growth.getMagicScissorCount(),
+                        growth.getCycles()
+                ))
+                .orElse(null);
+    }
+
+    private BigDecimal scaleImpact(BigDecimal value) {
+        if (value == null) {
+            return BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        }
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 
 }
