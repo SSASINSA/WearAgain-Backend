@@ -1,16 +1,9 @@
 package com.ssasinsa.wearagain.domain.community.docs;
 
-import com.ssasinsa.wearagain.domain.community.dto.request.CommentCreateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.CommentUpdateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.PostCreateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.PostUpdateRequest;
-import com.ssasinsa.wearagain.domain.community.dto.request.ReportRequest;
-import com.ssasinsa.wearagain.domain.community.dto.response.CommentsResponse;
-import com.ssasinsa.wearagain.domain.community.dto.response.KeywordsResponse;
-import com.ssasinsa.wearagain.domain.community.dto.response.PostDetailResponse;
-import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
+import com.ssasinsa.wearagain.domain.community.dto.response.*;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -171,6 +164,22 @@ public final class CommunityApiDocs {
             responseExample = CommunityExamples.COMMENTS_RESPONSE
     )
     public @interface GetComments {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 이미지 업로드",
+            description = """
+                    멀티파트 이미지를 업로드하여 `/data/uploads` 경로에 저장하고
+                    추후 게시글 생성 요청에 사용할 imageName/imageUrl 정보를 반환합니다.
+                    """,
+            responseSchema = CommunityImageUploadResponse.class,
+            responseExample = CommunityExamples.IMAGE_UPLOAD_RESPONSE
+    )
+
+    public @interface UploadImage {
     }
 
     @SecurityRequirement(name = "userJWT")
