@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.LinkedHashMap;
+import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -181,7 +182,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     }
 
     private AdminParticipantListSummaryResponse resolveListSummary() {
-        LocalDateTime startOfCurrentMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
+        LocalDateTime startOfCurrentMonth = LocalDate.now(ZoneOffset.UTC).withDayOfMonth(1).atStartOfDay();
         LocalDateTime startOfNextMonth = startOfCurrentMonth.plusMonths(1);
 
         long totalParticipants = userRepository.count();
@@ -231,10 +232,13 @@ public class UserAdminServiceImpl implements UserAdminService {
         }
 
         List<EventApplication> applications = eventApplicationRepository.findByIdsWithEventAndImages(applicationIds);
-        Map<Long, EventApplication> byId = new LinkedHashMap<>();
-        for (EventApplication application : applications) {
-            byId.put(application.getId(), application);
-        }
+        Map<Long, EventApplication> byId = applications.stream()
+                .collect(Collectors.toMap(
+                        EventApplication::getId,
+                        app -> app,
+                        (existing, replacement) -> existing,
+                        LinkedHashMap::new
+                ));
 
         return applicationIds.stream()
                 .map(byId::get)

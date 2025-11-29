@@ -6,7 +6,6 @@ import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantStatsRespons
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantSuspensionRequest;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantUpdateRequest;
 import com.ssasinsa.wearagain.domain.user.service.UserAdminService;
-import com.ssasinsa.wearagain.global.dto.MessageResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -65,11 +64,11 @@ public class UserAdminController {
     }
 
     @PutMapping("/{participantId}/suspension")
-    public ResponseEntity<MessageResponse> updateSuspension(
+    public ResponseEntity<AdminParticipantDetailResponse> updateSuspension(
             @PathVariable Long participantId,
             @Valid @RequestBody AdminParticipantSuspensionRequest request
     ) {
         AdminParticipantDetailResponse response = userAdminService.updateSuspension(participantId, request);
-        return ResponseEntity.ok(MessageResponse.of("참가자 상태가 업데이트되었습니다."));
+        return ResponseEntity.ok(response);
     }
 }

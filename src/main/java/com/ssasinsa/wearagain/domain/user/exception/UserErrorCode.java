@@ -1,12 +1,8 @@
 package com.ssasinsa.wearagain.domain.user.exception;
 
 import com.ssasinsa.wearagain.global.exception.ErrorCode;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 
-@Getter
-@RequiredArgsConstructor
 public enum UserErrorCode implements ErrorCode {
 
     USER_NOT_FOUND("U1001", "사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
@@ -16,4 +12,25 @@ public enum UserErrorCode implements ErrorCode {
     private final String code;
     private final String message;
     private final int status;
+
+    UserErrorCode(String code, String message, int status) {
+        this.code = code;
+        this.message = message;
+        this.status = status;
+    }
+
+    @Override
+    public String getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return message;
+    }
+
+    @Override
+    public int getStatus() {
+        return status;
+    }
 }

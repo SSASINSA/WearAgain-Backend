@@ -7,6 +7,11 @@ import static org.mockito.Mockito.when;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
+import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
+import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
+import com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryRepository;
+import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantStatsResponse;
@@ -33,6 +38,21 @@ class UserAdminServiceImplTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private ImpactAnalyticsRepository impactAnalyticsRepository;
+
+    @Mock
+    private UserGrowthRepository userGrowthRepository;
+
+    @Mock
+    private EventApplicationRepository eventApplicationRepository;
+
+    @Mock
+    private TicketHistoryRepository ticketHistoryRepository;
+
+    @Mock
+    private CreditHistoryRepository creditHistoryRepository;
 
     @InjectMocks
     private UserAdminServiceImpl userAdminService;
@@ -99,14 +119,14 @@ class UserAdminServiceImplTest {
     }
 
     @Test
-    void should_return_feature_not_available_when_update_requested_with_negative_ticket() {
+    void should_return_feature_not_available_when_update_requested_with_valid_ticket() {
         // Given
         AdminParticipantUpdateRequest request = new AdminParticipantUpdateRequest(
                 null,
                 null,
-                -1,
-                null,
-                null
+                0,
+                0,
+                false
         );
 
         // When & Then
@@ -128,6 +148,20 @@ class UserAdminServiceImplTest {
 
         // Then
         assertThat(response.suspended()).isFalse();
+    }
+
+    @Test
+    void should_suspend_user_when_requested() {
+        // Given
+        User user = createUser(9L, "user9@wearagain.kr", "user9", 0, 0);
+        when(userRepository.findById(9L)).thenReturn(Optional.of(user));
+        AdminParticipantSuspensionRequest request = new AdminParticipantSuspensionRequest(true);
+
+        // When
+        AdminParticipantDetailResponse response = userAdminService.updateSuspension(9L, request);
+
+        // Then
+        assertThat(response.suspended()).isTrue();
     }
 
     @Test
