@@ -59,7 +59,7 @@ public class EventAdminController {
             @Valid @RequestBody EventAdminCreateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        EventCreateResponse response = eventAdminService.createEvent(request, principal.adminId());
+        EventCreateResponse response = eventAdminService.createEvent(request, principal.adminId(), principal.role());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 

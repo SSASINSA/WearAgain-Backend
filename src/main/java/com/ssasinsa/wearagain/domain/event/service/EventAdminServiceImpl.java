@@ -101,13 +101,13 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional
-    public EventCreateResponse createEvent(EventAdminCreateRequest request, Long adminId) {
+    public EventCreateResponse createEvent(EventAdminCreateRequest request, Long adminId, AdminRole role) {
         AdminUser organizer = adminUserRepository.findById(adminId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_ADMIN_NOT_FOUND));
 
         validateEventPeriod(request.startDate(), request.endDate());
 
-        EventStatus status = EventStatus.DRAFT;
+        EventStatus status = resolveInitialStatus(role);
         Event event = Event.create(
                 request.title().trim(),
                 request.description().trim(),
@@ -145,8 +145,10 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.EVENT_REGISTRATION_FAILED, exception);
         }
 
-        EventApprovalRequest approvalRequest = EventApprovalRequest.create(savedEvent, organizer);
-        eventApprovalRequestRepository.save(approvalRequest);
+        if (requiresApproval(role)) {
+            EventApprovalRequest approvalRequest = EventApprovalRequest.create(savedEvent, organizer);
+            eventApprovalRequestRepository.save(approvalRequest);
+        }
 
         return mapToCreateResponse(savedEvent);
     }
@@ -820,6 +822,14 @@ public class EventAdminServiceImpl implements EventAdminService {
         } catch (IllegalArgumentException exception) {
             throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
         }
+    }
+
+    private EventStatus resolveInitialStatus(AdminRole role) {
+        return requiresApproval(role) ? EventStatus.DRAFT : EventStatus.APPROVAL;
+    }
+
+    private boolean requiresApproval(AdminRole role) {
+        return role == null || role == AdminRole.MANAGER;
     }
 
     private Sort resolveSort(String param) {

@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface EventAdminService {
 
-    EventCreateResponse createEvent(EventAdminCreateRequest request, Long adminId);
+    EventCreateResponse createEvent(EventAdminCreateRequest request, Long adminId, AdminRole role);
 
     EventAdminListResponse getEvents(
             String status,

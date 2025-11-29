@@ -104,11 +104,14 @@ class EventAdminServiceImplTest {
     @Test
     void should_create_event_when_request_is_valid() {
         Event persisted = buildPersistedEvent(validCreateRequest);
-        when(eventRepository.save(any(Event.class))).thenReturn(persisted);
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        when(eventRepository.save(eventCaptor.capture())).thenReturn(persisted);
 
-        EventCreateResponse response = eventAdminService.createEvent(validCreateRequest, 11L);
+        EventCreateResponse response = eventAdminService.createEvent(validCreateRequest, 11L, AdminRole.MANAGER);
 
         verify(eventRepository).save(any(Event.class));
+        verify(eventApprovalRequestRepository).save(any(EventApprovalRequest.class));
+        assertThat(eventCaptor.getValue().getStatus()).isEqualTo(EventStatus.DRAFT);
         assertThat(response.eventId()).isEqualTo(1L);
         assertThat(response.organizerAdminId()).isEqualTo(11L);
         assertThat(response.organizerAdminEmail()).isEqualTo("admin@wearagain.kr");
@@ -120,6 +123,20 @@ class EventAdminServiceImplTest {
         assertThat(response.images()).hasSize(2);
         assertThat(response.options()).hasSize(2);
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT.name());
+    }
+
+    @Test
+    void should_auto_approve_event_when_created_by_admin() {
+        Event persisted = buildPersistedEvent(validCreateRequest);
+        persisted.changeStatus(EventStatus.APPROVAL);
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        when(eventRepository.save(eventCaptor.capture())).thenReturn(persisted);
+
+        EventCreateResponse response = eventAdminService.createEvent(validCreateRequest, 11L, AdminRole.ADMIN);
+
+        assertThat(eventCaptor.getValue().getStatus()).isEqualTo(EventStatus.APPROVAL);
+        assertThat(response.status()).isEqualTo(EventStatus.APPROVAL.name());
+        verify(eventApprovalRequestRepository, never()).save(any());
     }
 
     @Test
@@ -136,7 +153,7 @@ class EventAdminServiceImplTest {
                 List.of()
         );
 
-        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L))
+        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_PERIOD);
     }
@@ -187,7 +204,7 @@ class EventAdminServiceImplTest {
                 List.of(depth4Option)
         );
 
-        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L))
+        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
     }
@@ -196,7 +213,7 @@ class EventAdminServiceImplTest {
     void should_fail_create_when_admin_not_found() {
         when(adminUserRepository.findById(999L)).thenReturn(java.util.Optional.empty());
 
-        assertThatThrownBy(() -> eventAdminService.createEvent(validCreateRequest, 999L))
+        assertThatThrownBy(() -> eventAdminService.createEvent(validCreateRequest, 999L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_ADMIN_NOT_FOUND);
     }
