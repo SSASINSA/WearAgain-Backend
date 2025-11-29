@@ -21,10 +21,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -245,14 +246,15 @@ class EventAdminServiceImplTest {
     @Test
     void should_list_events_with_statistics() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 20);
-        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), pageableCaptor.capture()))
                 .thenReturn(pageResult);
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of(new EventApplicationEventCount(101L, 20L)));
 
-        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, 11L, AdminRole.ADMIN, null, null);
+        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, null, 11L, AdminRole.ADMIN, null, null);
 
         assertThat(response.events()).hasSize(1);
         EventAdminSummaryResponse summary = response.events().get(0);
@@ -270,11 +272,44 @@ class EventAdminServiceImplTest {
         assertThat(response.totalElements()).isEqualTo(20);
         assertThat(response.totalPages()).isEqualTo(2);
         assertThat(response.hasNext()).isTrue();
+
+        Pageable pageable = pageableCaptor.getValue();
+        Sort.Order createdAtOrder = pageable.getSort().getOrderFor("createdAt");
+        assertThat(createdAtOrder).isNotNull();
+        assertThat(createdAtOrder.getDirection()).isEqualTo(Sort.Direction.DESC);
     }
 
     @Test
     void should_throw_invalid_query_when_keyword_scope_is_invalid() {
-        assertThatThrownBy(() -> eventAdminService.getEvents("OPEN", 0, 10, 11L, AdminRole.ADMIN, "sale", "invalid"))
+        assertThatThrownBy(() -> eventAdminService.getEvents("OPEN", 0, 10, null, 11L, AdminRole.ADMIN, "sale", "invalid"))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_QUERY);
+    }
+
+    @Test
+    void should_apply_sort_parameter_when_provided() {
+        PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 1);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), pageableCaptor.capture()))
+                .thenReturn(pageResult);
+        when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+
+        eventAdminService.getEvents(null, 0, 10, "TITLE_ASC", 11L, AdminRole.ADMIN, null, null);
+
+        Pageable pageable = pageableCaptor.getValue();
+        Sort.Order titleOrder = pageable.getSort().getOrderFor("title");
+        assertThat(titleOrder).isNotNull();
+        assertThat(titleOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+        Sort.Order idOrder = pageable.getSort().getOrderFor("id");
+        assertThat(idOrder).isNotNull();
+        assertThat(idOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+    }
+
+    @Test
+    void should_throw_invalid_query_when_sort_is_invalid() {
+        assertThatThrownBy(() -> eventAdminService.getEvents(null, 0, 10, "WRONG", 11L, AdminRole.ADMIN, null, null))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_QUERY);
     }
@@ -290,7 +325,7 @@ class EventAdminServiceImplTest {
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of(new EventApplicationEventCount(101L, 10L)));
 
-        eventAdminService.getEvents("OPEN", 0, 5, 11L, AdminRole.MANAGER, "Sale%", "TITLE");
+        eventAdminService.getEvents("OPEN", 0, 5, null, 11L, AdminRole.MANAGER, "Sale%", "TITLE");
 
         verify(eventRepository).findAll(specCaptor.capture(), any(Pageable.class));
         Specification<Event> captured = specCaptor.getValue();

@@ -18,6 +18,7 @@ public interface EventAdminService {
             String status,
             int page,
             int size,
+            String sort,
             Long adminId,
             AdminRole role,
             String keyword,

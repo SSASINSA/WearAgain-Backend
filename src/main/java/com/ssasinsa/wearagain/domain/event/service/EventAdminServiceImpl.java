@@ -23,11 +23,12 @@ import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestList
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
-import com.ssasinsa.wearagain.domain.event.entity.EventKeywordScope;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
+import com.ssasinsa.wearagain.domain.event.entity.EventAdminSortType;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
 import com.ssasinsa.wearagain.domain.event.entity.EventImage;
+import com.ssasinsa.wearagain.domain.event.entity.EventKeywordScope;
 import com.ssasinsa.wearagain.domain.event.entity.EventOption;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
@@ -156,6 +157,7 @@ public class EventAdminServiceImpl implements EventAdminService {
             String status,
             int page,
             int size,
+            String sort,
             Long adminId,
             AdminRole role,
             String keyword,
@@ -168,7 +170,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         String normalizedKeyword = normalizeText(keyword);
         EventKeywordScope scope = resolveKeywordScope(keywordScope);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "startDate").and(Sort.by("id")));
+        Pageable pageable = PageRequest.of(page, size, resolveSort(sort));
         Specification<Event> spec = EventSpecifications.statusIn(statuses);
         if (role == AdminRole.MANAGER) {
             if (adminId == null) {
@@ -815,6 +817,26 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
         try {
             return EventKeywordScope.valueOf(param.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
+        }
+    }
+
+    private Sort resolveSort(String param) {
+        EventAdminSortType sortType = resolveSortType(param);
+        return switch (sortType) {
+            case LATEST -> Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+            case OLDEST -> Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
+            case TITLE_ASC -> Sort.by(Sort.Order.asc("title"), Sort.Order.asc("id"));
+        };
+    }
+
+    private EventAdminSortType resolveSortType(String param) {
+        if (!StringUtils.hasText(param)) {
+            return EventAdminSortType.LATEST;
+        }
+        try {
+            return EventAdminSortType.valueOf(param.trim().toUpperCase());
         } catch (IllegalArgumentException exception) {
             throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
         }

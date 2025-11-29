@@ -65,7 +65,7 @@ public final class EventApiDocs {
             summary = "관리자 행사 목록 조회",
             description = """
                     관리자 콘솔에서 사용하는 행사 목록 API입니다.
-                    상태 필터와 offset 기반 페이지네이션(`page`, `size`)을 지원하며
+                    상태(status) 필터, 키워드 검색(`keyword`, `keywordScope`), 정렬(`sort` = LATEST|OLDEST|TITLE_ASC)과 offset 기반 페이지네이션(`page`, `size`)을 조합할 수 있습니다.
                     각 행사별 신청 통계(총 좌석/신청 수/잔여 좌석)와 행사 담당 관리자 정보를 함께 제공합니다.
                     """,
             responseSchema = EventAdminListResponse.class,
