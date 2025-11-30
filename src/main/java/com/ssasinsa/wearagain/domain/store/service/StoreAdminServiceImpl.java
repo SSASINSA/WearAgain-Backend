@@ -10,6 +10,7 @@ import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse.StoreItemImageResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemSummaryResponse;
+import com.ssasinsa.wearagain.domain.store.entity.StoreAdminItemSortType;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItem;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemImage;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
@@ -45,7 +46,6 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
     private static final int MAX_IMAGE_COUNT = 10;
     private static final int MAX_PAGE_SIZE = 50;
-    private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "createdAt", "id");
 
     private final StoreItemRepository storeItemRepository;
     private final StoreItemImageRepository storeItemImageRepository;
@@ -83,10 +83,10 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public StoreItemListResponse getItems(String status, String category, String keyword, String keywordScope, int page, int size) {
+    public StoreItemListResponse getItems(String status, String category, String keyword, String keywordScope, String sort, int page, int size) {
         validatePage(page, size);
         List<StoreItemStatus> statuses = resolveStatuses(status);
-        Pageable pageable = PageRequest.of(page, size, DEFAULT_SORT);
+        Pageable pageable = PageRequest.of(page, size, resolveSort(sort));
         String normalizedCategory = normalizeText(category);
         String normalizedKeyword = normalizeText(keyword);
         StoreKeywordScope scope = resolveKeywordScope(keywordScope);
@@ -272,6 +272,20 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         } catch (IllegalArgumentException exception) {
             throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
         }
+    }
+
+    private Sort resolveSort(String param) {
+        StoreAdminItemSortType sortType;
+        if (!StringUtils.hasText(param)) {
+            sortType = StoreAdminItemSortType.LATEST;
+        } else {
+            try {
+                sortType = StoreAdminItemSortType.valueOf(param.trim().toUpperCase());
+            } catch (IllegalArgumentException exception) {
+                throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
+            }
+        }
+        return sortType.toSort();
     }
 
     private Map<Long, String> loadThumbnails(List<StoreItem> items) {

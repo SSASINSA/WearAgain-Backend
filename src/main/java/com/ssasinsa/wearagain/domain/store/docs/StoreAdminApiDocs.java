@@ -42,7 +42,8 @@ public final class StoreAdminApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 스토어 상품 목록 조회",
-            description = "상태, 카테고리, 키워드로 필터링하여 페이지네이션된 상품 목록을 조회합니다."
+            description = "상태, 카테고리, 키워드로 필터링하여 페이지네이션된 상품 목록을 조회합니다. "
+                    + "정렬은 sort 파라미터(LATEST|OLDEST|TITLE_ASC)로 지정할 수 있습니다."
     )
     public @interface GetAdminItems {
     }

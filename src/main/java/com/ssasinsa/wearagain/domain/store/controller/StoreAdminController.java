@@ -82,10 +82,11 @@ public class StoreAdminController {
             @RequestParam(name = "category", required = false) String category,
             @RequestParam(name = "keyword", required = false) String keyword,
             @RequestParam(name = "keywordScope", required = false) String keywordScope,
+            @RequestParam(name = "sort", defaultValue = "LATEST") String sort,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size
     ) {
-        StoreItemListResponse response = storeAdminService.getItems(status, category, keyword, keywordScope, page, size);
+        StoreItemListResponse response = storeAdminService.getItems(status, category, keyword, keywordScope, sort, page, size);
         return ResponseEntity.ok(response);
     }
 

@@ -1,11 +1,5 @@
 package com.ssasinsa.wearagain.domain.store.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
@@ -14,20 +8,31 @@ import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest.St
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemStatusUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCreateResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItem;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
 import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
 import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
-import java.lang.reflect.Field;
-import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.lang.reflect.Field;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StoreAdminServiceImplTest {
@@ -166,6 +171,32 @@ class StoreAdminServiceImplTest {
         verify(storeItemImageRepository).deleteByStoreItem(item);
         verify(storeItemImageRepository).saveAll(any());
         assertThat(item.getImages()).hasSize(1);
+    }
+
+    @DisplayName("관리자 상품 목록 조회 시 정렬 기준을 적용한다")
+    @Test
+    void should_apply_sort_when_getting_items() {
+        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
+        setId(item, 100L);
+        Page<StoreItem> page = new PageImpl<>(List.of(item), PageRequest.of(0, 10), 1);
+        when(storeItemRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+        when(storeItemImageRepository.findThumbnailsByStoreItemIds(anyList())).thenReturn(List.of());
+
+        StoreItemListResponse response = storeAdminService.getItems("ACTIVE", null, null, null, "TITLE_ASC", 0, 10);
+
+        org.mockito.ArgumentCaptor<Pageable> pageableCaptor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(storeItemRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        assertThat(pageableCaptor.getValue().getSort())
+                .isEqualTo(Sort.by(Sort.Order.asc("name"), Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        assertThat(response.items()).hasSize(1);
+    }
+
+    @DisplayName("정의되지 않은 정렬 파라미터면 예외를 던진다")
+    @Test
+    void should_throw_when_sort_invalid_on_get_items() {
+        assertThatThrownBy(() -> storeAdminService.getItems(null, null, null, null, "UNKNOWN", 0, 10))
+                .isInstanceOf(StoreException.class)
+                .hasMessage(StoreErrorCode.STORE_QUERY_INVALID.getMessage());
     }
 
     private AdminUser admin() {
