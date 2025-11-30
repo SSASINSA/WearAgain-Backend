@@ -27,5 +27,16 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
     List<Event> findByStatusAndScissorGrantedFalse(EventStatus status);
 
     @Query("SELECT e FROM Event e WHERE e.status <> :closedStatus AND e.endDate < :targetDate")
-    List<Event> findEventsToClose(@Param("closedStatus") EventStatus closedStatus, @Param("targetDate") java.time.LocalDate targetDate);
+    List<Event> findEventsToClose(
+            @Param("closedStatus") EventStatus closedStatus,
+            @Param("targetDate") java.time.LocalDate targetDate
+    );
+
+    @Query("SELECT e FROM Event e WHERE e.status = :approvalStatus"
+            + " AND e.startDate <= :targetDate"
+            + " AND e.endDate >= :targetDate")
+    List<Event> findApprovedEventsToOpen(
+            @Param("approvalStatus") EventStatus approvalStatus,
+            @Param("targetDate") java.time.LocalDate targetDate
+    );
 }
