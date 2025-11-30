@@ -16,7 +16,7 @@ public record AdminSignupRequestCreateRequest(
 
         @Schema(description = "임시 비밀번호", example = "AdminCandidate1!")
         @NotBlank(message = "비밀번호를 입력해 주세요.")
-        @Size(min = 10, message = "비밀번호는 10자 이상이어야 합니다.")
+        @Size(min = 8, message = "비밀번호는 8자 이상이어야 합니다.")
         @Pattern(regexp = "^(?=.*[A-Za-z])(?=.*\\d)(?=.*[^A-Za-z0-9]).+$",
                 message = "비밀번호는 영어, 숫자, 특수문자를 각각 1자 이상 포함해야 합니다.")
         String password,
