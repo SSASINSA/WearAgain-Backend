@@ -47,16 +47,22 @@ public class EventApprovalRequest extends BaseTimeEntity {
                 .build();
     }
 
-    public void approve(AdminUser approverAdmin, LocalDateTime processedAt) {
+    public void approve(AdminUser approverAdmin, LocalDateTime processedAt, EventStatus targetStatus) {
         this.processedByAdmin = approverAdmin;
         this.processedAt = processedAt;
-        this.event.changeStatus(EventStatus.APPROVAL);
+        this.event.changeStatus(targetStatus == null ? EventStatus.APPROVAL : targetStatus);
     }
 
     public void reject(AdminUser rejecterAdmin, LocalDateTime processedAt) {
         this.processedByAdmin = rejecterAdmin;
         this.processedAt = processedAt;
         this.event.changeStatus(EventStatus.REJECTED);
+    }
+
+    public void reopen(AdminUser requestingAdmin) {
+        this.requestingAdmin = requestingAdmin;
+        this.processedByAdmin = null;
+        this.processedAt = null;
     }
 
     @Override

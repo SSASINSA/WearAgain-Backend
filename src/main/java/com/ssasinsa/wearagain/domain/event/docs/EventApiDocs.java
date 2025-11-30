@@ -353,7 +353,7 @@ public final class EventApiDocs {
             summary = "행사 승인",
             description = """
                     최고 관리자(SUPER_ADMIN)만 호출 가능합니다.
-                    EventApprovalRequest를 승인하여 관련 Event를 DRAFT에서 APPROVAL 상태로 변경합니다.
+                    EventApprovalRequest를 승인하여 관련 Event를 DRAFT에서 APPROVAL/OPEN(진행 중인 경우) 상태로 변경합니다.
                     승인 처리자 정보와 처리 시간을 기록합니다.
                     """,
             responseExample = EventExamples.ADMIN_EVENT_APPROVE_RESPONSE

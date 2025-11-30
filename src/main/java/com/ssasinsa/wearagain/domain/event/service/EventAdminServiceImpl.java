@@ -106,8 +106,9 @@ public class EventAdminServiceImpl implements EventAdminService {
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_ADMIN_NOT_FOUND));
 
         validateEventPeriod(request.startDate(), request.endDate());
+        validateEventNotExpired(request.endDate());
 
-        EventStatus status = resolveInitialStatus(role);
+        EventStatus status = resolveInitialStatus(role, request.startDate(), request.endDate());
         Event event = Event.create(
                 request.title().trim(),
                 request.description().trim(),
@@ -316,6 +317,10 @@ public class EventAdminServiceImpl implements EventAdminService {
         if (request.options() != null) {
             List<EventOption> options = buildEventOptions(event, request.options());
             event.assignOptions(options);
+        }
+
+        if (requiresApproval(role)) {
+            resetApprovalRequest(event);
         }
 
         return getEventDetail(eventId, adminId, role);
@@ -722,6 +727,23 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
     }
 
+    private void resetApprovalRequest(Event event) {
+        AdminUser organizer = event.getOrganizerAdmin();
+        if (organizer == null) {
+            throw new EventException(EventErrorCode.EVENT_ADMIN_NOT_FOUND);
+        }
+        if (event.getStatus() != EventStatus.DRAFT) {
+            event.changeStatus(EventStatus.DRAFT);
+        }
+        EventApprovalRequest approvalRequest = event.getApprovalRequest();
+        if (approvalRequest == null) {
+            EventApprovalRequest newRequest = EventApprovalRequest.create(event, organizer);
+            eventApprovalRequestRepository.save(newRequest);
+            return;
+        }
+        approvalRequest.reopen(organizer);
+    }
+
     private void enforceStaffCodePermission(Event event, Long adminId) {
         if (adminId == null) {
             throw new EventException(EventErrorCode.EVENT_STAFF_CODE_FORBIDDEN);
@@ -824,8 +846,11 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
     }
 
-    private EventStatus resolveInitialStatus(AdminRole role) {
-        return requiresApproval(role) ? EventStatus.DRAFT : EventStatus.APPROVAL;
+    private EventStatus resolveInitialStatus(AdminRole role, LocalDate startDate, LocalDate endDate) {
+        if (requiresApproval(role)) {
+            return EventStatus.DRAFT;
+        }
+        return resolveApprovedStatus(startDate, endDate);
     }
 
     private boolean requiresApproval(AdminRole role) {
@@ -839,6 +864,33 @@ public class EventAdminServiceImpl implements EventAdminService {
             case OLDEST -> Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
             case TITLE_ASC -> Sort.by(Sort.Order.asc("title"), Sort.Order.asc("id"));
         };
+    }
+
+    private void validateEventNotExpired(LocalDate endDate) {
+        if (endDate == null) {
+            throw new EventException(EventErrorCode.MISSING_REQUIRED_VALUE);
+        }
+        if (isExpired(endDate, LocalDate.now())) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_PERIOD);
+        }
+    }
+
+    private EventStatus resolveApprovedStatus(LocalDate startDate, LocalDate endDate) {
+        LocalDate today = LocalDate.now();
+        return isWithinActivePeriod(startDate, endDate, today) ? EventStatus.OPEN : EventStatus.APPROVAL;
+    }
+
+    private boolean isWithinActivePeriod(LocalDate startDate, LocalDate endDate, LocalDate today) {
+        if (startDate == null || endDate == null) {
+            return false;
+        }
+        boolean hasStarted = !startDate.isAfter(today);
+        boolean notFinished = !endDate.isBefore(today);
+        return hasStarted && notFinished;
+    }
+
+    private boolean isExpired(LocalDate endDate, LocalDate today) {
+        return endDate != null && endDate.isBefore(today);
     }
 
     private EventAdminSortType resolveSortType(String param) {
@@ -882,10 +934,17 @@ public class EventAdminServiceImpl implements EventAdminService {
     }
 
     @Override
-    @Transactional(readOnly = true)
+    @Transactional
     public List<EventApprovalRequestListResponse> getPendingApprovalRequests() {
-        return eventApprovalRequestRepository.findByEvent_StatusAndProcessedAtIsNullOrderByCreatedAtDesc(EventStatus.DRAFT)
-                .stream()
+        List<EventApprovalRequest> pending = eventApprovalRequestRepository
+                .findByEvent_StatusAndProcessedAtIsNullOrderByCreatedAtDesc(EventStatus.DRAFT);
+        LocalDate today = LocalDate.now();
+        LocalDateTime processedAt = LocalDateTime.now();
+        pending.stream()
+                .filter(request -> isExpired(request.getEvent().getEndDate(), today))
+                .forEach(request -> request.reject(null, processedAt));
+        return pending.stream()
+                .filter(request -> request.getProcessedAt() == null)
                 .map(EventApprovalRequestListResponse::from)
                 .toList();
     }
@@ -917,7 +976,9 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
         }
 
-        approvalRequest.approve(admin, LocalDateTime.now());
+        validateEventNotExpired(event.getEndDate());
+        EventStatus targetStatus = resolveApprovedStatus(event.getStartDate(), event.getEndDate());
+        approvalRequest.approve(admin, LocalDateTime.now(), targetStatus);
 
         return MessageResponse.of("Approval request approved");
     }
