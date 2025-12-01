@@ -28,7 +28,16 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -154,8 +163,9 @@ public class CommunityPostServiceImpl implements CommunityPostService {
         CommunityCategory category = communityCategoryRepository.findByName(request.keyword())
                 .orElseThrow(() -> new CommunityException(CommunityErrorCode.CATEGORY_NOT_FOUND));
 
-        List<String> imageUrls = request.imageUrls() != null ? request.imageUrls() : new ArrayList<>();
-        CommunityPost post = CommunityPost.create(user, category, request.title(), request.content(), imageUrls);
+        List<String> imageUrls = sanitizeImageUrls(request.imageUrls());
+        CommunityPost post = CommunityPost.create(user, category, request.title(), request.content(), List.of());
+        assignImages(post, imageUrls);
 
         communityPostRepository.save(post);
         log.info("게시글 생성 완료: postId={}, userId={}", post.getId(), userId);
@@ -187,14 +197,41 @@ public class CommunityPostServiceImpl implements CommunityPostService {
 
         if (request.imageUrls() != null) {
             communityPostImageRepository.deleteByPost(post);
-            post.clearImages();
-            int order = 0;
-            for (String imageUrl : request.imageUrls()) {
-                CommunityPostImage.create(post, imageUrl, order++);
-            }
+            assignImages(post, sanitizeImageUrls(request.imageUrls()));
         }
 
         log.info("게시글 수정 완료: postId={}, userId={}", postId, userId);
+    }
+
+    private List<String> sanitizeImageUrls(List<String> imageUrls) {
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return List.of();
+        }
+        LinkedHashSet<String> sanitized = new LinkedHashSet<>();
+        for (String url : imageUrls) {
+            if (url == null) {
+                continue;
+            }
+            String trimmed = url.trim();
+            if (!trimmed.isEmpty()) {
+                sanitized.add(trimmed);
+            }
+        }
+        return List.copyOf(sanitized);
+    }
+
+    private void assignImages(CommunityPost post, List<String> imageUrls) {
+        post.clearImages();
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            return;
+        }
+        int order = 0;
+        Set<String> seen = new LinkedHashSet<>();
+        for (String url : imageUrls) {
+            if (seen.add(url)) {
+                CommunityPostImage.create(post, url, order++);
+            }
+        }
     }
 
     @Override
@@ -389,4 +426,3 @@ public class CommunityPostServiceImpl implements CommunityPostService {
         }
     }
 }
-
