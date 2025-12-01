@@ -8,6 +8,8 @@ import java.time.OffsetDateTime;
 public record StoreOrderSummaryResponse(
         @Schema(description = "주문 ID", example = "501")
         Long orderId,
+        @Schema(description = "사용자 이메일", example = "user@wearagain.com")
+        String userEmail,
         @Schema(description = "아이템 ID", example = "101")
         Long itemId,
         @Schema(description = "아이템명", example = "웰컴 티셔츠")
@@ -16,8 +18,8 @@ public record StoreOrderSummaryResponse(
         int quantity,
         @Schema(description = "단가", example = "1200")
         int unitPrice,
-        @Schema(description = "사용 크레딧", example = "2400")
-        int usedCredit,
+        @Schema(description = "총 결제 금액", example = "2400")
+        int totalPrice,
         @Schema(description = "픽업 장소", example = "강남 팝업스토어")
         String pickupLocation,
         @Schema(description = "주문 상태", example = "CANCELED")

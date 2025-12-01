@@ -3,6 +3,8 @@ package com.ssasinsa.wearagain.domain.store.service;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemStatusUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderCancelResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderListResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCreateResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
@@ -20,4 +22,8 @@ public interface StoreAdminService {
     StoreItemDetailResponse updateItemStatus(Long itemId, StoreItemStatusUpdateRequest request, Long adminId);
 
     void deleteItem(Long itemId, Long adminId);
+
+    StoreAdminOrderListResponse getOrders(String status, String keyword, String keywordScope, String sort, int page, int size);
+
+    StoreAdminOrderCancelResponse cancelOrder(Long orderId, Long adminId);
 }

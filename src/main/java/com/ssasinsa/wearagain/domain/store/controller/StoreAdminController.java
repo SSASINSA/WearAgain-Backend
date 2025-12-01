@@ -5,9 +5,11 @@ import com.ssasinsa.wearagain.domain.store.docs.StoreAdminApiDocs;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemStatusUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderCancelResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderListResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreImageUploadResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCreateResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreImageUploadResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.service.StoreAdminService;
 import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
@@ -21,6 +23,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +42,7 @@ import org.springframework.web.multipart.MultipartFile;
 @Tag(name = StoreAdminApiDocs.TAG_NAME, description = StoreAdminApiDocs.TAG_DESCRIPTION)
 @RestController
 @RequestMapping("/api/v1/admin/store")
+@PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
 @RequiredArgsConstructor
 public class StoreAdminController {
 
@@ -127,5 +131,29 @@ public class StoreAdminController {
     ) {
         storeAdminService.deleteItem(itemId, principal.adminId());
         return ResponseEntity.noContent().build();
+    }
+
+    @StoreAdminApiDocs.GetAdminOrders
+    @GetMapping("/orders")
+    public ResponseEntity<StoreAdminOrderListResponse> getOrders(
+            @RequestParam(name = "status", required = false) String status,
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @RequestParam(name = "keywordScope", required = false, defaultValue = "ALL") String keywordScope,
+            @RequestParam(name = "sort", defaultValue = "LATEST") String sort,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size
+    ) {
+        StoreAdminOrderListResponse response = storeAdminService.getOrders(status, keyword, keywordScope, sort, page, size);
+        return ResponseEntity.ok(response);
+    }
+
+    @StoreAdminApiDocs.CancelAdminOrder
+    @PostMapping("/orders/{orderId}/cancel")
+    public ResponseEntity<StoreAdminOrderCancelResponse> cancelOrder(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal AdminAuthenticatedUser principal
+    ) {
+        StoreAdminOrderCancelResponse response = storeAdminService.cancelOrder(orderId, principal.adminId());
+        return ResponseEntity.ok(response);
     }
 }
