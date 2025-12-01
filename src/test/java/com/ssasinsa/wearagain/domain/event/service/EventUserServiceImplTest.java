@@ -216,7 +216,7 @@ class EventUserServiceImplTest {
         EventOption groupOption = EventOption.create(event, timeOption, "A조", "GROUP", 1, 10);
         ReflectionTestUtils.setField(groupOption, "id", 2003L);
 
-        when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(Optional.of(event));
         when(eventApplicationRepository.countActiveApplicationsByOptionIds(anySet(), any()))
                 .thenReturn(List.of());
 

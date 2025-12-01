@@ -5,11 +5,14 @@ import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecificationExecutor<Event> {
 
@@ -39,4 +42,25 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             @Param("approvalStatus") EventStatus approvalStatus,
             @Param("targetDate") java.time.LocalDate targetDate
     );
+
+    @EntityGraph(attributePaths = {
+            "organizerAdmin",
+            "approvalRequest",
+            "approvalRequest.requestingAdmin",
+            "approvalRequest.processedByAdmin",
+            "images",
+            "options",
+            "options.childOptions",
+            "options.childOptions.childOptions"
+    })
+    Optional<Event> findWithDetailsById(Long id);
+
+    @Override
+    @EntityGraph(attributePaths = {
+            "organizerAdmin",
+            "approvalRequest",
+            "approvalRequest.requestingAdmin",
+            "approvalRequest.processedByAdmin"
+    })
+    Page<Event> findAll(Specification<Event> spec, Pageable pageable);
 }

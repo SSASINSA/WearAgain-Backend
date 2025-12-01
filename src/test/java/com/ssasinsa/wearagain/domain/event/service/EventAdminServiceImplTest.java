@@ -220,6 +220,7 @@ class EventAdminServiceImplTest {
 
     @Test
     void should_issue_staff_code_when_request_by_organizer() {
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
 
         EventStaffCodeResponse response = eventAdminService.issueStaffCode(101L, 11L);
