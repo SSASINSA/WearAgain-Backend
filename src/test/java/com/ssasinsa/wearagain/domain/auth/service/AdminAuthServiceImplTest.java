@@ -27,16 +27,23 @@ import com.ssasinsa.wearagain.domain.auth.repository.AdminSignupRequestRepositor
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
 import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.Optional;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -200,15 +207,27 @@ class AdminAuthServiceImplTest {
         ReflectionTestUtils.setField(pending, "createdAt", LocalDateTime.now().minusDays(8));
         ReflectionTestUtils.setField(pending, "updatedAt", LocalDateTime.now().minusDays(8));
 
-        when(adminSignupRequestRepository.findAllByStatusOrderByCreatedAtDesc(AdminSignupRequestStatus.PENDING))
-                .thenReturn(List.of(pending));
+        Page<AdminSignupRequest> page = new PageImpl<>(List.of(pending), PageRequest.of(0, 20), 1);
+        when(adminSignupRequestRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(AdminSignupRequestStatus.PENDING);
+        AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(
+                AdminSignupRequestStatus.PENDING,
+                null,
+                null,
+                0,
+                20,
+                "LATEST"
+        );
 
         assertThat(response.items()).isEmpty();
         assertThat(pending.getStatus()).isEqualTo(AdminSignupRequestStatus.EXPIRED);
+        assertThat(response.totalElements()).isEqualTo(1);
+        assertThat(response.page()).isEqualTo(0);
 
-        verify(adminSignupRequestRepository).findAllByStatusOrderByCreatedAtDesc(AdminSignupRequestStatus.PENDING);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(adminSignupRequestRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        Pageable usedPageable = pageableCaptor.getValue();
+        assertThat(usedPageable.getSort()).isEqualTo(Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
     }
 
     @Test
@@ -240,17 +259,117 @@ class AdminAuthServiceImplTest {
         ReflectionTestUtils.setField(approved, "updatedAt", LocalDateTime.now().minusDays(2));
         approved.markApproved(reviewer, LocalDateTime.now().minusDays(1));
 
-        when(adminSignupRequestRepository.findAllByOrderByCreatedAtDesc()).thenReturn(List.of(approved, pending));
+        Page<AdminSignupRequest> page = new PageImpl<>(List.of(approved, pending), PageRequest.of(1, 10), 2);
+        when(adminSignupRequestRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
 
-        AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(null);
+        AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(
+                null,
+                null,
+                null,
+                1,
+                10,
+                "OLDEST"
+        );
 
         assertThat(response.items()).hasSize(2);
         assertThat(response.items().get(0).signupRequestId()).isEqualTo(55L);
         assertThat(response.items().get(0).reviewer()).isNotNull();
         assertThat(response.items().get(0).reviewer().adminId()).isEqualTo(1L);
         assertThat(response.items().get(1).signupRequestId()).isEqualTo(60L);
+        assertThat(response.page()).isEqualTo(1);
+        assertThat(response.totalPages()).isEqualTo(1);
 
-        verify(adminSignupRequestRepository).findAllByOrderByCreatedAtDesc();
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(adminSignupRequestRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        assertThat(pageableCaptor.getValue().getSort()).isEqualTo(Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id")));
+    }
+
+    @Test
+    @DisplayName("KEYWORD? 二쇱뼱?섏뀲?쇨퀬 沅뚰븳???좎껌 紐⑸줉??寃??媛吏?섏뼱")
+    void should_filter_signup_requests_by_keyword() {
+        AdminSignupRequest pending = AdminSignupRequest.createPending(
+                "FindMe@wearagain.kr",
+                "encoded",
+                "願由ъ옄",
+                AdminRole.ADMIN,
+                "?댁쁺"
+        );
+        ReflectionTestUtils.setField(pending, "id", 70L);
+        ReflectionTestUtils.setField(pending, "createdAt", LocalDateTime.now().minusDays(2));
+        ReflectionTestUtils.setField(pending, "updatedAt", LocalDateTime.now().minusDays(2));
+
+        Page<AdminSignupRequest> page = new PageImpl<>(List.of(pending), PageRequest.of(0, 20), 1);
+        when(adminSignupRequestRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+        AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(
+                null,
+                "  ADMIN ",
+                null,
+                0,
+                20,
+                "LATEST"
+        );
+
+        assertThat(response.items()).hasSize(1);
+        assertThat(response.items().get(0).signupRequestId()).isEqualTo(70L);
+        verify(adminSignupRequestRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("鍮쇰쿂鍮꾩챸???ъ슜???좉퀬 INVALID_SCOPE瑜?넻???빐寃?")
+    void should_throw_when_keyword_scope_invalid() {
+        assertThatThrownBy(() -> adminAuthService.getSignupRequests(null, "admin", "unknown", 0, 20, "LATEST"))
+                .isInstanceOf(AdminAuthException.class)
+                .extracting("errorCode")
+                .isEqualTo(AdminAuthErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("KEYWORD SCOPE媛 EMAIL??옣???ㅼ떆 愿由ъ옄 ?대찓????寃??뼱??")
+    void should_filter_by_email_scope_only() {
+        AdminSignupRequest pending = AdminSignupRequest.createPending(
+                "findemail@wearagain.kr",
+                "encoded",
+                "濡쒓렇??媛由ъ옄",
+                AdminRole.ADMIN,
+                "?댁쁺"
+        );
+        ReflectionTestUtils.setField(pending, "id", 71L);
+        ReflectionTestUtils.setField(pending, "createdAt", LocalDateTime.now().minusDays(1));
+        ReflectionTestUtils.setField(pending, "updatedAt", LocalDateTime.now().minusDays(1));
+
+        Page<AdminSignupRequest> page = new PageImpl<>(List.of(pending), PageRequest.of(0, 20), 1);
+        when(adminSignupRequestRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+        AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(
+                null,
+                " find ",
+                "EMAIL",
+                0,
+                20,
+                "LATEST"
+        );
+
+        assertThat(response.items()).hasSize(1);
+        verify(adminSignupRequestRepository).findAll(any(Specification.class), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("페이지 파라미터가 유효하지 않으면 예외가 발생한다")
+    void should_throw_when_page_invalid() {
+        assertThatThrownBy(() -> adminAuthService.getSignupRequests(null, null, null, -1, 10, "LATEST"))
+                .isInstanceOf(AdminAuthException.class)
+                .extracting("errorCode")
+                .isEqualTo(AdminAuthErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("정렬 파라미터가 잘못되면 예외가 발생한다")
+    void should_throw_when_sort_invalid() {
+        assertThatThrownBy(() -> adminAuthService.getSignupRequests(null, null, null, 0, 10, "UNKNOWN"))
+                .isInstanceOf(AdminAuthException.class)
+                .extracting("errorCode")
+                .isEqualTo(AdminAuthErrorCode.INVALID_INPUT);
     }
 }
 

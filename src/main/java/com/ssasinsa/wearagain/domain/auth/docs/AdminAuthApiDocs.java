@@ -74,7 +74,7 @@ public final class AdminAuthApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 가입 신청 목록 조회",
-            description = "SUPER_ADMIN 권한이 가입 신청 목록을 상태별로 조회합니다.",
+            description = "ADMIN 또는 SUPER_ADMIN 권한이 가입 신청 목록을 상태/검색 조건으로 조회합니다.",
             responseSchema = AdminSignupRequestListResponse.class,
             responseExample = AdminAuthExamples.ADMIN_SIGNUP_LIST_RESPONSE
     )
@@ -86,7 +86,7 @@ public final class AdminAuthApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 가입 승인",
-            description = "SUPER_ADMIN이 가입 신청을 승인하여 관리자 계정을 생성합니다.",
+            description = "ADMIN 또는 SUPER_ADMIN이 가입 신청을 승인하여 관리자 계정을 생성합니다.",
             responseSchema = AdminSignupApprovalResponse.class,
             responseExample = AdminAuthExamples.ADMIN_APPROVE_RESPONSE
     )
@@ -98,7 +98,7 @@ public final class AdminAuthApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "관리자 가입 거절",
-            description = "SUPER_ADMIN이 가입 신청을 거절합니다.",
+            description = "ADMIN 또는 SUPER_ADMIN이 가입 신청을 거절합니다.",
             responseSchema = AdminSimpleResponse.class,
             responseExample = AdminAuthExamples.ADMIN_SIMPLE_RESPONSE
     )

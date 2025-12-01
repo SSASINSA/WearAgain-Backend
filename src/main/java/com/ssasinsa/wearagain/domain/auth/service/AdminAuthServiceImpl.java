@@ -1,44 +1,37 @@
 package com.ssasinsa.wearagain.domain.auth.service;
 
-import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.domain.auth.config.AdminJwtProperties;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLoginRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminLogoutRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminSignupRequestCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.dto.request.AdminTokenRefreshRequest;
-import com.ssasinsa.wearagain.domain.auth.dto.response.AdminAuthTokenResponse;
-import com.ssasinsa.wearagain.domain.auth.dto.response.AdminRoleResponse;
-import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupApprovalResponse;
-import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestResponse;
-import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSimpleResponse;
-import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestListResponse;
-import com.ssasinsa.wearagain.domain.auth.dto.response.AdminSignupRequestSummaryResponse;
-import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
-import com.ssasinsa.wearagain.domain.auth.entity.AdminSignupRequest;
-import com.ssasinsa.wearagain.domain.auth.entity.AdminSignupRequestStatus;
-import com.ssasinsa.wearagain.domain.auth.entity.AdminStatus;
-import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
+import com.ssasinsa.wearagain.domain.auth.dto.response.*;
+import com.ssasinsa.wearagain.domain.auth.entity.*;
 import com.ssasinsa.wearagain.domain.auth.exception.AdminAuthErrorCode;
 import com.ssasinsa.wearagain.domain.auth.exception.AdminAuthException;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.AdminRefreshTokenKeyManager;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.AdminJwtTokenProvider;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.AdminJwtTokenProvider.RefreshTokenClaims;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.jwt.JwtToken;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminSignupRequestRepository;
+import com.ssasinsa.wearagain.domain.auth.repository.AdminSignupRequestSpecifications;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
 import io.jsonwebtoken.JwtException;
-import java.time.Duration;
-import java.time.LocalDateTime;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -218,10 +211,27 @@ public class AdminAuthServiceImpl implements AdminAuthService {
 
     @Override
     @Transactional
-    public AdminSignupRequestListResponse getSignupRequests(AdminSignupRequestStatus status) {
-        List<AdminSignupRequest> requests = status == null
-                ? adminSignupRequestRepository.findAllByOrderByCreatedAtDesc()
-                : adminSignupRequestRepository.findAllByStatusOrderByCreatedAtDesc(status);
+    public AdminSignupRequestListResponse getSignupRequests(
+            AdminSignupRequestStatus status,
+            String keyword,
+            String keywordScope,
+            int page,
+            int size,
+            String sort
+    ) {
+        validatePageRequest(page, size);
+        String normalizedKeyword = normalizeKeyword(keyword);
+        AdminSignupRequestKeywordScope scope = resolveKeywordScope(keywordScope);
+
+        Specification<AdminSignupRequest> spec = AdminSignupRequestSpecifications.statusEquals(status);
+        Specification<AdminSignupRequest> keywordSpec = AdminSignupRequestSpecifications.keywordMatches(normalizedKeyword, scope);
+        if (keywordSpec != null) {
+            spec = spec == null ? keywordSpec : spec.and(keywordSpec);
+        }
+
+        Pageable pageable = PageRequest.of(page, size, resolveSort(sort));
+        Page<AdminSignupRequest> result = adminSignupRequestRepository.findAll(spec, pageable);
+        List<AdminSignupRequest> requests = result.getContent();
 
         LocalDateTime now = LocalDateTime.now();
         requests.stream()
@@ -238,7 +248,14 @@ public class AdminAuthServiceImpl implements AdminAuthService {
                 .map(AdminSignupRequestSummaryResponse::from)
                 .toList();
 
-        return AdminSignupRequestListResponse.of(summaries);
+        return AdminSignupRequestListResponse.of(
+                summaries,
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.hasNext()
+        );
     }
 
     @Override
@@ -246,6 +263,51 @@ public class AdminAuthServiceImpl implements AdminAuthService {
         AdminUser admin = adminUserRepository.findById(adminId)
                 .orElseThrow(() -> new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT));
         return AdminRoleResponse.of(admin.getRole());
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (!StringUtils.hasText(keyword)) {
+            return null;
+        }
+        return keyword.trim().toLowerCase();
+    }
+
+    private void validatePageRequest(int page, int size) {
+        if (page < 0 || size <= 0 || size > 50) {
+            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT);
+        }
+    }
+
+    private Sort resolveSort(String param) {
+        AdminSignupRequestSortType sortType = resolveSortType(param);
+        return switch (sortType) {
+            case LATEST -> Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+            case OLDEST -> Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
+            case NAME_ASC -> Sort.by(Sort.Order.asc("name"), Sort.Order.asc("id"));
+            case NAME_DESC -> Sort.by(Sort.Order.desc("name"), Sort.Order.desc("id"));
+        };
+    }
+
+    private AdminSignupRequestSortType resolveSortType(String param) {
+        if (!StringUtils.hasText(param)) {
+            return AdminSignupRequestSortType.LATEST;
+        }
+        try {
+            return AdminSignupRequestSortType.valueOf(param.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT, exception);
+        }
+    }
+
+    private AdminSignupRequestKeywordScope resolveKeywordScope(String keywordScope) {
+        if (!StringUtils.hasText(keywordScope)) {
+            return AdminSignupRequestKeywordScope.ALL;
+        }
+        try {
+            return AdminSignupRequestKeywordScope.valueOf(keywordScope.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new AdminAuthException(AdminAuthErrorCode.INVALID_INPUT, exception);
+        }
     }
 
     private AdminSignupRequest loadPendingRequest(Long requestId) {
