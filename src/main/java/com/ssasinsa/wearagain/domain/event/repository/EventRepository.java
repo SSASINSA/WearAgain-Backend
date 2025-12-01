@@ -49,9 +49,7 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             "approvalRequest.requestingAdmin",
             "approvalRequest.processedByAdmin",
             "images",
-            "options",
-            "options.childOptions",
-            "options.childOptions.childOptions"
+            "options"
     })
     Optional<Event> findWithDetailsById(Long id);
 

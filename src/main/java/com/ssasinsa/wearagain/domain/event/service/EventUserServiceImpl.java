@@ -544,14 +544,11 @@ public class EventUserServiceImpl implements EventUserService {
         if (options == null || options.isEmpty()) {
             return List.of();
         }
-        Map<Long, EventOption> byId = new LinkedHashMap<>();
+        Map<Object, EventOption> byId = new LinkedHashMap<>();
         for (EventOption option : options) {
             Long id = option.getId();
-            if (id == null) {
-                byId.putIfAbsent(System.identityHashCode(option) * 1L, option);
-            } else {
-                byId.putIfAbsent(id, option);
-            }
+            Object key = (id != null) ? id : option;
+            byId.putIfAbsent(key, option);
         }
         return List.copyOf(byId.values());
     }

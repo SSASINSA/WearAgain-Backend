@@ -384,6 +384,7 @@ class EventAdminServiceImplTest {
     @Test
     void should_get_event_detail_with_options_and_applications() {
         event.updateStaffCode("999888", LocalDateTime.now(ZoneOffset.UTC));
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
@@ -421,6 +422,7 @@ class EventAdminServiceImplTest {
     @Test
     void should_update_event_basic_info_and_replace_structures() {
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.<EventCapacitySummary>of());
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.<EventApplicationEventCount>of());
@@ -475,6 +477,7 @@ class EventAdminServiceImplTest {
     @Test
     void should_reset_existing_approval_request_when_manager_updates_event() {
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event), java.util.Optional.of(event));
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of());
@@ -516,6 +519,7 @@ class EventAdminServiceImplTest {
     @Test
     void should_create_new_approval_request_when_manager_updates_event_without_existing_request() {
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event), java.util.Optional.of(event));
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of());
@@ -577,6 +581,7 @@ class EventAdminServiceImplTest {
                 java.util.Optional.of(event),
                 java.util.Optional.of(event)
         );
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of());

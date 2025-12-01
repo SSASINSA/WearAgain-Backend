@@ -209,11 +209,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     @Transactional(readOnly = true)
     public EventAdminDetailResponse getEventDetail(Long eventId, Long adminId, AdminRole role) {
         Event event = eventRepository.findWithDetailsById(eventId)
-                .or(() -> eventRepository.findById(eventId))
-                .orElseGet(() -> eventRepository.findById(eventId).orElse(null));
-        if (event == null) {
-            throw new EventException(EventErrorCode.EVENT_NOT_FOUND);
-        }
+                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
         enforceViewPermission(event, adminId, role);
 
         List<EventOption> rootOptions = toDistinctOptions(event.getOptions())
@@ -942,16 +938,13 @@ public class EventAdminServiceImpl implements EventAdminService {
         if (options == null || options.isEmpty()) {
             return List.of();
         }
-        Map<Long, EventOption> byId = new LinkedHashMap<>();
+        Map<Object, EventOption> seen = new LinkedHashMap<>();
         for (EventOption option : options) {
             Long id = option.getId();
-            if (id == null) {
-                byId.putIfAbsent((long) System.identityHashCode(option), option);
-            } else {
-                byId.putIfAbsent(id, option);
-            }
+            Object key = (id != null) ? id : option;
+            seen.putIfAbsent(key, option);
         }
-        return List.copyOf(byId.values());
+        return List.copyOf(seen.values());
     }
 
     @Override

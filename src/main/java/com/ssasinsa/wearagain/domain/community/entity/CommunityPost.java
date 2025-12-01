@@ -108,8 +108,7 @@ public class CommunityPost extends BaseTimeEntity {
             return;
         }
         boolean exists = images.stream()
-                .anyMatch(existing -> Objects.equals(existing.getImageUrl(), image.getImageUrl())
-                        && existing.getSortOrder() == image.getSortOrder());
+                .anyMatch(existing -> Objects.equals(existing.getImageUrl(), image.getImageUrl()));
         if (!exists) {
             images.add(image);
         }

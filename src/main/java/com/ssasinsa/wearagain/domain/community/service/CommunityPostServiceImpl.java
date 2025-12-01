@@ -38,7 +38,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -226,11 +225,8 @@ public class CommunityPostServiceImpl implements CommunityPostService {
             return;
         }
         int order = 0;
-        Set<String> seen = new LinkedHashSet<>();
         for (String url : imageUrls) {
-            if (seen.add(url)) {
-                CommunityPostImage.create(post, url, order++);
-            }
+            CommunityPostImage.create(post, url, order++);
         }
     }
 
