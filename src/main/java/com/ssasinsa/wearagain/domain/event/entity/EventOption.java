@@ -21,6 +21,7 @@ import lombok.Builder;
 import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.BatchSize;
 
 @Getter
 @Entity
@@ -57,10 +58,12 @@ public class EventOption extends BaseTimeEntity {
 
     @OneToMany(mappedBy = "parentOption", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @Default
+    @BatchSize(size = 50)
     private List<EventOption> childOptions = new ArrayList<>();
 
     @OneToMany(mappedBy = "eventOption", fetch = FetchType.LAZY)
     @Default
+    @BatchSize(size = 50)
     private List<EventApplication> applications = new ArrayList<>();
 
     public static EventOption create(

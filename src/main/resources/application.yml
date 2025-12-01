@@ -21,6 +21,8 @@ spring:
       hibernate:
         format_sql: true
         default_batch_fetch_size: 100
+        session.events.log.LOG_QUERIES_SLOWER_THAN_MS: ${HIBERNATE_SLOW_QUERY_MS:0}
+    show-sql: ${SPRING_JPA_SHOW_SQL:false}
 
   servlet:
     multipart:
@@ -123,6 +125,8 @@ admin:
 logging:
   level:
     org.springframework.security.web.FilterChainProxy: DEBUG
+    org.hibernate.SQL: ${LOGGING_LEVEL_ORG_HIBERNATE_SQL:INFO}
+    org.hibernate.orm.jdbc.bind: ${LOGGING_LEVEL_ORG_HIBERNATE_BIND:INFO}
 
 impact:
   co2-per-ticket: ${IMPACT_CO2_PER_TICKET:0}
