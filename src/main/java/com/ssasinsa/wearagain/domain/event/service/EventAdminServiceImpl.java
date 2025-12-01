@@ -59,6 +59,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.LinkedHashMap;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -207,11 +208,11 @@ public class EventAdminServiceImpl implements EventAdminService {
     @Override
     @Transactional(readOnly = true)
     public EventAdminDetailResponse getEventDetail(Long eventId, Long adminId, AdminRole role) {
-        Event event = eventRepository.findById(eventId)
+        Event event = eventRepository.findWithDetailsById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
         enforceViewPermission(event, adminId, role);
 
-        List<EventOption> rootOptions = event.getOptions()
+        List<EventOption> rootOptions = toDistinctOptions(event.getOptions())
                 .stream()
                 .filter(option -> option.getParentOption() == null)
                 .sorted(OPTION_ORDER)
@@ -480,7 +481,7 @@ public class EventAdminServiceImpl implements EventAdminService {
                 ))
                 .toList();
 
-        List<EventCreateOptionResponse> optionResponses = event.getOptions().stream()
+        List<EventCreateOptionResponse> optionResponses = toDistinctOptions(event.getOptions()).stream()
                 .filter(option -> option.getParentOption() == null)
                 .sorted(OPTION_ORDER)
                 .map(this::mapOptionToCreateResponse)
@@ -512,7 +513,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     }
 
     private EventCreateOptionResponse mapOptionToCreateResponse(EventOption option) {
-        List<EventCreateOptionResponse> children = option.getChildOptions().stream()
+        List<EventCreateOptionResponse> children = toDistinctOptions(option.getChildOptions()).stream()
                 .sorted(OPTION_ORDER)
                 .map(this::mapOptionToCreateResponse)
                 .toList();
@@ -534,7 +535,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         Integer capacity = option.getCapacity();
         Integer remaining = capacity == null ? null : Math.max(0, capacity - appliedCount);
 
-        List<EventAdminOptionResponse> children = option.getChildOptions()
+        List<EventAdminOptionResponse> children = toDistinctOptions(option.getChildOptions())
                 .stream()
                 .sorted(OPTION_ORDER)
                 .map(child -> mapOption(child, counts))
@@ -906,13 +907,13 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     private Set<Long> collectOptionIds(Collection<EventOption> roots) {
         Set<Long> ids = new HashSet<>();
-        Deque<EventOption> stack = new ArrayDeque<>(roots);
+        Deque<EventOption> stack = new ArrayDeque<>(toDistinctOptions(roots));
         while (!stack.isEmpty()) {
             EventOption option = stack.pop();
             if (option.getId() != null) {
                 ids.add(option.getId());
             }
-            option.getChildOptions().forEach(stack::push);
+            toDistinctOptions(option.getChildOptions()).forEach(stack::push);
         }
         return ids;
     }
@@ -931,6 +932,19 @@ public class EventAdminServiceImpl implements EventAdminService {
     private String generateStaffCode() {
         int value = STAFF_CODE_RANDOM.nextInt(1_000_000);
         return String.format("%06d", value);
+    }
+
+    private List<EventOption> toDistinctOptions(Collection<EventOption> options) {
+        if (options == null || options.isEmpty()) {
+            return List.of();
+        }
+        Map<Object, EventOption> seen = new LinkedHashMap<>();
+        for (EventOption option : options) {
+            Long id = option.getId();
+            Object key = (id != null) ? id : option;
+            seen.putIfAbsent(key, option);
+        }
+        return List.copyOf(seen.values());
     }
 
     @Override

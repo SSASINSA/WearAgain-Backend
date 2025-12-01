@@ -104,7 +104,14 @@ public class CommunityPost extends BaseTimeEntity {
     }
 
     void addImage(CommunityPostImage image) {
-        images.add(image);
+        if (image == null) {
+            return;
+        }
+        boolean exists = images.stream()
+                .anyMatch(existing -> Objects.equals(existing.getImageUrl(), image.getImageUrl()));
+        if (!exists) {
+            images.add(image);
+        }
     }
 
     public void assignCategory(CommunityCategory category) {

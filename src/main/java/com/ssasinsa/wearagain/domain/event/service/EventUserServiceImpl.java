@@ -47,6 +47,7 @@ import java.util.Comparator;
 import java.util.Deque;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -114,14 +115,18 @@ public class EventUserServiceImpl implements EventUserService {
     @Override
     @Transactional(readOnly = true)
     public EventDetailResponse getEventDetail(Long eventId, Long userId) {
-        Event event = eventRepository.findById(eventId)
-                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+        Event event = eventRepository.findWithDetailsById(eventId)
+                .or(() -> eventRepository.findById(eventId))
+                .orElseGet(() -> eventRepository.findById(eventId).orElse(null));
+        if (event == null) {
+            throw new EventException(EventErrorCode.EVENT_NOT_FOUND);
+        }
 
         if (isHiddenFromUser(event.getStatus())) {
             throw new EventException(EventErrorCode.EVENT_NOT_FOUND);
         }
 
-        List<EventOption> rootOptions = event.getOptions()
+        List<EventOption> rootOptions = toDistinctOptions(event.getOptions())
                 .stream()
                 .filter(option -> option.getParentOption() == null)
                 .sorted(OPTION_ORDER)
@@ -488,7 +493,7 @@ public class EventUserServiceImpl implements EventUserService {
         Integer capacity = option.getCapacity();
         Integer remaining = capacity == null ? null : Math.max(0, capacity - appliedCount);
 
-        List<EventDetailOptionResponse> children = option.getChildOptions()
+        List<EventDetailOptionResponse> children = toDistinctOptions(option.getChildOptions())
                 .stream()
                 .sorted(OPTION_ORDER)
                 .map(child -> mapOption(child, counts))
@@ -530,9 +535,22 @@ public class EventUserServiceImpl implements EventUserService {
             if (option.getId() != null) {
                 ids.add(option.getId());
             }
-            option.getChildOptions().forEach(stack::push);
+            toDistinctOptions(option.getChildOptions()).forEach(stack::push);
         }
         return ids;
+    }
+
+    private List<EventOption> toDistinctOptions(Collection<EventOption> options) {
+        if (options == null || options.isEmpty()) {
+            return List.of();
+        }
+        Map<Object, EventOption> byId = new LinkedHashMap<>();
+        for (EventOption option : options) {
+            Long id = option.getId();
+            Object key = (id != null) ? id : option;
+            byId.putIfAbsent(key, option);
+        }
+        return List.copyOf(byId.values());
     }
 
     private Map<Long, Long> loadApplicationCounts(Set<Long> optionIds) {
