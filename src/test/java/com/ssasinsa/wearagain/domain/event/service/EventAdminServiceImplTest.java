@@ -12,6 +12,7 @@ import com.ssasinsa.wearagain.domain.event.entity.*;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.*;
+import jakarta.persistence.criteria.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -21,16 +22,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Expression;
-import jakarta.persistence.criteria.Path;
-import jakarta.persistence.criteria.Predicate;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -69,9 +66,13 @@ class EventAdminServiceImplTest {
     private EventOption option;
     private AdminUser adminUser;
     private EventAdminCreateRequest validCreateRequest;
+    private LocalDate defaultStartDate;
+    private LocalDate defaultEndDate;
 
     @BeforeEach
     void setUp() {
+        defaultStartDate = LocalDate.now().plusDays(30);
+        defaultEndDate = defaultStartDate.plusDays(15);
         adminUser = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "운영자");
         ReflectionTestUtils.setField(adminUser, "id", 11L);
         when(adminUserRepository.findById(11L)).thenReturn(java.util.Optional.of(adminUser));
@@ -79,8 +80,8 @@ class EventAdminServiceImplTest {
         event = Event.create(
                 "지속가능 패션 워크숍",
                 "웨어어게인과 함께하는 리폼 클래스",
-                LocalDate.of(2025, 11, 10),
-                LocalDate.of(2025, 11, 30),
+                defaultStartDate,
+                defaultEndDate,
                 "서울시 마포구 연남동 223-14 2F",
                 EventStatus.OPEN,
                 adminUser,
@@ -103,11 +104,14 @@ class EventAdminServiceImplTest {
     @Test
     void should_create_event_when_request_is_valid() {
         Event persisted = buildPersistedEvent(validCreateRequest);
-        when(eventRepository.save(any(Event.class))).thenReturn(persisted);
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        when(eventRepository.save(eventCaptor.capture())).thenReturn(persisted);
 
-        EventCreateResponse response = eventAdminService.createEvent(validCreateRequest, 11L);
+        EventCreateResponse response = eventAdminService.createEvent(validCreateRequest, 11L, AdminRole.MANAGER);
 
         verify(eventRepository).save(any(Event.class));
+        verify(eventApprovalRequestRepository).save(any(EventApprovalRequest.class));
+        assertThat(eventCaptor.getValue().getStatus()).isEqualTo(EventStatus.DRAFT);
         assertThat(response.eventId()).isEqualTo(1L);
         assertThat(response.organizerAdminId()).isEqualTo(11L);
         assertThat(response.organizerAdminEmail()).isEqualTo("admin@wearagain.kr");
@@ -119,6 +123,20 @@ class EventAdminServiceImplTest {
         assertThat(response.images()).hasSize(2);
         assertThat(response.options()).hasSize(2);
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT.name());
+    }
+
+    @Test
+    void should_auto_approve_event_when_created_by_admin() {
+        Event persisted = buildPersistedEvent(validCreateRequest);
+        persisted.changeStatus(EventStatus.APPROVAL);
+        ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+        when(eventRepository.save(eventCaptor.capture())).thenReturn(persisted);
+
+        EventCreateResponse response = eventAdminService.createEvent(validCreateRequest, 11L, AdminRole.ADMIN);
+
+        assertThat(eventCaptor.getValue().getStatus()).isEqualTo(EventStatus.APPROVAL);
+        assertThat(response.status()).isEqualTo(EventStatus.APPROVAL.name());
+        verify(eventApprovalRequestRepository, never()).save(any());
     }
 
     @Test
@@ -135,7 +153,7 @@ class EventAdminServiceImplTest {
                 List.of()
         );
 
-        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L))
+        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_PERIOD);
     }
@@ -186,7 +204,7 @@ class EventAdminServiceImplTest {
                 List.of(depth4Option)
         );
 
-        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L))
+        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
     }
@@ -195,7 +213,7 @@ class EventAdminServiceImplTest {
     void should_fail_create_when_admin_not_found() {
         when(adminUserRepository.findById(999L)).thenReturn(java.util.Optional.empty());
 
-        assertThatThrownBy(() -> eventAdminService.createEvent(validCreateRequest, 999L))
+        assertThatThrownBy(() -> eventAdminService.createEvent(validCreateRequest, 999L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_ADMIN_NOT_FOUND);
     }
@@ -245,14 +263,15 @@ class EventAdminServiceImplTest {
     @Test
     void should_list_events_with_statistics() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 20);
-        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), pageableCaptor.capture()))
                 .thenReturn(pageResult);
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of(new EventApplicationEventCount(101L, 20L)));
 
-        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, 11L, AdminRole.ADMIN, null, null);
+        EventAdminListResponse response = eventAdminService.getEvents(null, 0, 10, null, 11L, AdminRole.ADMIN, null, null);
 
         assertThat(response.events()).hasSize(1);
         EventAdminSummaryResponse summary = response.events().get(0);
@@ -270,11 +289,44 @@ class EventAdminServiceImplTest {
         assertThat(response.totalElements()).isEqualTo(20);
         assertThat(response.totalPages()).isEqualTo(2);
         assertThat(response.hasNext()).isTrue();
+
+        Pageable pageable = pageableCaptor.getValue();
+        Sort.Order createdAtOrder = pageable.getSort().getOrderFor("createdAt");
+        assertThat(createdAtOrder).isNotNull();
+        assertThat(createdAtOrder.getDirection()).isEqualTo(Sort.Direction.DESC);
     }
 
     @Test
     void should_throw_invalid_query_when_keyword_scope_is_invalid() {
-        assertThatThrownBy(() -> eventAdminService.getEvents("OPEN", 0, 10, 11L, AdminRole.ADMIN, "sale", "invalid"))
+        assertThatThrownBy(() -> eventAdminService.getEvents("OPEN", 0, 10, null, 11L, AdminRole.ADMIN, "sale", "invalid"))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_QUERY);
+    }
+
+    @Test
+    void should_apply_sort_parameter_when_provided() {
+        PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 1);
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), pageableCaptor.capture()))
+                .thenReturn(pageResult);
+        when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+
+        eventAdminService.getEvents(null, 0, 10, "TITLE_ASC", 11L, AdminRole.ADMIN, null, null);
+
+        Pageable pageable = pageableCaptor.getValue();
+        Sort.Order titleOrder = pageable.getSort().getOrderFor("title");
+        assertThat(titleOrder).isNotNull();
+        assertThat(titleOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+        Sort.Order idOrder = pageable.getSort().getOrderFor("id");
+        assertThat(idOrder).isNotNull();
+        assertThat(idOrder.getDirection()).isEqualTo(Sort.Direction.ASC);
+    }
+
+    @Test
+    void should_throw_invalid_query_when_sort_is_invalid() {
+        assertThatThrownBy(() -> eventAdminService.getEvents(null, 0, 10, "WRONG", 11L, AdminRole.ADMIN, null, null))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_EVENT_QUERY);
     }
@@ -290,7 +342,7 @@ class EventAdminServiceImplTest {
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
                 .thenReturn(List.of(new EventApplicationEventCount(101L, 10L)));
 
-        eventAdminService.getEvents("OPEN", 0, 5, 11L, AdminRole.MANAGER, "Sale%", "TITLE");
+        eventAdminService.getEvents("OPEN", 0, 5, null, 11L, AdminRole.MANAGER, "Sale%", "TITLE");
 
         verify(eventRepository).findAll(specCaptor.capture(), any(Pageable.class));
         Specification<Event> captured = specCaptor.getValue();
@@ -375,14 +427,16 @@ class EventAdminServiceImplTest {
                 .thenReturn(List.<EventOptionApplicationCount>of());
         when(eventApplicationRepository.findAllWithUserByEventId(101L)).thenReturn(List.<EventApplication>of());
 
+        LocalDate updatedStartDate = defaultStartDate.plusDays(2);
+        LocalDate updatedEndDate = updatedStartDate.plusDays(10);
         EventAdminUpdateRequest request = new EventAdminUpdateRequest(
                 "워크숍 업데이트",
                 "설명 업데이트입니다.",
                 "업데이트된 이용 방법",
                 "업데이트된 주의 사항",
                 "서울시 성동구 왕십리로 32",
-                LocalDate.of(2025, 11, 12),
-                LocalDate.of(2025, 12, 1),
+                updatedStartDate,
+                updatedEndDate,
                 EventStatus.OPEN,
                 List.of(new EventAdminImageRequest("https://cdn.wearagain.kr/events/101/main.jpg", "대표", 1)),
                 List.of(new EventAdminOptionRequest(
@@ -410,11 +464,88 @@ class EventAdminServiceImplTest {
 
         assertThat(event.getTitle()).isEqualTo("워크숍 업데이트");
         assertThat(event.getLocation()).isEqualTo("서울시 성동구 왕십리로 32");
-        assertThat(event.getStartDate()).isEqualTo(LocalDate.of(2025, 11, 12));
+        assertThat(event.getStartDate()).isEqualTo(updatedStartDate);
         assertThat(event.getUsageGuide()).isEqualTo("업데이트된 이용 방법");
         assertThat(event.getPrecautions()).isEqualTo("업데이트된 주의 사항");
         assertThat(response.options()).hasSize(1);
         assertThat(response.options().get(0).children().get(0).children()).hasSize(1);
+    }
+
+    @Test
+    void should_reset_existing_approval_request_when_manager_updates_event() {
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event), java.util.Optional.of(event));
+        when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByOptionIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+        when(eventApplicationRepository.findAllWithUserByEventId(101L)).thenReturn(List.<EventApplication>of());
+
+        AdminUser previousRequester = AdminUser.createApproved("prev@wearagain.kr", "encoded", "이전 신청자", AdminRole.MANAGER);
+        ReflectionTestUtils.setField(previousRequester, "id", 77L);
+        EventApprovalRequest approvalRequest = EventApprovalRequest.create(event, previousRequester);
+        AdminUser reviewer = AdminUser.createSuperAdmin("reviewer@wearagain.kr", "encoded", "검토 관리자");
+        ReflectionTestUtils.setField(reviewer, "id", 55L);
+        approvalRequest.approve(reviewer, LocalDateTime.now().minusDays(1), EventStatus.OPEN);
+        ReflectionTestUtils.setField(event, "approvalRequest", approvalRequest);
+
+        EventAdminUpdateRequest request = new EventAdminUpdateRequest(
+                "매니저 수정",
+                "운영자가 내용을 수정합니다.",
+                "이용 안내 문구",
+                "주의 사항 문구",
+                "서울특별시 종로구 1",
+                defaultStartDate.plusDays(1),
+                defaultEndDate.plusDays(2),
+                null,
+                null,
+                null
+        );
+
+        EventAdminDetailResponse response = eventAdminService.updateEvent(101L, request, 11L, AdminRole.MANAGER);
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.DRAFT);
+        assertThat(response.status()).isEqualTo(EventStatus.DRAFT);
+        assertThat(approvalRequest.getProcessedAt()).isNull();
+        assertThat(approvalRequest.getProcessedByAdmin()).isNull();
+        assertThat(approvalRequest.getRequestingAdmin()).isEqualTo(adminUser);
+        verify(eventApprovalRequestRepository, never()).save(any(EventApprovalRequest.class));
+    }
+
+    @Test
+    void should_create_new_approval_request_when_manager_updates_event_without_existing_request() {
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event), java.util.Optional.of(event));
+        when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByOptionIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+        when(eventApplicationRepository.findAllWithUserByEventId(101L)).thenReturn(List.<EventApplication>of());
+
+        ArgumentCaptor<EventApprovalRequest> captor = ArgumentCaptor.forClass(EventApprovalRequest.class);
+        when(eventApprovalRequestRepository.save(captor.capture())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        EventAdminUpdateRequest request = new EventAdminUpdateRequest(
+                "매니저 신규 수정",
+                "승인을 다시 요청합니다.",
+                "변경된 이용 안내",
+                "변경된 주의 사항",
+                "서울특별시 강남구 1",
+                defaultStartDate.plusDays(3),
+                defaultEndDate.plusDays(4),
+                null,
+                null,
+                null
+        );
+
+        EventAdminDetailResponse response = eventAdminService.updateEvent(101L, request, 11L, AdminRole.MANAGER);
+
+        assertThat(event.getStatus()).isEqualTo(EventStatus.DRAFT);
+        assertThat(response.status()).isEqualTo(EventStatus.DRAFT);
+        verify(eventApprovalRequestRepository).save(any(EventApprovalRequest.class));
+        EventApprovalRequest savedRequest = captor.getValue();
+        assertThat(savedRequest.getEvent()).isEqualTo(event);
+        assertThat(savedRequest.getRequestingAdmin()).isEqualTo(adminUser);
     }
 
     @Test
@@ -558,8 +689,8 @@ class EventAdminServiceImplTest {
                 "개인 텀블러를 지참해주세요.",
                 "발화성 물질 반입 금지",
                 "서울시 마포구 연남동",
-                LocalDate.of(2025, 11, 10),
-                LocalDate.of(2025, 11, 30),
+                defaultStartDate,
+                defaultEndDate,
                 images,
                 options
         );

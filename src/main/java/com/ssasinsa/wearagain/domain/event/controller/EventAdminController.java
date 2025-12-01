@@ -59,7 +59,7 @@ public class EventAdminController {
             @Valid @RequestBody EventAdminCreateRequest request,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        EventCreateResponse response = eventAdminService.createEvent(request, principal.adminId());
+        EventCreateResponse response = eventAdminService.createEvent(request, principal.adminId(), principal.role());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
@@ -89,8 +89,11 @@ public class EventAdminController {
             @RequestParam(name = "status", required = false) String status,
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "10") int size,
-            @Parameter(description = "검색 키워드") @RequestParam(name = "keyword", required = false) String keyword,
-            @Parameter(description = "검색 범위 (ALL, TITLE, DESCRIPTION, LOCATION)", example = "ALL")
+            @Parameter(description = "정렬 기준 (LATEST, OLDEST, TITLE_ASC)", example = "LATEST")
+            @RequestParam(name = "sort", defaultValue = "LATEST") String sort,
+            @Parameter(description = "검색 키워드", example = "리사이클링")
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @Parameter(description = "키워드 검색 범위 (ALL, TITLE, DESCRIPTION, LOCATION)", example = "ALL")
             @RequestParam(name = "keywordScope", required = false) String keywordScope,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
@@ -98,6 +101,7 @@ public class EventAdminController {
                 status,
                 page,
                 size,
+                sort,
                 principal.adminId(),
                 principal.role(),
                 keyword,

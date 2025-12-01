@@ -1,24 +1,37 @@
 package com.ssasinsa.wearagain.domain.store.service;
 
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
+import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
+import com.ssasinsa.wearagain.domain.finance.entity.CreditHistory;
+import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemStatusUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderCancelResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderListResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderSummaryResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCreateResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse.StoreItemImageResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemSummaryResponse;
+import com.ssasinsa.wearagain.domain.store.entity.StoreAdminItemSortType;
+import com.ssasinsa.wearagain.domain.store.entity.StoreAdminOrderSortType;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItem;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemImage;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
 import com.ssasinsa.wearagain.domain.store.entity.StoreKeywordScope;
+import com.ssasinsa.wearagain.domain.store.entity.StoreOrder;
+import com.ssasinsa.wearagain.domain.store.entity.StoreOrderKeywordScope;
+import com.ssasinsa.wearagain.domain.store.entity.StoreOrderStatus;
 import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
 import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemSpecifications;
+import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
+import com.ssasinsa.wearagain.domain.store.repository.StoreOrderSpecifications;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -45,10 +58,11 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
     private static final int MAX_IMAGE_COUNT = 10;
     private static final int MAX_PAGE_SIZE = 50;
-    private static final Sort DEFAULT_SORT = Sort.by(Sort.Direction.DESC, "createdAt", "id");
 
     private final StoreItemRepository storeItemRepository;
     private final StoreItemImageRepository storeItemImageRepository;
+    private final StoreOrderRepository storeOrderRepository;
+    private final CreditHistoryRepository creditHistoryRepository;
     private final AdminUserRepository adminUserRepository;
 
     @Override
@@ -83,10 +97,10 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public StoreItemListResponse getItems(String status, String category, String keyword, String keywordScope, int page, int size) {
+    public StoreItemListResponse getItems(String status, String category, String keyword, String keywordScope, String sort, int page, int size) {
         validatePage(page, size);
         List<StoreItemStatus> statuses = resolveStatuses(status);
-        Pageable pageable = PageRequest.of(page, size, DEFAULT_SORT);
+        Pageable pageable = PageRequest.of(page, size, resolveSort(sort));
         String normalizedCategory = normalizeText(category);
         String normalizedKeyword = normalizeText(keyword);
         StoreKeywordScope scope = resolveKeywordScope(keywordScope);
@@ -176,6 +190,60 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         item.markDeleted(LocalDateTime.now(ZoneOffset.UTC), adminUser);
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public StoreAdminOrderListResponse getOrders(String status, String keyword, String keywordScope, String sort, int page, int size) {
+        validatePage(page, size);
+        StoreOrderStatus statusFilter = resolveOrderStatus(status);
+        StoreOrderKeywordScope keywordScopeFilter = resolveOrderKeywordScope(keywordScope);
+        Pageable pageable = PageRequest.of(page, size, resolveOrderSort(sort));
+        String normalizedKeyword = normalizeText(keyword);
+
+        Specification<StoreOrder> spec = StoreOrderSpecifications.statusEquals(statusFilter)
+                .and(StoreOrderSpecifications.keywordMatches(normalizedKeyword, keywordScopeFilter));
+
+        Page<StoreOrder> result = storeOrderRepository.findAll(spec, pageable);
+        List<StoreAdminOrderSummaryResponse> orders = result.getContent().stream()
+                .map(this::mapToAdminOrderSummary)
+                .toList();
+
+        return new StoreAdminOrderListResponse(
+                orders,
+                page,
+                size,
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.hasNext()
+        );
+    }
+
+    @Override
+    @Transactional
+    public StoreAdminOrderCancelResponse cancelOrder(Long orderId, Long adminId) {
+        getAdmin(adminId);
+        StoreOrder order = findOrder(orderId);
+        if (order.getStatus() != StoreOrderStatus.PURCHASED) {
+            throw new StoreException(StoreErrorCode.STORE_ORDER_CANCEL_INVALID);
+        }
+
+        StoreItem item = order.getItem();
+        item.increaseStock(order.getQuantity());
+
+        User user = order.getUser();
+        int refundAmount = order.getPrice() * order.getQuantity();
+        user.increaseCreditBalance(refundAmount);
+        order.cancel();
+
+        creditHistoryRepository.save(CreditHistory.create(user, order, refundAmount, "STORE_CANCEL_ADMIN"));
+
+        return new StoreAdminOrderCancelResponse(
+                order.getId(),
+                order.getStatus(),
+                refundAmount,
+                toOffset(order.getUpdatedAt())
+        );
+    }
+
     private void validatePage(int page, int size) {
         if (page < 0 || size <= 0 || size > MAX_PAGE_SIZE) {
             throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID);
@@ -193,6 +261,11 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     private StoreItem findItem(Long itemId) {
         return storeItemRepository.findById(itemId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ITEM_NOT_FOUND));
+    }
+
+    private StoreOrder findOrder(Long orderId) {
+        return storeOrderRepository.findById(orderId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
     }
 
     private void ensureNotDeleted(StoreItem item) {
@@ -263,6 +336,28 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         return statuses;
     }
 
+    private StoreOrderStatus resolveOrderStatus(String param) {
+        if (!StringUtils.hasText(param)) {
+            return null;
+        }
+        try {
+            return StoreOrderStatus.valueOf(param.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_ORDER_STATUS_INVALID, exception);
+        }
+    }
+
+    private StoreOrderKeywordScope resolveOrderKeywordScope(String param) {
+        if (!StringUtils.hasText(param)) {
+            return StoreOrderKeywordScope.ALL;
+        }
+        try {
+            return StoreOrderKeywordScope.valueOf(param.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
+        }
+    }
+
     private StoreKeywordScope resolveKeywordScope(String param) {
         if (!StringUtils.hasText(param)) {
             return StoreKeywordScope.ALL;
@@ -272,6 +367,34 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         } catch (IllegalArgumentException exception) {
             throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
         }
+    }
+
+    private Sort resolveSort(String param) {
+        StoreAdminItemSortType sortType;
+        if (!StringUtils.hasText(param)) {
+            sortType = StoreAdminItemSortType.LATEST;
+        } else {
+            try {
+                sortType = StoreAdminItemSortType.valueOf(param.trim().toUpperCase());
+            } catch (IllegalArgumentException exception) {
+                throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
+            }
+        }
+        return sortType.toSort();
+    }
+
+    private Sort resolveOrderSort(String param) {
+        StoreAdminOrderSortType sortType;
+        if (!StringUtils.hasText(param)) {
+            sortType = StoreAdminOrderSortType.LATEST;
+        } else {
+            try {
+                sortType = StoreAdminOrderSortType.valueOf(param.trim().toUpperCase());
+            } catch (IllegalArgumentException exception) {
+                throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID, exception);
+            }
+        }
+        return sortType.toSort();
     }
 
     private Map<Long, String> loadThumbnails(List<StoreItem> items) {
@@ -329,6 +452,26 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 List.copyOf(item.getPickupLocations()),
                 toOffset(item.getCreatedAt()),
                 toOffset(item.getUpdatedAt())
+        );
+    }
+
+    private StoreAdminOrderSummaryResponse mapToAdminOrderSummary(StoreOrder order) {
+        User user = order.getUser();
+        StoreItem item = order.getItem();
+        int totalPrice = order.getPrice() * order.getQuantity();
+        return new StoreAdminOrderSummaryResponse(
+                order.getId(),
+                user != null ? user.getId() : null,
+                user != null ? user.getEmail() : null,
+                item != null ? item.getId() : null,
+                item != null ? item.getName() : null,
+                order.getQuantity(),
+                order.getPrice(),
+                totalPrice,
+                order.getPickupLocation(),
+                order.getStatus(),
+                toOffset(order.getCreatedAt()),
+                order.getStatus() == StoreOrderStatus.CANCELED ? toOffset(order.getUpdatedAt()) : null
         );
     }
 

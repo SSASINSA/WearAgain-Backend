@@ -1,33 +1,46 @@
 package com.ssasinsa.wearagain.domain.store.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
+import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
+import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest.StoreItemImageRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemStatusUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderCancelResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreAdminOrderListResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCreateResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemListResponse;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItem;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
+import com.ssasinsa.wearagain.domain.store.entity.StoreOrder;
+import com.ssasinsa.wearagain.domain.store.entity.StoreOrderStatus;
 import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
 import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
-import java.lang.reflect.Field;
-import java.util.List;
+import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.lang.reflect.Field;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class StoreAdminServiceImplTest {
@@ -39,12 +52,18 @@ class StoreAdminServiceImplTest {
     private StoreItemImageRepository storeItemImageRepository;
 
     @Mock
+    private StoreOrderRepository storeOrderRepository;
+
+    @Mock
+    private CreditHistoryRepository creditHistoryRepository;
+
+    @Mock
     private AdminUserRepository adminUserRepository;
 
     @InjectMocks
     private StoreAdminServiceImpl storeAdminService;
 
-    @DisplayName("상품 상태 변경 시 상태가 null이면 예외 발생")
+    @DisplayName("상품 상태 변경 요청에 status가 없으면 예외 발생")
     @Test
     void should_throw_when_status_null_on_update_status() {
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
@@ -58,7 +77,7 @@ class StoreAdminServiceImplTest {
                 .hasMessage(StoreErrorCode.STORE_ITEM_STATUS_INVALID.getMessage());
     }
 
-    @DisplayName("삭제된 상품은 상태 변경 불가")
+    @DisplayName("이미 삭제된 상품은 상태를 변경할 수 없다")
     @Test
     void should_throw_when_item_already_deleted_on_update_status() {
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.DELETED, List.of(), List.of("강남"));
@@ -72,7 +91,7 @@ class StoreAdminServiceImplTest {
                 .hasMessage(StoreErrorCode.STORE_ITEM_ALREADY_DELETED.getMessage());
     }
 
-    @DisplayName("상품 삭제 시 상태와 삭제자 정보가 설정된다")
+    @DisplayName("상품 삭제 시 상태와 삭제 정보가 기록된다")
     @Test
     void should_mark_deleted_on_delete() {
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
@@ -89,7 +108,7 @@ class StoreAdminServiceImplTest {
         assertThat(item.getDeletedAt()).isNotNull();
     }
 
-    @DisplayName("상품 등록 시 리포지토리에 저장된다")
+    @DisplayName("상품 등록 시 엔티티가 저장된다")
     @Test
     void should_create_item_and_save() {
         AdminUser admin = admin();
@@ -119,7 +138,7 @@ class StoreAdminServiceImplTest {
         verify(storeItemImageRepository).saveAll(any());
     }
 
-    @DisplayName("픽업 장소가 비어있으면 상품 등록 시 예외")
+    @DisplayName("픽업 장소가 없으면 상품을 등록할 수 없다")
     @Test
     void should_throw_when_pickup_locations_empty_on_create() {
         AdminUser admin = admin();
@@ -142,7 +161,7 @@ class StoreAdminServiceImplTest {
                 .hasMessage(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID.getMessage());
     }
 
-    @DisplayName("이미지 교체 요청 시 기존 이미지를 삭제하고 새 이미지를 저장한다")
+    @DisplayName("상품 수정 시 이미지가 교체된다")
     @Test
     void should_replace_images_on_update() {
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
@@ -168,8 +187,89 @@ class StoreAdminServiceImplTest {
         assertThat(item.getImages()).hasSize(1);
     }
 
+    @DisplayName("관리자 상품 목록 조회 시 정렬이 적용된다")
+    @Test
+    void should_apply_sort_when_getting_items() {
+        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
+        setId(item, 100L);
+        Page<StoreItem> page = new PageImpl<>(List.of(item), PageRequest.of(0, 10), 1);
+        when(storeItemRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+        when(storeItemImageRepository.findThumbnailsByStoreItemIds(anyList())).thenReturn(List.of());
+
+        StoreItemListResponse response = storeAdminService.getItems("ACTIVE", null, null, null, "TITLE_ASC", 0, 10);
+
+        org.mockito.ArgumentCaptor<Pageable> pageableCaptor = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(storeItemRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        assertThat(pageableCaptor.getValue().getSort())
+                .isEqualTo(Sort.by(Sort.Order.asc("name"), Sort.Order.desc("createdAt"), Sort.Order.desc("id")));
+        assertThat(response.items()).hasSize(1);
+    }
+
+    @DisplayName("알 수 없는 정렬값이면 예외가 발생한다")
+    @Test
+    void should_throw_when_sort_invalid_on_get_items() {
+        assertThatThrownBy(() -> storeAdminService.getItems(null, null, null, null, "UNKNOWN", 0, 10))
+                .isInstanceOf(StoreException.class)
+                .hasMessage(StoreErrorCode.STORE_QUERY_INVALID.getMessage());
+    }
+
+    @DisplayName("관리자 주문 목록 조회 시 필터와 정렬이 적용된다")
+    @Test
+    void should_get_admin_orders_with_filters() {
+        User user = user("user@test.com");
+        setId(user, 11L);
+        StoreItem item = StoreItem.create("어드민 굿즈", "설명", "카테고리", 2000, 5, 1, StoreItemStatus.ACTIVE, List.of(), List.of("서울"));
+        setId(item, 77L);
+        StoreOrder order = StoreOrder.create(user, item, 2000, 2, "서울");
+        setId(order, 501L);
+
+        Page<StoreOrder> page = new PageImpl<>(List.of(order), PageRequest.of(0, 20), 1);
+        when(storeOrderRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+
+        StoreAdminOrderListResponse response = storeAdminService.getOrders("PURCHASED", "어드민", "USER_EMAIL", "OLDEST", 0, 20);
+
+        assertThat(response.orders()).hasSize(1);
+        assertThat(response.orders().get(0).orderId()).isEqualTo(501L);
+        assertThat(response.orders().get(0).itemId()).isEqualTo(77L);
+        assertThat(response.orders().get(0).userId()).isEqualTo(11L);
+
+        ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
+        verify(storeOrderRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        assertThat(pageableCaptor.getValue().getSort())
+                .isEqualTo(Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id")));
+    }
+
+    @DisplayName("관리자 주문 취소 시 재고와 크레딧을 롤백하고 이력을 남긴다")
+    @Test
+    void should_cancel_admin_order_and_rollback_resources() {
+        AdminUser admin = admin();
+        setId(admin, 9L);
+        when(adminUserRepository.findById(9L)).thenReturn(java.util.Optional.of(admin));
+
+        StoreItem item = StoreItem.create("어드민 굿즈", "설명", "카테고리", 2000, 1, 1, StoreItemStatus.ACTIVE, List.of(), List.of("서울"));
+        setId(item, 77L);
+        User user = user("user@test.com");
+        setId(user, 33L);
+        StoreOrder order = StoreOrder.create(user, item, 1500, 2, "서울");
+        setId(order, 1000L);
+        when(storeOrderRepository.findById(1000L)).thenReturn(java.util.Optional.of(order));
+
+        StoreAdminOrderCancelResponse response = storeAdminService.cancelOrder(1000L, 9L);
+
+        assertThat(response.orderId()).isEqualTo(1000L);
+        assertThat(response.status()).isEqualTo(StoreOrderStatus.CANCELED);
+        assertThat(response.refundedAmount()).isEqualTo(3000);
+        assertThat(item.getStock()).isEqualTo(3); // 기존 재고 1 + 취소 수량 2
+        assertThat(user.getCreditBalance()).isEqualTo(3000);
+        verify(creditHistoryRepository).save(any());
+    }
+
     private AdminUser admin() {
         return AdminUser.createApproved("admin@test.com", "encoded", "admin", AdminRole.ADMIN);
+    }
+
+    private User user(String email) {
+        return User.create(email, "사용자", null);
     }
 
     private void setId(Object target, Long id) {
@@ -182,3 +282,5 @@ class StoreAdminServiceImplTest {
         }
     }
 }
+
+

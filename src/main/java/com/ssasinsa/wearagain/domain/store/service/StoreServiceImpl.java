@@ -5,21 +5,10 @@ import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.finance.entity.CreditHistory;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreOrderCreateRequest;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemCursorListResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse;
+import com.ssasinsa.wearagain.domain.store.dto.response.*;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemDetailResponse.StoreItemImageResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreItemSummaryResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreOrderCancelResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreOrderCreateResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreOrderDetailResponse;
 import com.ssasinsa.wearagain.domain.store.dto.response.StoreOrderDetailResponse.OrderItem;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreOrderListResponse;
-import com.ssasinsa.wearagain.domain.store.dto.response.StoreOrderSummaryResponse;
-import com.ssasinsa.wearagain.domain.store.entity.StoreItem;
-import com.ssasinsa.wearagain.domain.store.entity.StoreItemImage;
-import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
-import com.ssasinsa.wearagain.domain.store.entity.StoreOrder;
-import com.ssasinsa.wearagain.domain.store.entity.StoreOrderStatus;
+import com.ssasinsa.wearagain.domain.store.entity.*;
 import com.ssasinsa.wearagain.domain.store.exception.StoreErrorCode;
 import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
@@ -27,6 +16,15 @@ import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
+
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -34,16 +32,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.util.CollectionUtils;
-import org.springframework.util.StringUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -262,14 +250,17 @@ public class StoreServiceImpl implements StoreService {
     }
 
     private StoreOrderSummaryResponse mapToOrderSummary(StoreOrder order) {
-        int usedCredit = order.getPrice() * order.getQuantity();
+        User orderOwner = order.getUser();
+        StoreItem item = order.getItem();
+        int totalPrice = order.getPrice() * order.getQuantity();
         return new StoreOrderSummaryResponse(
                 order.getId(),
-                order.getItem().getId(),
-                order.getItem().getName(),
+                orderOwner != null ? orderOwner.getEmail() : null,
+                item != null ? item.getId() : null,
+                item != null ? item.getName() : null,
                 order.getQuantity(),
                 order.getPrice(),
-                usedCredit,
+                totalPrice,
                 order.getPickupLocation(),
                 order.getStatus(),
                 toOffset(order.getCreatedAt()),

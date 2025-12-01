@@ -65,7 +65,7 @@ public final class EventApiDocs {
             summary = "관리자 행사 목록 조회",
             description = """
                     관리자 콘솔에서 사용하는 행사 목록 API입니다.
-                    상태 필터와 offset 기반 페이지네이션(`page`, `size`)을 지원하며
+                    상태(status) 필터, 키워드 검색(`keyword`, `keywordScope`), 정렬(`sort` = LATEST|OLDEST|TITLE_ASC)과 offset 기반 페이지네이션(`page`, `size`)을 조합할 수 있습니다.
                     각 행사별 신청 통계(총 좌석/신청 수/잔여 좌석)와 행사 담당 관리자 정보를 함께 제공합니다.
                     """,
             responseSchema = EventAdminListResponse.class,
@@ -353,7 +353,7 @@ public final class EventApiDocs {
             summary = "행사 승인",
             description = """
                     최고 관리자(SUPER_ADMIN)만 호출 가능합니다.
-                    EventApprovalRequest를 승인하여 관련 Event를 DRAFT에서 APPROVAL 상태로 변경합니다.
+                    EventApprovalRequest를 승인하여 관련 Event를 DRAFT에서 APPROVAL/OPEN(진행 중인 경우) 상태로 변경합니다.
                     승인 처리자 정보와 처리 시간을 기록합니다.
                     """,
             responseExample = EventExamples.ADMIN_EVENT_APPROVE_RESPONSE
