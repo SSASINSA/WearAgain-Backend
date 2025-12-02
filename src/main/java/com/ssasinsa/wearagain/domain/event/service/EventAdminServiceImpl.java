@@ -714,8 +714,7 @@ public class EventAdminServiceImpl implements EventAdminService {
                 if (!names.add(normalizedName)) {
                     throw new EventException(EventErrorCode.DUPLICATE_OPTION);
                 }
-                Integer displayOrder = request.displayOrder();
-                if (displayOrder == null || displayOrder <= 0 || !orders.add(displayOrder)) {
+                if (!orders.add(request.displayOrder())) {
                     throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
                 }
             }
