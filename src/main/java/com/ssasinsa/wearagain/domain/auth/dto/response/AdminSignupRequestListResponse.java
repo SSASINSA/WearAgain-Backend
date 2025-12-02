@@ -1,4 +1,4 @@
-﻿package com.ssasinsa.wearagain.domain.auth.dto.response;
+package com.ssasinsa.wearagain.domain.auth.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
