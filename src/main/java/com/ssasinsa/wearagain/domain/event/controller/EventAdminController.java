@@ -13,7 +13,7 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventImageUploadResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestPageResponse;
 import com.ssasinsa.wearagain.domain.event.service.EventAdminService;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
@@ -210,8 +210,23 @@ public class EventAdminController {
     @EventApiDocs.ListPendingApprovals
     @GetMapping("/events/approvals")
     @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
-    public ResponseEntity<java.util.List<EventApprovalRequestListResponse>> getPendingApprovals() {
-        java.util.List<EventApprovalRequestListResponse> responses = eventAdminService.getPendingApprovalRequests();
+    public ResponseEntity<EventApprovalRequestPageResponse> getPendingApprovals(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @Parameter(description = "정렬 기준 (LATEST, OLDEST, TITLE_ASC)", example = "LATEST")
+            @RequestParam(name = "sort", defaultValue = "LATEST") String sort,
+            @Parameter(description = "검색 키워드", example = "리사이클")
+            @RequestParam(name = "keyword", required = false) String keyword,
+            @Parameter(description = "검색 범위 (ALL, TITLE, DESCRIPTION, REQUESTER)", example = "ALL")
+            @RequestParam(name = "keywordScope", required = false) String keywordScope
+    ) {
+        EventApprovalRequestPageResponse responses = eventAdminService.getPendingApprovalRequests(
+                page,
+                size,
+                sort,
+                keyword,
+                keywordScope
+        );
         return ResponseEntity.ok(responses);
     }
 
