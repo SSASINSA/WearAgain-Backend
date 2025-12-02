@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.context.event.EventListener;
+import org.springframework.boot.context.event.ApplicationReadyEvent;
 
 @Slf4j
 @Component
@@ -24,6 +26,11 @@ public class OptionCapacitySyncScheduler {
     private final EventOptionRepository eventOptionRepository;
     private final EventApplicationRepository eventApplicationRepository;
     private final OptionCapacityService optionCapacityService;
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void syncOnStartup() {
+        syncOptionCapacities();
+    }
 
     // 매 5분마다 동기화 (크론: 초 분 시 일 월 요일)
     @Scheduled(cron = "0 0/5 * * * *")
