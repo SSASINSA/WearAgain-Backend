@@ -23,4 +23,10 @@ public interface EventOptionRepository extends JpaRepository<EventOption, Long> 
             group by o.event.id
             """)
     List<EventCapacitySummary> sumCapacityByEventIds(@Param("eventIds") Collection<Long> eventIds);
+
+    @Query("""
+            select o.id from EventOption o
+            where o.capacity is not null
+            """)
+    List<Long> findIdsWithCapacityNotNull();
 }

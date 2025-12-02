@@ -80,6 +80,7 @@ public class EventUserServiceImpl implements EventUserService {
     private final EventImageRepository eventImageRepository;
     private final UserRepository userRepository;
     private final QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
+    private final OptionCapacityService optionCapacityService;
 
     @Override
     @Transactional(readOnly = true)
@@ -157,30 +158,29 @@ public class EventUserServiceImpl implements EventUserService {
             throw new EventException(EventErrorCode.EVENT_ALREADY_APPLIED);
         }
 
-        if (option.getCapacity() != null) {
-            long appliedCount = eventApplicationRepository.countByEventOptionIdAndStatusIn(
-                    option.getId(),
-                    ACTIVE_APPLICATION_STATUSES
-            );
-            if (appliedCount >= option.getCapacity()) {
-                throw new EventException(EventErrorCode.EVENT_CAPACITY_EXCEEDED);
-            }
+        if (!reserveCapacity(option)) {
+            throw new EventException(EventErrorCode.EVENT_CAPACITY_EXCEEDED);
         }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
 
-        EventApplication application = EventApplication.create(
-                user,
-                event,
-                option,
-                EventApplicationStatus.APPLIED,
-                StringUtils.hasText(request.memo()) ? request.memo().trim() : null,
-                null
-        );
+        try {
+            EventApplication application = EventApplication.create(
+                    user,
+                    event,
+                    option,
+                    EventApplicationStatus.APPLIED,
+                    StringUtils.hasText(request.memo()) ? request.memo().trim() : null,
+                    null
+            );
 
-        EventApplication saved = eventApplicationRepository.save(application);
-        return new EventApplyResponse(saved.getId(), saved.getStatus().name());
+            EventApplication saved = eventApplicationRepository.save(application);
+            return new EventApplyResponse(saved.getId(), saved.getStatus().name());
+        } catch (RuntimeException exception) {
+            releaseCapacity(option);
+            throw exception;
+        }
     }
 
     @Override
@@ -195,6 +195,8 @@ public class EventUserServiceImpl implements EventUserService {
 
         String reason = StringUtils.hasText(request.reason()) ? request.reason().trim() : null;
         application.cancel(LocalDateTime.now(), reason);
+
+        releaseCapacity(application.getEventOption());
 
         return new EventCancelResponse(application.getId(), application.getStatus().name());
     }
@@ -516,6 +518,21 @@ public class EventUserServiceImpl implements EventUserService {
             return Integer.MAX_VALUE;
         }
         return (int) value;
+    }
+
+    private boolean reserveCapacity(EventOption option) {
+        Integer capacity = option.getCapacity();
+        if (capacity == null) {
+            return true;
+        }
+        return optionCapacityService.reserve(option.getId(), capacity);
+    }
+
+    private void releaseCapacity(EventOption option) {
+        if (option == null) {
+            return;
+        }
+        optionCapacityService.release(option.getId());
     }
 
     private Set<Long> collectOptionIds(Collection<EventOption> roots) {

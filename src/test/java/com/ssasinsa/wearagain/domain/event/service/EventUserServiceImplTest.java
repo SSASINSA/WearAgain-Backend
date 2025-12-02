@@ -56,6 +56,9 @@ class EventUserServiceImplTest {
     @Mock
     private QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
 
+    @Mock
+    private OptionCapacityService optionCapacityService;
+
     private EventUserServiceImpl eventUserService;
 
     @BeforeEach
@@ -66,7 +69,8 @@ class EventUserServiceImplTest {
                 eventApplicationRepository,
                 null,
                 userRepository,
-                eventQrTokenStore
+                eventQrTokenStore,
+                optionCapacityService
         );
     }
 
