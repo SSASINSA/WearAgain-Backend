@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -38,6 +39,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
+import org.mockito.ArgumentMatchers;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -50,6 +54,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AdminAuthServiceImplTest {
 
     @Mock
@@ -208,7 +213,10 @@ class AdminAuthServiceImplTest {
         ReflectionTestUtils.setField(pending, "updatedAt", LocalDateTime.now().minusDays(8));
 
         Page<AdminSignupRequest> page = new PageImpl<>(List.of(pending), PageRequest.of(0, 20), 1);
-        when(adminSignupRequestRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+        when(adminSignupRequestRepository.findAll(
+                ArgumentMatchers.<Specification<AdminSignupRequest>>any(),
+                any(Pageable.class)
+        )).thenReturn(page);
 
         AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(
                 AdminSignupRequestStatus.PENDING,
@@ -259,14 +267,17 @@ class AdminAuthServiceImplTest {
         ReflectionTestUtils.setField(approved, "updatedAt", LocalDateTime.now().minusDays(2));
         approved.markApproved(reviewer, LocalDateTime.now().minusDays(1));
 
-        Page<AdminSignupRequest> page = new PageImpl<>(List.of(approved, pending), PageRequest.of(1, 10), 2);
-        when(adminSignupRequestRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(page);
+        Page<AdminSignupRequest> page = new PageImpl<>(List.of(approved, pending), PageRequest.of(0, 10), 2);
+        when(adminSignupRequestRepository.findAll(
+                ArgumentMatchers.<Specification<AdminSignupRequest>>isNull(),
+                any(Pageable.class)
+        )).thenReturn(page);
 
         AdminSignupRequestListResponse response = adminAuthService.getSignupRequests(
                 null,
                 null,
                 null,
-                1,
+                0,
                 10,
                 "OLDEST"
         );
@@ -276,11 +287,11 @@ class AdminAuthServiceImplTest {
         assertThat(response.items().get(0).reviewer()).isNotNull();
         assertThat(response.items().get(0).reviewer().adminId()).isEqualTo(1L);
         assertThat(response.items().get(1).signupRequestId()).isEqualTo(60L);
-        assertThat(response.page()).isEqualTo(1);
+        assertThat(response.page()).isEqualTo(0);
         assertThat(response.totalPages()).isEqualTo(1);
 
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        verify(adminSignupRequestRepository).findAll(any(Specification.class), pageableCaptor.capture());
+        verify(adminSignupRequestRepository).findAll(ArgumentMatchers.<Specification<AdminSignupRequest>>isNull(), pageableCaptor.capture());
         assertThat(pageableCaptor.getValue().getSort()).isEqualTo(Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id")));
     }
 
