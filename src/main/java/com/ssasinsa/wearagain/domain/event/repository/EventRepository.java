@@ -43,14 +43,17 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             @Param("targetDate") java.time.LocalDate targetDate
     );
 
-    @EntityGraph(attributePaths = {
-            "organizerAdmin",
-            "approvalRequest",
-            "approvalRequest.requestingAdmin",
-            "approvalRequest.processedByAdmin",
-            "options"
-    })
-    Optional<Event> findWithDetailsById(Long id);
+    @Query("""
+            select distinct e
+            from Event e
+            left join fetch e.organizerAdmin oa
+            left join fetch e.approvalRequest ar
+            left join fetch ar.requestingAdmin
+            left join fetch ar.processedByAdmin
+            left join fetch e.options o1
+            where e.id = :id
+            """)
+    Optional<Event> findWithDetailsById(@Param("id") Long id);
 
     @Override
     @EntityGraph(attributePaths = {
