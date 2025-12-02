@@ -36,7 +36,8 @@ public enum EventErrorCode implements ErrorCode {
     EVENT_APPROVAL_REQUEST_NOT_FOUND("E1030", "승인 요청 정보를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     EVENT_CHECKIN_NOT_AVAILABLE("E1031", "종료된 행사에서는 체크인할 수 없습니다.", HttpStatus.CONFLICT.value()),
     EVENT_APPLICATION_CANCELED("E1032", "취소된 신청입니다.", HttpStatus.CONFLICT.value()),
-    EVENT_APPLICATION_REJECTED("E1033", "승인 거절된 신청입니다.", HttpStatus.CONFLICT.value());
+    EVENT_APPLICATION_REJECTED("E1033", "승인 거절된 신청입니다.", HttpStatus.CONFLICT.value()),
+    EVENT_OPTION_NOT_LEAF("E1034", "하위 옵션을 모두 선택한 경우에만 신청할 수 있습니다.", HttpStatus.BAD_REQUEST.value());
 
     private final String code;
     private final String message;

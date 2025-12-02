@@ -629,7 +629,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         if (CollectionUtils.isEmpty(requests)) {
             return List.of();
         }
-        validateSiblingConstraints(requests, 1);
+        OptionRequestValidator.validateSiblings(requests, 1);
         List<EventOption> options = new ArrayList<>();
         for (EventAdminOptionRequest request : requests) {
             EventOption option = createOption(event, null, request, 1);
@@ -645,21 +645,15 @@ public class EventAdminServiceImpl implements EventAdminService {
             EventAdminOptionRequest request,
             int depth
     ) {
-        if (depth > MAX_OPTION_DEPTH) {
-            throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
-        }
+        OptionRequestValidator.validateOption(request, depth);
 
         String normalizedName = request.name() == null ? null : request.name().trim();
         String normalizedType = request.type() == null ? null : request.type().trim();
-        if (!StringUtils.hasText(normalizedName) || !StringUtils.hasText(normalizedType)) {
-            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-        }
         Integer displayOrder = request.displayOrder();
-        if (displayOrder == null || displayOrder <= 0) {
-            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
-        }
 
-        Integer capacity = normalizeCapacity(request.capacity());
+        List<EventAdminOptionRequest> children = request.children();
+        boolean hasChildren = !CollectionUtils.isEmpty(children);
+        Integer capacity = hasChildren ? null : OptionRequestValidator.normalizeCapacity(request.capacity());
 
         EventOption option = EventOption.create(
                 event,
@@ -670,9 +664,8 @@ public class EventAdminServiceImpl implements EventAdminService {
                 capacity
         );
 
-        List<EventAdminOptionRequest> children = request.children();
-        if (!CollectionUtils.isEmpty(children)) {
-            validateSiblingConstraints(children, depth + 1);
+        if (hasChildren) {
+            OptionRequestValidator.validateSiblings(children, depth + 1);
             List<EventOption> childOptions = new ArrayList<>();
             for (EventAdminOptionRequest child : children) {
                 EventOption childOption = createOption(event, option, child, depth + 1);
@@ -684,28 +677,69 @@ public class EventAdminServiceImpl implements EventAdminService {
         return option;
     }
 
-    private void validateSiblingConstraints(List<EventAdminOptionRequest> requests, int depth) {
-        if (depth > MAX_OPTION_DEPTH) {
-            throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
-        }
-        Set<Integer> orders = new HashSet<>();
-        Set<String> names = new HashSet<>();
-        for (EventAdminOptionRequest request : requests) {
+    private static class OptionRequestValidator {
+
+        private static void validateOption(EventAdminOptionRequest request, int depth) {
+            if (depth > MAX_OPTION_DEPTH) {
+                throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+            }
             String normalizedName = request.name() == null ? null : request.name().trim();
             String normalizedType = request.type() == null ? null : request.type().trim();
             if (!StringUtils.hasText(normalizedName) || !StringUtils.hasText(normalizedType)) {
                 throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
             }
-            if (!names.add(normalizedName)) {
-                throw new EventException(EventErrorCode.DUPLICATE_OPTION);
-            }
             Integer displayOrder = request.displayOrder();
-            if (displayOrder == null || displayOrder <= 0 || !orders.add(displayOrder)) {
+            if (displayOrder == null || displayOrder <= 0) {
                 throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
             }
-            normalizeCapacity(request.capacity());
+            List<EventAdminOptionRequest> children = request.children();
+            boolean hasChildren = !CollectionUtils.isEmpty(children);
+            if (hasChildren && request.capacity() != null) {
+                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+            }
+            if (!hasChildren) {
+                normalizeCapacity(request.capacity());
+            }
         }
-        validateSequentialOrder(orders, EventErrorCode.INVALID_OPTION_STRUCTURE);
+
+        private static void validateSiblings(List<EventAdminOptionRequest> requests, int depth) {
+            if (depth > MAX_OPTION_DEPTH) {
+                throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+            }
+            Set<Integer> orders = new HashSet<>();
+            Set<String> names = new HashSet<>();
+            for (EventAdminOptionRequest request : requests) {
+                validateOption(request, depth);
+                String normalizedName = request.name() == null ? null : request.name().trim();
+                if (!names.add(normalizedName)) {
+                    throw new EventException(EventErrorCode.DUPLICATE_OPTION);
+                }
+                if (!orders.add(request.displayOrder())) {
+                    throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+                }
+            }
+            validateSequentialOrder(orders, EventErrorCode.INVALID_OPTION_STRUCTURE);
+        }
+
+        private static Integer normalizeCapacity(Integer capacity) {
+            if (capacity == null) {
+                return null;
+            }
+            if (capacity <= 0 || capacity > MAX_OPTION_CAPACITY) {
+                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+            }
+            return capacity;
+        }
+
+        private static void validateSequentialOrder(Set<Integer> orders, EventErrorCode errorCode) {
+            int expected = 1;
+            for (int order : orders.stream().sorted().toList()) {
+                if (order != expected) {
+                    throw new EventException(errorCode);
+                }
+                expected++;
+            }
+        }
     }
 
     private Integer normalizeCapacity(Integer capacity) {

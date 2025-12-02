@@ -1,4 +1,4 @@
-﻿package com.ssasinsa.wearagain.domain.auth.service;
+package com.ssasinsa.wearagain.domain.auth.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -372,4 +372,3 @@ class AdminAuthServiceImplTest {
                 .isEqualTo(AdminAuthErrorCode.INVALID_INPUT);
     }
 }
-
