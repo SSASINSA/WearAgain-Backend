@@ -26,7 +26,14 @@ public interface AdminAuthService {
 
     AdminSimpleResponse rejectSignupRequest(Long requestId, Long reviewerId);
 
-    AdminSignupRequestListResponse getSignupRequests(AdminSignupRequestStatus status);
+    AdminSignupRequestListResponse getSignupRequests(
+            AdminSignupRequestStatus status,
+            String keyword,
+            String keywordScope,
+            int page,
+            int size,
+            String sort
+    );
 
     AdminRoleResponse getMyRole(Long adminId);
 }

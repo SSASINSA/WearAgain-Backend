@@ -48,16 +48,21 @@ public class AdminAuthController {
     }
 
     @AdminAuthApiDocs.SignupRequestList
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @GetMapping("/signup-requests")
     public ResponseEntity<AdminSignupRequestListResponse> findSignupRequests(
-            @RequestParam(value = "status", required = false) AdminSignupRequestStatus status
+            @RequestParam(value = "status", required = false) AdminSignupRequestStatus status,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "keywordScope", required = false) String keywordScope,
+            @RequestParam(value = "page", defaultValue = "0") int page,
+            @RequestParam(value = "size", defaultValue = "20") int size,
+            @RequestParam(value = "sort", defaultValue = "LATEST") String sort
     ) {
-        return ResponseEntity.ok(adminAuthService.getSignupRequests(status));
+        return ResponseEntity.ok(adminAuthService.getSignupRequests(status, keyword, keywordScope, page, size, sort));
     }
 
     @AdminAuthApiDocs.ApproveSignup
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @PostMapping("/signup-requests/{requestId}/approve")
     public ResponseEntity<AdminSignupApprovalResponse> approve(
             @PathVariable Long requestId,
@@ -67,7 +72,7 @@ public class AdminAuthController {
     }
 
     @AdminAuthApiDocs.RejectSignup
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN','SUPER_ADMIN')")
     @PostMapping("/signup-requests/{requestId}/reject")
     public ResponseEntity<AdminSimpleResponse> reject(
             @PathVariable Long requestId,
