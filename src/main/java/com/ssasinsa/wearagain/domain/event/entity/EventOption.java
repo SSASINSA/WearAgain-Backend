@@ -99,6 +99,10 @@ public class EventOption extends BaseTimeEntity {
         applications.add(application);
     }
 
+    public boolean isSelectable() {
+        return childOptions == null || childOptions.isEmpty();
+    }
+
     public void assignEvent(Event event) {
         this.event = event;
     }

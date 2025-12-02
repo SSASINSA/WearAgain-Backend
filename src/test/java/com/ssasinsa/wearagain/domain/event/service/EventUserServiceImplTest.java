@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.event.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.Mockito.never;
@@ -11,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
@@ -270,6 +272,47 @@ class EventUserServiceImplTest {
         // Then
         verify(eventApplicationRepository, never())
                 .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(anyLong(), anyLong());
+    }
+
+    @Test
+    void should_throw_when_applying_non_leaf_option() {
+        // Given
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", 10L);
+
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.of(2025, 2, 10),
+                LocalDate.of(2025, 2, 11),
+                "서울시 마포구",
+                EventStatus.OPEN,
+                admin,
+                null,
+                null
+        );
+        ReflectionTestUtils.setField(event, "id", 101L);
+
+        EventOption parentOption = EventOption.create(event, null, "11월 15일", "DATE", 1, 30);
+        ReflectionTestUtils.setField(parentOption, "id", 2001L);
+        EventOption childOption = EventOption.create(event, parentOption, "오전 세션", "TIME", 1, 10);
+        ReflectionTestUtils.setField(childOption, "id", 2002L);
+
+        when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
+        when(eventOptionRepository.findByIdAndEventId(2001L, 101L)).thenReturn(Optional.of(parentOption));
+        when(eventApplicationRepository.existsByUserIdAndEventOptionIdAndStatusIn(anyLong(), anyLong(), any()))
+                .thenReturn(false);
+
+        // When & Then
+        assertThatThrownBy(() -> eventUserService.apply(
+                101L,
+                new EventApplyRequest(2001L, null),
+                1L
+        ))
+                .isInstanceOf(EventException.class)
+                .extracting(throwable -> ((EventException) throwable).getErrorCode())
+                .isEqualTo(EventErrorCode.EVENT_OPTION_NOT_LEAF);
+        verify(optionCapacityService, never()).reserve(anyLong(), anyInt());
     }
 
     @Test

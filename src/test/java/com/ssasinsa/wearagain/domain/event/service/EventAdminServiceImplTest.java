@@ -126,6 +126,38 @@ class EventAdminServiceImplTest {
     }
 
     @Test
+    void should_fail_when_non_leaf_has_capacity() {
+        EventAdminCreateRequest.EventAdminCreateOptionRequest parentOption = new EventAdminCreateRequest.EventAdminCreateOptionRequest(
+                "상위 옵션",
+                "DATE",
+                1,
+                50,
+                List.of(new EventAdminCreateRequest.EventAdminCreateOptionRequest(
+                        "리프 옵션",
+                        "TIME",
+                        1,
+                        20,
+                        List.of()
+                ))
+        );
+        EventAdminCreateRequest request = new EventAdminCreateRequest(
+                "지속가능 패션 행사",
+                "재사용 패션 실습을 진행합니다.",
+                "개인 텀블러를 지참해주세요.",
+                "발화성 물질 반입 금지",
+                "서울시 마포구 연남동",
+                defaultStartDate,
+                defaultEndDate,
+                List.of(new EventAdminCreateRequest.EventAdminCreateImageRequest("https://wearagain.kr/1.jpg", "대표", 1)),
+                List.of(parentOption)
+        );
+
+        assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L, AdminRole.MANAGER))
+                .isInstanceOf(EventException.class)
+                .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.INVALID_OPTION_STRUCTURE);
+    }
+
+    @Test
     void should_auto_approve_event_when_created_by_admin() {
         Event persisted = buildPersistedEvent(validCreateRequest);
         persisted.changeStatus(EventStatus.APPROVAL);
