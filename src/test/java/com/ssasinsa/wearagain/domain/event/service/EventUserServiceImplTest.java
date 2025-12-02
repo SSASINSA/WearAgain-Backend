@@ -300,8 +300,6 @@ class EventUserServiceImplTest {
 
         when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
         when(eventOptionRepository.findByIdAndEventId(2001L, 101L)).thenReturn(Optional.of(parentOption));
-        when(eventApplicationRepository.existsByUserIdAndEventOptionIdAndStatusIn(anyLong(), anyLong(), any()))
-                .thenReturn(false);
 
         // When & Then
         assertThatThrownBy(() -> eventUserService.apply(

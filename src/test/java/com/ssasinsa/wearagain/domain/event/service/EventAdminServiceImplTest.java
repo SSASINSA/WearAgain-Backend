@@ -208,7 +208,7 @@ class EventAdminServiceImplTest {
                                                 "3차",
                                                 "GROUP",
                                                 1,
-                                                10,
+                                                null,
                                                 List.of(
                                                         new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                                                 "4차",
