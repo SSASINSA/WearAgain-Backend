@@ -1,21 +1,21 @@
-package com.ssasinsa.wearagain.domain.auth.dto.response;
+﻿package com.ssasinsa.wearagain.domain.auth.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import java.util.List;
 
-@Schema(description = "??? ?? ?? ?? ??")
+@Schema(description = "관리자 가입 요청 목록 응답")
 public record AdminSignupRequestListResponse(
-        @Schema(description = "?? ?? ??")
+        @Schema(description = "요청 요약 목록")
         List<AdminSignupRequestSummaryResponse> items,
-        @Schema(description = "?? ??? (0-base)", example = "0")
+        @Schema(description = "현재 페이지 (0-base)", example = "0")
         int page,
-        @Schema(description = "??? ??", example = "20")
+        @Schema(description = "페이지 크기", example = "20")
         int size,
-        @Schema(description = "?? ??", example = "125")
+        @Schema(description = "전체 요청 수", example = "125")
         long totalElements,
-        @Schema(description = "?? ??? ?", example = "7")
+        @Schema(description = "전체 페이지 수", example = "7")
         int totalPages,
-        @Schema(description = "?? ??? ??")
+        @Schema(description = "다음 페이지 존재 여부")
         boolean hasNext
 ) {
 
@@ -37,3 +37,4 @@ public record AdminSignupRequestListResponse(
         );
     }
 }
+
