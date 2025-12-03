@@ -17,6 +17,7 @@ import lombok.Builder;
 import lombok.Builder.Default;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 @Getter
 @Entity
@@ -51,6 +52,10 @@ public class User extends BaseTimeEntity {
     @Default
     private boolean suspended = false;
 
+    @Column(name = "is_deleted", nullable = false)
+    @Default
+    private boolean deleted = false;
+
     @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
     @Default
     private List<UserOAuthAccount> oauthAccounts = new ArrayList<>();
@@ -63,6 +68,7 @@ public class User extends BaseTimeEntity {
             int ticketBalance,
             int creditBalance,
             boolean suspended,
+            boolean deleted,
             List<UserOAuthAccount> oauthAccounts
     ) {
         this.id = id;
@@ -72,6 +78,7 @@ public class User extends BaseTimeEntity {
         this.ticketBalance = ticketBalance;
         this.creditBalance = creditBalance;
         this.suspended = suspended;
+        this.deleted = deleted;
         this.oauthAccounts = oauthAccounts == null ? new ArrayList<>() : oauthAccounts;
     }
 
@@ -150,6 +157,19 @@ public class User extends BaseTimeEntity {
 
     public void updateSuspended(boolean suspended) {
         this.suspended = suspended;
+    }
+
+    public void withdraw(String anonymizedEmail, String withdrawnDisplayName) {
+        if (!StringUtils.hasText(anonymizedEmail) || !StringUtils.hasText(withdrawnDisplayName)) {
+            throw new IllegalArgumentException("anonymizedEmail and withdrawnDisplayName must not be blank");
+        }
+        this.email = anonymizedEmail;
+        this.displayName = withdrawnDisplayName;
+        this.profileImageUrl = null;
+        this.ticketBalance = 0;
+        this.creditBalance = 0;
+        this.suspended = false;
+        this.deleted = true;
     }
 
     @Override

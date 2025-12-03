@@ -52,6 +52,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 throw new JwtAuthenticationException("사용자를 찾을 수 없습니다.");
             }
             User user = userOptional.get();
+            if (user.isSuspended()) {
+                throw new JwtAuthenticationException("정지된 사용자입니다.");
+            }
+            if (user.isDeleted()) {
+                throw new JwtAuthenticationException("탈퇴한 사용자입니다.");
+            }
 
             AuthenticatedUser principal = new AuthenticatedUser(user.getId(), user.getEmail(), user.getDisplayName());
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(

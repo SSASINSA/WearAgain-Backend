@@ -291,12 +291,19 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private OAuthLoginResponse issueTokens(User user) {
+        ensureUserIsActive(user);
         JwtToken accessToken = jwtTokenProvider.createAccessToken(user);
         JwtToken refreshToken = jwtTokenProvider.createRefreshToken(user);
 
         storeRefreshToken(user.getId(), refreshToken);
 
         return OAuthLoginResponse.of(user, accessToken, refreshToken);
+    }
+
+    private void ensureUserIsActive(User user) {
+        if (user.isSuspended()) {
+            throw new AuthException(AuthErrorCode.USER_SUSPENDED);
+        }
     }
 
     private void storeRefreshToken(Long userId, JwtToken refreshToken) {

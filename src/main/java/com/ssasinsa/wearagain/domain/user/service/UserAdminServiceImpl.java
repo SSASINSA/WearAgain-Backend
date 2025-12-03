@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.user.service;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.RefreshTokenRedisKeyManager;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
@@ -38,6 +39,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +54,8 @@ public class UserAdminServiceImpl implements UserAdminService {
     private final EventApplicationRepository eventApplicationRepository;
     private final TicketHistoryRepository ticketHistoryRepository;
     private final CreditHistoryRepository creditHistoryRepository;
+    private final RefreshTokenRedisKeyManager refreshTokenRedisKeyManager;
+    private final RedisTemplate<String, String> redisTemplate;
 
     @Override
     @Transactional(readOnly = true)
@@ -113,7 +117,14 @@ public class UserAdminServiceImpl implements UserAdminService {
         User user = userRepository.findById(participantId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
         user.updateSuspended(request.suspended());
+        if (request.suspended()) {
+            clearRefreshToken(user.getId());
+        }
         return toDetail(user);
+    }
+
+    private void clearRefreshToken(Long userId) {
+        redisTemplate.delete(refreshTokenRedisKeyManager.userRefreshTokenKey(userId));
     }
 
     private Sort resolveSort(String sortBy) {

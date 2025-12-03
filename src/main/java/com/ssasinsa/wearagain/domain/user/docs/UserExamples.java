@@ -78,4 +78,10 @@ public class UserExamples {
               ]
             }
             """;
+
+    public static final String UPDATE_DISPLAY_NAME_RESPONSE = """
+            {
+              \"displayName\": \"웨어어게인러버\"
+            }
+            """;
 }
