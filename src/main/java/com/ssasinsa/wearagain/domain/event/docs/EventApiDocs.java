@@ -322,10 +322,10 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "행사 승인 신청 목록 조회",
             description = """
-                    최고 관리자(SUPER_ADMIN)가 승인 대기 중인 행사(DRAFT 상태)의 승인 신청 목록을 조회합니다.
-                    생성 시간 기준 최신순으로 정렬되며, 각 신청의 제목, 신청 관리자 정보 등을 포함합니다.
+                    SUPER_ADMIN/ADMIN이 처리하지 않은 DRAFT 상태 행사 승인 요청을 페이지 기반으로 조회합니다.
+                    페이지 기능 및 검색, 필터 기능을 포함합니다.
                     """,
-            responseSchema = EventApprovalRequestListResponse.class,
+            responseSchema = EventApprovalRequestPageResponse.class,
             responseExample = EventExamples.ADMIN_EVENT_APPROVAL_LIST_RESPONSE
     )
     public @interface ListPendingApprovals {

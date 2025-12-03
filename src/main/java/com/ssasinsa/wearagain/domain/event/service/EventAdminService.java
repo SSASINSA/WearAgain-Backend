@@ -3,12 +3,10 @@ package com.ssasinsa.wearagain.domain.event.service;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.event.dto.admin.*;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
-import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestPageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.global.dto.MessageResponse;
-
-import java.util.List;
 
 public interface EventAdminService {
 
@@ -39,7 +37,13 @@ public interface EventAdminService {
 
     EventStaffCodeResponse getStaffCode(Long eventId, Long adminId);
 
-    List<EventApprovalRequestListResponse> getPendingApprovalRequests();
+    EventApprovalRequestPageResponse getPendingApprovalRequests(
+            int page,
+            int size,
+            String sort,
+            String keyword,
+            String keywordScope
+    );
 
     EventApprovalRequestDetailResponse getApprovalRequestDetail(Long approvalRequestId);
 

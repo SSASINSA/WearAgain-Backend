@@ -20,6 +20,7 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRespo
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
+import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestPageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateImageResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventCreateResponse.EventCreateOptionResponse;
@@ -30,6 +31,7 @@ import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
 import com.ssasinsa.wearagain.domain.event.entity.EventImage;
 import com.ssasinsa.wearagain.domain.event.entity.EventKeywordScope;
 import com.ssasinsa.wearagain.domain.event.entity.EventOption;
+import com.ssasinsa.wearagain.domain.event.entity.EventApprovalKeywordScope;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
@@ -39,6 +41,7 @@ import com.ssasinsa.wearagain.domain.event.repository.EventCapacitySummary;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount;
 import com.ssasinsa.wearagain.domain.event.entity.EventApprovalRequest;
 import com.ssasinsa.wearagain.domain.event.repository.EventApprovalRequestRepository;
+import com.ssasinsa.wearagain.domain.event.repository.EventApprovalRequestSpecifications;
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventSpecifications;
@@ -881,6 +884,17 @@ public class EventAdminServiceImpl implements EventAdminService {
         }
     }
 
+    private EventApprovalKeywordScope resolveApprovalKeywordScope(String param) {
+        if (!StringUtils.hasText(param)) {
+            return EventApprovalKeywordScope.ALL;
+        }
+        try {
+            return EventApprovalKeywordScope.valueOf(param.trim().toUpperCase());
+        } catch (IllegalArgumentException exception) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
+        }
+    }
+
     private EventStatus resolveInitialStatus(AdminRole role, LocalDate startDate, LocalDate endDate) {
         if (requiresApproval(role)) {
             return EventStatus.DRAFT;
@@ -898,6 +912,15 @@ public class EventAdminServiceImpl implements EventAdminService {
             case LATEST -> Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
             case OLDEST -> Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
             case TITLE_ASC -> Sort.by(Sort.Order.asc("title"), Sort.Order.asc("id"));
+        };
+    }
+
+    private Sort resolveApprovalSort(String param) {
+        EventAdminSortType sortType = resolveSortType(param);
+        return switch (sortType) {
+            case LATEST -> Sort.by(Sort.Order.desc("createdAt"), Sort.Order.desc("id"));
+            case OLDEST -> Sort.by(Sort.Order.asc("createdAt"), Sort.Order.asc("id"));
+            case TITLE_ASC -> Sort.by(Sort.Order.asc("event.title"), Sort.Order.asc("id"));
         };
     }
 
@@ -968,6 +991,18 @@ public class EventAdminServiceImpl implements EventAdminService {
         return String.format("%06d", value);
     }
 
+    private void expireOutdatedApprovalRequests() {
+        List<EventApprovalRequest> expired = eventApprovalRequestRepository.findExpiredPendingRequests(
+                EventStatus.DRAFT,
+                LocalDate.now()
+        );
+        if (expired.isEmpty()) {
+            return;
+        }
+        LocalDateTime processedAt = LocalDateTime.now();
+        expired.forEach(request -> request.reject(null, processedAt));
+    }
+
     private List<EventOption> toDistinctOptions(Collection<EventOption> options) {
         if (options == null || options.isEmpty()) {
             return List.of();
@@ -983,18 +1018,39 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional
-    public List<EventApprovalRequestListResponse> getPendingApprovalRequests() {
-        List<EventApprovalRequest> pending = eventApprovalRequestRepository
-                .findByEvent_StatusAndProcessedAtIsNullOrderByCreatedAtDesc(EventStatus.DRAFT);
-        LocalDate today = LocalDate.now();
-        LocalDateTime processedAt = LocalDateTime.now();
-        pending.stream()
-                .filter(request -> isExpired(request.getEvent().getEndDate(), today))
-                .forEach(request -> request.reject(null, processedAt));
-        return pending.stream()
-                .filter(request -> request.getProcessedAt() == null)
+    public EventApprovalRequestPageResponse getPendingApprovalRequests(
+            int page,
+            int size,
+            String sort,
+            String keyword,
+            String keywordScope
+    ) {
+        if (page < 0 || size <= 0 || size > 50) {
+            throw new EventException(EventErrorCode.INVALID_EVENT_QUERY);
+        }
+        expireOutdatedApprovalRequests();
+
+        String normalizedKeyword = normalizeText(keyword);
+        EventApprovalKeywordScope scope = resolveApprovalKeywordScope(keywordScope);
+
+        Specification<EventApprovalRequest> specification = EventApprovalRequestSpecifications.pendingRequests()
+                .and(EventApprovalRequestSpecifications.keywordMatches(normalizedKeyword, scope));
+        Pageable pageable = PageRequest.of(page, size, resolveApprovalSort(sort));
+
+        Page<EventApprovalRequest> result = eventApprovalRequestRepository.findAll(specification, pageable);
+        List<EventApprovalRequestListResponse> approvals = result.getContent()
+                .stream()
                 .map(EventApprovalRequestListResponse::from)
                 .toList();
+
+        return new EventApprovalRequestPageResponse(
+                approvals,
+                page,
+                size,
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.hasNext()
+        );
     }
 
     @Override
