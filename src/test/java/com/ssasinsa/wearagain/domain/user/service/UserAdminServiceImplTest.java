@@ -3,10 +3,12 @@ package com.ssasinsa.wearagain.domain.user.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
+import com.ssasinsa.wearagain.domain.auth.infrastructure.RefreshTokenRedisKeyManager;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
@@ -31,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
 @ExtendWith(MockitoExtension.class)
@@ -53,6 +56,10 @@ class UserAdminServiceImplTest {
 
     @Mock
     private CreditHistoryRepository creditHistoryRepository;
+    @Mock
+    private RefreshTokenRedisKeyManager refreshTokenRedisKeyManager;
+    @Mock
+    private RedisTemplate<String, String> redisTemplate;
 
     @InjectMocks
     private UserAdminServiceImpl userAdminService;
@@ -155,6 +162,7 @@ class UserAdminServiceImplTest {
         // Given
         User user = createUser(9L, "user9@wearagain.kr", "user9", 0, 0);
         when(userRepository.findById(9L)).thenReturn(Optional.of(user));
+        when(refreshTokenRedisKeyManager.userRefreshTokenKey(9L)).thenReturn("auth:user:9");
         AdminParticipantSuspensionRequest request = new AdminParticipantSuspensionRequest(true);
 
         // When
@@ -162,6 +170,7 @@ class UserAdminServiceImplTest {
 
         // Then
         assertThat(response.suspended()).isTrue();
+        verify(redisTemplate).delete("auth:user:9");
     }
 
     @Test

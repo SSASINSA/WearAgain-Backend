@@ -173,6 +173,33 @@ class AuthServiceImplTest {
     }
 
     @Test
+    void should_throw_exception_when_user_is_suspended_on_login() {
+        KakaoIdTokenLoginRequest request = new KakaoIdTokenLoginRequest("kakao-id-token");
+        KakaoIdTokenPayload payload = new KakaoIdTokenPayload(
+                "kakao-user-id",
+                "user@example.com",
+                "카카오 사용자",
+                "https://example.com/profile.png",
+                Instant.now(),
+                Instant.now().plusSeconds(900),
+                Instant.now(),
+                "nonce-value"
+        );
+        when(kakaoOAuthClient.parseIdToken("kakao-id-token")).thenReturn(payload);
+
+        User user = org.mockito.Mockito.mock(User.class);
+        when(user.isSuspended()).thenReturn(true);
+        UserOAuthAccount oauthAccount = org.mockito.Mockito.mock(UserOAuthAccount.class);
+        when(oauthAccount.getUser()).thenReturn(user);
+        when(userOAuthAccountRepository.findByProviderAndProviderUserId(AuthProvider.KAKAO, "kakao-user-id"))
+                .thenReturn(Optional.of(oauthAccount));
+
+        assertThatThrownBy(() -> authService.loginWithKakaoIdToken(request))
+                .isInstanceOf(AuthException.class)
+                .satisfies(exception -> assertThat(((AuthException) exception).getErrorCode()).isEqualTo(AuthErrorCode.USER_SUSPENDED));
+    }
+
+    @Test
     void should_throw_exception_when_kakao_id_token_missing() {
         KakaoIdTokenLoginRequest request = new KakaoIdTokenLoginRequest(" ");
 

@@ -7,7 +7,8 @@ public enum UserErrorCode implements ErrorCode {
 
     USER_NOT_FOUND("U1001", "사용자를 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     INVALID_REQUEST("U1002", "잘못된 요청입니다.", HttpStatus.BAD_REQUEST.value()),
-    FEATURE_NOT_AVAILABLE("U1003", "지원하지 않는 기능입니다.", HttpStatus.FORBIDDEN.value());
+    FEATURE_NOT_AVAILABLE("U1003", "지원하지 않는 기능입니다.", HttpStatus.FORBIDDEN.value()),
+    USER_ALREADY_WITHDRAWN("U1004", "이미 탈퇴 처리된 사용자입니다.", HttpStatus.BAD_REQUEST.value());
 
     private final String code;
     private final String message;
