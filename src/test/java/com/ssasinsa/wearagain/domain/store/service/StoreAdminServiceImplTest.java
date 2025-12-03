@@ -22,6 +22,8 @@ import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
+import java.lang.reflect.Field;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,16 +31,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.data.domain.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-
-import java.lang.reflect.Field;
-import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,6 +64,9 @@ class StoreAdminServiceImplTest {
 
     @Mock
     private AdminUserRepository adminUserRepository;
+
+    @Mock
+    private StoreStockService storeStockService;
 
     @InjectMocks
     private StoreAdminServiceImpl storeAdminService;
@@ -262,6 +270,7 @@ class StoreAdminServiceImplTest {
         assertThat(item.getStock()).isEqualTo(3); // 기존 재고 1 + 취소 수량 2
         assertThat(user.getCreditBalance()).isEqualTo(3000);
         verify(creditHistoryRepository).save(any());
+        verify(storeStockService).release(77L, 2);
     }
 
     private AdminUser admin() {
@@ -282,5 +291,3 @@ class StoreAdminServiceImplTest {
         }
     }
 }
-
-
