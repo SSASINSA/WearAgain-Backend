@@ -1,6 +1,7 @@
 package com.ssasinsa.wearagain.domain.user.docs;
 
 import com.ssasinsa.wearagain.domain.community.dto.response.PostsResponse;
+import com.ssasinsa.wearagain.domain.user.dto.UserDisplayNameResponse;
 import com.ssasinsa.wearagain.domain.user.dto.UserSummaryResponse;
 import com.ssasinsa.wearagain.global.docs.annotation.ApiDoc;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -57,5 +58,29 @@ public final class UserApiDocs {
             responseExample = UserExamples.MY_COMMENTED_POSTS_RESPONSE
     )
     public @interface GetMyCommentedPosts {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "표시 이름 변경",
+            description = "로그인한 사용자의 표시 이름을 변경합니다.",
+            responseSchema = UserDisplayNameResponse.class,
+            responseExample = UserExamples.UPDATE_DISPLAY_NAME_RESPONSE
+    )
+    public @interface UpdateDisplayName {
+    }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "회원 탈퇴",
+            description = "로그인한 사용자가 모든 개인정보를 삭제하고 서비스 이용을 중단합니다.",
+            responseSchema = Void.class,
+            successStatus = "204"
+    )
+    public @interface DeleteAccount {
     }
 }
