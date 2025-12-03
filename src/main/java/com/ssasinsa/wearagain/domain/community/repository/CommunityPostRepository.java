@@ -5,12 +5,16 @@ import com.ssasinsa.wearagain.domain.community.entity.CommunityPost;
 import com.ssasinsa.wearagain.domain.community.entity.PostStatus;
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
-public interface CommunityPostRepository extends JpaRepository<CommunityPost, Long> {
+public interface CommunityPostRepository extends JpaRepository<CommunityPost, Long>, JpaSpecificationExecutor<CommunityPost> {
 
     @Query("SELECT p FROM CommunityPost p " +
             "LEFT JOIN FETCH p.user " +
@@ -108,5 +112,9 @@ public interface CommunityPostRepository extends JpaRepository<CommunityPost, Lo
     default List<Long> findActivePostIdsByCommentUserIdForCursor(Long userId, Long cursor, Pageable pageable) {
         return findPostIdsByCommentUserIdForCursor(userId, CommentStatus.INACTIVE, cursor, pageable);
     }
+
+    @Override
+    @EntityGraph(attributePaths = {"user", "category", "images"})
+    Page<CommunityPost> findAll(Specification<CommunityPost> spec, Pageable pageable);
 }
 

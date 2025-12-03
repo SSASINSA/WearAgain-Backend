@@ -56,5 +56,13 @@ public interface PostCommentRepository extends JpaRepository<PostComment, Long> 
     default Optional<PostComment> findByIdAndActiveTrue(Long commentId) {
         return findByIdAndStatusNot(commentId, CommentStatus.INACTIVE);
     }
+
+    @Query("""
+            SELECT c FROM PostComment c
+                LEFT JOIN FETCH c.user
+            WHERE c.post.id = :postId
+            ORDER BY c.createdAt DESC
+            """)
+    List<PostComment> findAllByPostIdForAdmin(@Param("postId") Long postId);
 }
 
