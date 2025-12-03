@@ -64,6 +64,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     private final StoreOrderRepository storeOrderRepository;
     private final CreditHistoryRepository creditHistoryRepository;
     private final AdminUserRepository adminUserRepository;
+    private final StoreStockService storeStockService;
 
     @Override
     @Transactional
@@ -227,6 +228,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         }
 
         StoreItem item = order.getItem();
+        storeStockService.release(item.getId(), order.getQuantity());
         item.increaseStock(order.getQuantity());
 
         User user = order.getUser();

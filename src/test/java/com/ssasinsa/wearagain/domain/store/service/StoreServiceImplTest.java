@@ -3,7 +3,11 @@ package com.ssasinsa.wearagain.domain.store.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -52,6 +56,8 @@ class StoreServiceImplTest {
     private UserRepository userRepository;
     @Mock
     private CreditHistoryRepository creditHistoryRepository;
+    @Mock
+    private StoreStockService storeStockService;
 
     @InjectMocks
     private StoreServiceImpl storeService;
@@ -65,6 +71,7 @@ class StoreServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(storeItemRepository.findById(10L)).thenReturn(Optional.of(item));
         when(storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED)).thenReturn(0L);
+        when(storeStockService.reserve(10L, 2)).thenReturn(true);
         when(storeOrderRepository.save(any(StoreOrder.class))).thenAnswer(invocation -> {
             StoreOrder order = invocation.getArgument(0);
             ReflectionTestUtils.setField(order, "id", 50L);
@@ -80,6 +87,8 @@ class StoreServiceImplTest {
         assertThat(response.usedCredit()).isEqualTo(2000);
         assertThat(item.getStock()).isEqualTo(3);
         assertThat(user.getCreditBalance()).isEqualTo(3000);
+        verify(storeStockService).reserve(10L, 2);
+        verify(storeStockService, never()).release(anyLong(), anyInt());
         verify(creditHistoryRepository).save(any());
     }
 
@@ -91,12 +100,13 @@ class StoreServiceImplTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(storeItemRepository.findById(10L)).thenReturn(Optional.of(item));
-
         StoreOrderCreateRequest request = new StoreOrderCreateRequest(10L, 1, "없는 장소");
 
         assertThatThrownBy(() -> storeService.createOrder(request, 1L))
                 .isInstanceOf(StoreException.class)
                 .hasMessage(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID.getMessage());
+        verify(storeStockService, never()).reserve(anyLong(), anyInt());
+        verify(storeStockService, never()).release(anyLong(), anyInt());
     }
 
     @DisplayName("주문 취소 시 재고/크레딧 복원 및 상태 변경")
@@ -118,6 +128,7 @@ class StoreServiceImplTest {
         assertThat(item.getStock()).isEqualTo(2);
         assertThat(user.getCreditBalance()).isEqualTo(2000);
         assertThat(order.getStatus()).isEqualTo(StoreOrderStatus.CANCELED);
+        verify(storeStockService).release(10L, 2);
         verify(creditHistoryRepository).save(any());
     }
 

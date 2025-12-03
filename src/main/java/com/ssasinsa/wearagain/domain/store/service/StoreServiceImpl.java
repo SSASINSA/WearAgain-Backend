@@ -44,6 +44,7 @@ public class StoreServiceImpl implements StoreService {
     private final StoreOrderRepository storeOrderRepository;
     private final UserRepository userRepository;
     private final CreditHistoryRepository creditHistoryRepository;
+    private final StoreStockService storeStockService;
 
     @Override
     @Transactional(readOnly = true)
@@ -100,21 +101,30 @@ public class StoreServiceImpl implements StoreService {
 
         enforcePurchaseLimit(user, item, request.quantity());
 
-        try {
-            item.decreaseStock(request.quantity());
-        } catch (IllegalStateException exception) {
-            throw new StoreException(StoreErrorCode.STORE_STOCK_SHORTAGE, exception);
+        // 캐시 우선 예약
+        boolean reserved = storeStockService.reserve(item.getId(), request.quantity());
+        if (!reserved) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_SHORTAGE);
         }
 
         try {
             user.decreaseCreditBalance(usedCredit);
         } catch (IllegalStateException exception) {
+            storeStockService.release(item.getId(), request.quantity());
             throw new StoreException(StoreErrorCode.STORE_CREDIT_NOT_ENOUGH, exception);
         }
 
         StoreOrder order = StoreOrder.create(user, item, unitPrice, request.quantity(), request.pickupLocation().trim());
         StoreOrder saved = storeOrderRepository.save(order);
         creditHistoryRepository.save(CreditHistory.create(user, saved, -usedCredit, "STORE_PURCHASE"));
+
+        // DB 재고를 캐시 결과에 맞춰 감소
+        try {
+            item.decreaseStock(request.quantity());
+        } catch (RuntimeException exception) {
+            storeStockService.release(item.getId(), request.quantity());
+            throw exception;
+        }
 
         return new StoreOrderCreateResponse(
                 saved.getId(),
@@ -139,6 +149,8 @@ public class StoreServiceImpl implements StoreService {
         }
 
         StoreItem item = order.getItem();
+
+        storeStockService.release(item.getId(), order.getQuantity());
         item.increaseStock(order.getQuantity());
         int refundAmount = order.getPrice() * order.getQuantity();
         user.increaseCreditBalance(refundAmount);
