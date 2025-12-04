@@ -108,6 +108,16 @@ public class PostAdminServiceImpl implements PostAdminService {
         );
     }
 
+    @Override
+    @Transactional
+    public void deletePost(Long postId) {
+        CommunityPost post = communityPostRepository.findByIdAndActiveTrue(postId)
+                .orElseThrow(() -> new CommunityException(CommunityErrorCode.POST_NOT_FOUND));
+
+        post.deactivate();
+        log.info("게시글 삭제 완료: postId={}", postId);
+    }
+
     private Map<Long, Integer> buildCommentCountMap(List<Long> postIds) {
         if (postIds.isEmpty()) {
             return Map.of();
