@@ -9,4 +9,8 @@ public interface PostAdminService {
     PostAdminListResponse getPosts(PostAdminListRequest request);
 
     PostAdminDetailResponse getPostDetail(Long postId);
+
+    void deletePost(Long postId);
+
+    void activatePost(Long postId);
 }

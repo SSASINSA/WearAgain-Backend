@@ -33,6 +33,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -117,6 +118,67 @@ class PostAdminServiceTest {
                 .thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> postAdminService.getPostDetail(101L))
+                .isInstanceOf(CommunityException.class)
+                .extracting(exception -> ((CommunityException) exception).getErrorCode())
+                .isEqualTo(CommunityErrorCode.POST_NOT_FOUND);
+    }
+
+    @Test
+    void should_delete_post_when_post_exists() {
+        when(communityPostRepository.findByIdAndActiveTrue(101L))
+                .thenReturn(Optional.of(post));
+
+        postAdminService.deletePost(101L);
+
+        assertThat(post.getStatus()).isEqualTo(PostStatus.INACTIVE);
+        verify(communityPostRepository).findByIdAndActiveTrue(101L);
+    }
+
+    @Test
+    void should_throw_exception_when_delete_post_not_found() {
+        when(communityPostRepository.findByIdAndActiveTrue(101L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> postAdminService.deletePost(101L))
+                .isInstanceOf(CommunityException.class)
+                .extracting(exception -> ((CommunityException) exception).getErrorCode())
+                .isEqualTo(CommunityErrorCode.POST_NOT_FOUND);
+    }
+
+    @Test
+    void should_activate_post_when_post_exists() {
+        post.deactivate();
+        assertThat(post.getStatus()).isEqualTo(PostStatus.INACTIVE);
+
+        when(communityPostRepository.findById(101L))
+                .thenReturn(Optional.of(post));
+
+        postAdminService.activatePost(101L);
+
+        assertThat(post.getStatus()).isEqualTo(PostStatus.ACTIVE);
+        verify(communityPostRepository).findById(101L);
+    }
+
+    @Test
+    void should_activate_post_when_post_is_reported() {
+        post.report();
+        assertThat(post.getStatus()).isEqualTo(PostStatus.REPORTED);
+
+        when(communityPostRepository.findById(101L))
+                .thenReturn(Optional.of(post));
+
+        postAdminService.activatePost(101L);
+
+        assertThat(post.getStatus()).isEqualTo(PostStatus.ACTIVE);
+        verify(communityPostRepository).findById(101L);
+    }
+
+    @Test
+    void should_throw_exception_when_activate_post_not_found() {
+        when(communityPostRepository.findById(101L))
+                .thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> postAdminService.activatePost(101L))
                 .isInstanceOf(CommunityException.class)
                 .extracting(exception -> ((CommunityException) exception).getErrorCode())
                 .isEqualTo(CommunityErrorCode.POST_NOT_FOUND);

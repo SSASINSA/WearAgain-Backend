@@ -36,4 +36,32 @@ public final class PostAdminApiDocs {
     )
     public @interface GetPostDetail {
     }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 삭제",
+            description = """
+                    게시글을 삭제합니다.
+                    관리자는 모든 게시글을 삭제할 수 있으며, 실제로는 soft delete(status=INACTIVE)로 처리됩니다.
+                    """,
+            responseSchema = Void.class
+    )
+    public @interface DeletePost {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 활성화",
+            description = """
+                    게시글 상태를 ACTIVE로 변경합니다.
+                    관리자는 모든 게시글을 활성화할 수 있습니다.
+                    """,
+            responseSchema = Void.class
+    )
+    public @interface ActivatePost {
+    }
 }
