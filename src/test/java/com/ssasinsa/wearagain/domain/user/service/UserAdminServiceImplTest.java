@@ -33,6 +33,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -70,11 +71,17 @@ class UserAdminServiceImplTest {
         User user1 = createUser(1L, "user1@wearagain.kr", "user1", 5, 100);
         User user2 = createUser(2L, "user2@wearagain.kr", "user2", 3, 50);
         Pageable pageable = PageRequest.of(0, 10);
-        when(userRepository.findAll(any(Pageable.class)))
+        when(userRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(user1, user2), pageable, 2));
 
         // When
-        AdminParticipantListResponse response = userAdminService.getParticipants(null, "CREATED_DESC", pageable);
+        AdminParticipantListResponse response = userAdminService.getParticipants(
+                null,
+                "CREATED_DESC",
+                null,
+                null,
+                pageable
+        );
 
         // Then
         assertThat(response.content()).hasSize(2);
@@ -89,7 +96,7 @@ class UserAdminServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
 
         // When & Then
-        assertThatThrownBy(() -> userAdminService.getParticipants(null, "UNKNOWN", pageable))
+        assertThatThrownBy(() -> userAdminService.getParticipants(null, "UNKNOWN", null, null, pageable))
                 .isInstanceOf(UserException.class)
                 .extracting(ex -> ((UserException) ex).getErrorCode())
                 .isEqualTo(UserErrorCode.INVALID_REQUEST);
