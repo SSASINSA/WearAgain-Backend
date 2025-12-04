@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -186,8 +187,14 @@ public class StoreServiceImpl implements StoreService {
             orders = orders.subList(0, pageSize);
         }
 
+        List<StoreItem> orderItems = orders.stream()
+                .map(StoreOrder::getItem)
+                .filter(Objects::nonNull)
+                .toList();
+        Map<Long, String> thumbnails = loadThumbnails(orderItems);
+
         List<StoreOrderSummaryResponse> responses = orders.stream()
-                .map(this::mapToOrderSummary)
+                .map(order -> mapToOrderSummary(order, thumbnails))
                 .toList();
 
         String nextCursor = hasNext && !orders.isEmpty()
@@ -261,15 +268,20 @@ public class StoreServiceImpl implements StoreService {
         );
     }
 
-    private StoreOrderSummaryResponse mapToOrderSummary(StoreOrder order) {
+    private StoreOrderSummaryResponse mapToOrderSummary(StoreOrder order, Map<Long, String> thumbnails) {
         User orderOwner = order.getUser();
         StoreItem item = order.getItem();
         int totalPrice = order.getPrice() * order.getQuantity();
+        String thumbnailUrl = null;
+        if (item != null) {
+            thumbnailUrl = thumbnails.get(item.getId());
+        }
         return new StoreOrderSummaryResponse(
                 order.getId(),
                 orderOwner != null ? orderOwner.getEmail() : null,
                 item != null ? item.getId() : null,
                 item != null ? item.getName() : null,
+                thumbnailUrl,
                 order.getQuantity(),
                 order.getPrice(),
                 totalPrice,
