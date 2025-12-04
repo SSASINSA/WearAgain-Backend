@@ -15,8 +15,6 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminSummaryResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminImageRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest.EventAdminOptionRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApprovalRequestListResponse;
@@ -359,19 +357,6 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
         }
         event.changeStatus(EventStatus.ARCHIVED);
-    }
-
-    @Override
-    @Transactional
-    public EventApplicationRejectResponse rejectApplication(Long applicationId, EventApplicationRejectRequest request) {
-        EventApplication application = eventApplicationRepository.findById(applicationId)
-                .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND));
-        if (application.getStatus() != EventApplicationStatus.APPLIED) {
-            throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
-        }
-        String trimmedReason = request.reason().trim();
-        application.reject(LocalDateTime.now(), trimmedReason);
-        return new EventApplicationRejectResponse(application.getId(), application.getStatus().name());
     }
 
     @Override

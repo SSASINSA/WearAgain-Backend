@@ -367,19 +367,6 @@ public final class EventExamples {
 
     public static final String ADMIN_EVENT_UPDATE_RESPONSE = ADMIN_EVENT_DETAIL_RESPONSE;
 
-    public static final String ADMIN_EVENT_REJECT_REQUEST = """
-            {
-              "reason": "예약 인원 초과로 승인 불가합니다."
-            }
-            """;
-
-    public static final String ADMIN_EVENT_REJECT_RESPONSE = """
-            {
-              "applicationId": 5001,
-              "status": "REJECTED"
-            }
-            """;
-
     public static final String ADMIN_EVENT_STATUS_UPDATE_REQUEST = """
             {
               "status": "OPEN",

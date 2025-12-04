@@ -31,8 +31,6 @@ public interface EventAdminService {
 
     void archiveEvent(Long eventId);
 
-    EventApplicationRejectResponse rejectApplication(Long applicationId, EventApplicationRejectRequest request);
-
     EventStaffCodeResponse issueStaffCode(Long eventId, Long adminId);
 
     EventStaffCodeResponse getStaffCode(Long eventId, Long adminId);

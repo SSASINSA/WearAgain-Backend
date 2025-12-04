@@ -70,6 +70,8 @@ public class EventUserServiceImpl implements EventUserService {
     private static final EnumSet<EventStatus> DEFAULT_VISIBLE_STATUSES = EnumSet.of(EventStatus.OPEN);
     private static final EnumSet<EventApplicationStatus> ACTIVE_APPLICATION_STATUSES =
             EnumSet.of(EventApplicationStatus.APPLIED, EventApplicationStatus.CHECKED_IN);
+    private static final EnumSet<EventApplicationStatus> REJECTED_APPLICATION_STATUSES =
+            EnumSet.of(EventApplicationStatus.REJECTED);
     private static final Comparator<EventImage> IMAGE_ORDER = Comparator.comparingInt(EventImage::getDisplayOrder);
     private static final Comparator<EventOption> OPTION_ORDER = Comparator.comparingInt(EventOption::getDisplayOrder);
     private static final Duration QR_TOKEN_TTL = Duration.ofMinutes(10);
@@ -160,6 +162,11 @@ public class EventUserServiceImpl implements EventUserService {
                 userId, option.getId(), ACTIVE_APPLICATION_STATUSES
         )) {
             throw new EventException(EventErrorCode.EVENT_ALREADY_APPLIED);
+        }
+        if (eventApplicationRepository.existsByUserIdAndEventOptionIdAndStatusIn(
+                userId, option.getId(), REJECTED_APPLICATION_STATUSES
+        )) {
+            throw new EventException(EventErrorCode.EVENT_REJECTED_CANNOT_REAPPLY);
         }
 
         if (!reserveCapacity(option)) {

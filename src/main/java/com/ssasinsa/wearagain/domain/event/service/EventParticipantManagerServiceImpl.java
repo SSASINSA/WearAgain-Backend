@@ -21,6 +21,7 @@ import com.ssasinsa.wearagain.domain.event.repository.EventApplicationSpecificat
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailResponse;
 import com.ssasinsa.wearagain.domain.user.service.UserAdminService;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -166,8 +167,8 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
             throw new EventException(EventErrorCode.EVENT_APPLICATION_NOT_CANCELABLE);
         }
 
-        String reason = request == null ? null : request.reason();
-        application.cancel(java.time.LocalDateTime.now(), reason);
+        String reason = request == null ? null : request.reason().trim();
+        application.reject(LocalDateTime.now(), reason);
     }
 
     private Specification<EventApplication> buildBaseSpecification(

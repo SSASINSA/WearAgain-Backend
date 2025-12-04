@@ -145,5 +145,8 @@ class EventParticipantManagerServiceImplTest {
 
         ManagerEventParticipantCancelRequest request = new ManagerEventParticipantCancelRequest("중복 예약");
         service.cancelApplication(event.getId(), application.getId(), request, principal);
+
+        assertThat(application.getStatus()).isEqualTo(EventApplicationStatus.REJECTED);
+        assertThat(application.getReason()).isEqualTo("중복 예약");
     }
 }

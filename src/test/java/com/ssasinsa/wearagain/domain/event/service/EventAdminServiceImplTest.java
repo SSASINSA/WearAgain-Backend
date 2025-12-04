@@ -297,7 +297,7 @@ class EventAdminServiceImplTest {
     void should_list_events_with_statistics() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 20);
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), pageableCaptor.capture()))
+        when(eventRepository.findAll(any(Specification.class), pageableCaptor.capture()))
                 .thenReturn(pageResult);
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
@@ -340,7 +340,7 @@ class EventAdminServiceImplTest {
     void should_apply_sort_parameter_when_provided() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 10), 1);
         ArgumentCaptor<Pageable> pageableCaptor = ArgumentCaptor.forClass(Pageable.class);
-        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), pageableCaptor.capture()))
+        when(eventRepository.findAll(any(Specification.class), pageableCaptor.capture()))
                 .thenReturn(pageResult);
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
         when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
@@ -368,7 +368,7 @@ class EventAdminServiceImplTest {
     void should_apply_manager_and_keyword_filters_together() {
         PageImpl<Event> pageResult = new PageImpl<>(List.of(event), PageRequest.of(0, 5), 5);
         ArgumentCaptor<Specification<Event>> specCaptor = ArgumentCaptor.forClass(Specification.class);
-        when(eventRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), any(Pageable.class)))
+        when(eventRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(pageResult);
         when(eventOptionRepository.sumCapacityByEventIds(anyCollection()))
                 .thenReturn(List.of(new EventCapacitySummary(101L, 30L)));
@@ -655,20 +655,6 @@ class EventAdminServiceImplTest {
         eventAdminService.archiveEvent(101L);
 
         assertThat(event.getStatus()).isEqualTo(EventStatus.ARCHIVED);
-    }
-
-    @Test
-    void should_reject_application() {
-        User user = User.create("user@wearagain.kr", "사용자", null);
-        ReflectionTestUtils.setField(user, "id", 10L);
-        EventApplication application = EventApplication.create(user, event, option, EventApplicationStatus.APPLIED, null, null);
-        ReflectionTestUtils.setField(application, "id", 5001L);
-        when(eventApplicationRepository.findById(5001L)).thenReturn(java.util.Optional.of(application));
-
-        EventApplicationRejectResponse response = eventAdminService.rejectApplication(5001L, new EventApplicationRejectRequest("사유"));
-
-        assertThat(response.status()).isEqualTo(EventApplicationStatus.REJECTED.name());
-        verify(eventApplicationRepository).findById(5001L);
     }
 
     @Test
