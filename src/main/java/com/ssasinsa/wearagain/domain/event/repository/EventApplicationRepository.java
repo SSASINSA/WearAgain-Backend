@@ -99,4 +99,7 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
             "eventOption.parentOption.parentOption"
     })
     Optional<EventApplication> findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(Long userId, Long eventId);
+
+    @Query("select count(a) from EventApplication a where a.status = com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus.CHECKED_IN")
+    long countCheckedIn();
 }

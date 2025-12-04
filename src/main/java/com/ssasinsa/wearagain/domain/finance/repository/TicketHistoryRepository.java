@@ -24,6 +24,12 @@ public interface TicketHistoryRepository extends JpaRepository<TicketHistory, Lo
     Long sumChangeAmountBetween(@Param("startInclusive") LocalDateTime startInclusive,
                                 @Param("endExclusive") LocalDateTime endExclusive);
 
+    @Query("select COALESCE(SUM(th.changeAmount), 0) from TicketHistory th where th.changeAmount > 0")
+    java.util.Optional<Long> sumPositiveAmounts();
+
+    @Query("select COALESCE(SUM(ABS(th.changeAmount)), 0) from TicketHistory th where th.changeAmount < 0")
+    java.util.Optional<Long> sumNegativeAmountsAbs();
+
     interface TicketChargeSummary {
 
         Long getUserId();
