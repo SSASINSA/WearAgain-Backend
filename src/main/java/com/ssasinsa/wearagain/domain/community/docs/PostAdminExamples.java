@@ -38,7 +38,7 @@ public final class PostAdminExamples {
               "postId": 101,
               "status": "ACTIVE",
               "title": "업사이클링 꿀팁",
-              "content": "집에서 쉽게 따라할 수 있는 아이디어 모음",
+              "content": "집에서 쉽게 따라 할 수 있는 리폼 아이디어 모음",
               "categoryName": "eco",
               "author": {
                 "authorId": 5,
@@ -56,7 +56,7 @@ public final class PostAdminExamples {
               "comments": [
                 {
                   "commentId": 301,
-                  "content": "정말 유익해요!",
+                  "content": "좋은 정보 감사합니다!",
                   "status": "ACTIVE",
                   "author": {
                     "authorId": 7,
