@@ -50,4 +50,18 @@ public final class PostAdminApiDocs {
     )
     public @interface DeletePost {
     }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "게시글 활성화",
+            description = """
+                    게시글 상태를 ACTIVE로 변경합니다.
+                    관리자는 모든 게시글을 활성화할 수 있습니다.
+                    """,
+            responseSchema = Void.class
+    )
+    public @interface ActivatePost {
+    }
 }
