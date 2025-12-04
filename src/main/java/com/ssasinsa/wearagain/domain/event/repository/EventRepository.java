@@ -27,6 +27,8 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     Optional<Event> findByStaffCode(String staffCode);
 
+    List<Event> findAllByStaffCodeIn(Collection<String> staffCodes);
+
     List<Event> findByStatusAndScissorGrantedFalse(EventStatus status);
 
     @Query("SELECT e FROM Event e WHERE e.status <> :closedStatus AND e.endDate < :targetDate")
