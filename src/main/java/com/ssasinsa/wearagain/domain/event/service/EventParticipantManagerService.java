@@ -7,14 +7,11 @@ import com.ssasinsa.wearagain.domain.event.dto.manager.ManagerEventParticipantKe
 import com.ssasinsa.wearagain.domain.event.dto.manager.ManagerEventParticipantSort;
 import com.ssasinsa.wearagain.domain.event.dto.manager.ManagerEventParticipantCancelRequest;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
-import java.util.Set;
-
 public interface EventParticipantManagerService {
 
     ManagerEventParticipantListResponse getParticipants(
             AdminAuthenticatedUser principal,
-            Set<Long> eventIds,
-            Set<String> eventCodes,
+            Long eventId,
             EventApplicationStatus status,
             Boolean suspended,
             String keyword,

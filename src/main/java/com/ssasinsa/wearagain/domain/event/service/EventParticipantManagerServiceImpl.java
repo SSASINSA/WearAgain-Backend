@@ -26,12 +26,9 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.EnumMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
@@ -63,8 +60,7 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
     @Override
     public ManagerEventParticipantListResponse getParticipants(
             AdminAuthenticatedUser principal,
-            Set<Long> eventIds,
-            Set<String> eventCodes,
+            Long eventId,
             EventApplicationStatus status,
             Boolean suspended,
             String keyword,
@@ -74,15 +70,12 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
             ManagerEventParticipantSort sort
     ) {
         ensureAuthenticated(principal);
-        eventIds = eventIds == null ? Set.of() : eventIds;
-        eventCodes = eventCodes == null ? Set.of() : eventCodes;
         keywordScope = keywordScope == null ? ManagerEventParticipantKeywordScope.ALL : keywordScope;
         sort = sort == null ? ManagerEventParticipantSort.LATEST : sort;
 
         Specification<EventApplication> baseSpec = buildBaseSpecification(
                 principal,
-                eventIds,
-                eventCodes,
+                eventId,
                 keyword,
                 keywordScope,
                 suspended
@@ -97,16 +90,14 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
             return ManagerEventParticipantListResponse.empty(size);
         }
 
-        List<EventApplication> applications = loadWithAssociations(result.getContent());
+        List<EventApplication> applications = loadWithAssociations(eventId, result.getContent());
         List<ManagerEventParticipantListItemResponse> content = applications.stream()
                 .map(this::toListItem)
                 .toList();
 
         ManagerEventParticipantSummaryResponse summary = buildSummary(
                 baseSpec,
-                principal,
-                eventIds,
-                eventCodes,
+                eventId,
                 result,
                 applications
         );
@@ -173,8 +164,7 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
 
     private Specification<EventApplication> buildBaseSpecification(
             AdminAuthenticatedUser principal,
-            Set<Long> eventIds,
-            Set<String> eventCodes,
+            Long eventId,
             String keyword,
             ManagerEventParticipantKeywordScope keywordScope,
             Boolean suspended
@@ -184,8 +174,7 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
             specification = specification.and(EventApplicationSpecifications.organizerEquals(principal.adminId()));
         }
         specification = specification
-                .and(EventApplicationSpecifications.eventIdIn(eventIds))
-                .and(EventApplicationSpecifications.eventCodesIn(eventCodes))
+                .and(EventApplicationSpecifications.eventIdEquals(eventId))
                 .and(EventApplicationSpecifications.keywordMatches(keyword, keywordScope))
                 .and(EventApplicationSpecifications.userSuspended(suspended));
         return specification;
@@ -193,17 +182,14 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
 
     private ManagerEventParticipantSummaryResponse buildSummary(
             Specification<EventApplication> baseSpec,
-            AdminAuthenticatedUser principal,
-            Set<Long> eventIds,
-            Set<String> eventCodes,
+            Long eventId,
             Page<EventApplication> result,
             List<EventApplication> applications
     ) {
         Map<EventApplicationStatus, Long> statusCounts = countStatuses(baseSpec);
-        Set<Long> scopedEventIds = resolveEventScope(principal, eventIds, eventCodes, applications);
         List<ManagerEventParticipantEventSummaryResponse> eventSummaries = buildEventSummaries(
                 baseSpec,
-                scopedEventIds,
+                eventId,
                 applications
         );
 
@@ -228,59 +214,24 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
 
     private List<ManagerEventParticipantEventSummaryResponse> buildEventSummaries(
             Specification<EventApplication> baseSpec,
-            Set<Long> eventIds,
+            Long eventId,
             List<EventApplication> applications
     ) {
-        if (eventIds.isEmpty()) {
+        if (eventId == null) {
             return List.of();
         }
-        Map<Long, String> eventTitles = new LinkedHashMap<>();
-        applications.stream()
+        String eventTitle = applications.stream()
                 .map(EventApplication::getEvent)
                 .filter(Objects::nonNull)
-                .forEach(event -> eventTitles.putIfAbsent(event.getId(), event.getTitle()));
-        eventRepository.findAllById(eventIds).forEach(event ->
-                eventTitles.putIfAbsent(event.getId(), event.getTitle())
-        );
-
-        List<ManagerEventParticipantEventSummaryResponse> responses = new ArrayList<>();
-        for (Long eventId : eventIds) {
-            Specification<EventApplication> spec = baseSpec.and(EventApplicationSpecifications.eventIdEquals(eventId));
-            long count = eventApplicationRepository.count(spec);
-            responses.add(new ManagerEventParticipantEventSummaryResponse(
-                    eventId,
-                    eventTitles.get(eventId),
-                    count
-            ));
-        }
-        return responses;
+                .filter(event -> Objects.equals(event.getId(), eventId))
+                .map(Event::getTitle)
+                .findFirst()
+                .orElseGet(() -> eventRepository.findById(eventId)
+                        .map(Event::getTitle)
+                        .orElse(null));
+        long count = eventApplicationRepository.count(baseSpec);
+        return List.of(new ManagerEventParticipantEventSummaryResponse(eventId, eventTitle, count));
     }
-
-    private Set<Long> resolveEventScope(
-            AdminAuthenticatedUser principal,
-            Set<Long> eventIds,
-            Set<String> eventCodes,
-            List<EventApplication> applications
-    ) {
-        if (eventIds != null && !eventIds.isEmpty()) {
-            return new LinkedHashSet<>(eventIds);
-        }
-        if (eventCodes != null && !eventCodes.isEmpty()) {
-            return eventRepository.findAllByStaffCodeIn(eventCodes)
-                    .stream()
-                    .filter(event -> !isManager(principal)
-                            || (event.getOrganizerAdmin() != null
-                            && Objects.equals(event.getOrganizerAdmin().getId(), principal.adminId())))
-                    .map(Event::getId)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-        }
-        return applications.stream()
-                .map(EventApplication::getEvent)
-                .filter(Objects::nonNull)
-                .map(Event::getId)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-    }
-
 
     private ManagerEventParticipantListItemResponse toListItem(EventApplication application) {
         Event event = application.getEvent();
@@ -352,7 +303,7 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
         return principal != null && principal.role() == AdminRole.MANAGER;
     }
 
-    private List<EventApplication> loadWithAssociations(List<EventApplication> pageContent) {
+    private List<EventApplication> loadWithAssociations(Long eventId, List<EventApplication> pageContent) {
         if (pageContent.isEmpty()) {
             return List.of();
         }
@@ -363,7 +314,7 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
         if (ids.isEmpty()) {
             return pageContent;
         }
-        Map<Long, EventApplication> fetched = eventApplicationRepository.findAllWithAssociationsByIdIn(ids)
+        Map<Long, EventApplication> fetched = eventApplicationRepository.findAllWithAssociationsByEventIdAndIdIn(eventId, ids)
                 .stream()
                 .collect(Collectors.toMap(EventApplication::getId, Function.identity()));
         return ids.stream()

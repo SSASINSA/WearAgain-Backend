@@ -74,9 +74,12 @@ public interface EventApplicationRepository extends
             left join fetch ea.eventOption eo
             left join fetch eo.parentOption pop
             left join fetch pop.parentOption
-            where ea.id in :ids
+            where ea.id in :ids and e.id = :eventId
             """)
-    List<EventApplication> findAllWithAssociationsByIdIn(@Param("ids") Collection<Long> ids);
+    List<EventApplication> findAllWithAssociationsByEventIdAndIdIn(
+            @Param("eventId") Long eventId,
+            @Param("ids") Collection<Long> ids
+    );
 
     @Query("""
             select ea.id from EventApplication ea

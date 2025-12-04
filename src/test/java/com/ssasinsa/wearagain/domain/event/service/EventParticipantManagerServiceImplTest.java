@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.event.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
@@ -23,7 +24,6 @@ import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailRespon
 import com.ssasinsa.wearagain.domain.user.service.UserAdminService;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Set;
 import org.mockito.ArgumentMatchers;
 import org.springframework.data.jpa.domain.Specification;
 import org.junit.jupiter.api.BeforeEach;
@@ -89,15 +89,13 @@ class EventParticipantManagerServiceImplTest {
                 ArgumentMatchers.<Specification<EventApplication>>any(),
                 any(PageRequest.class)))
                 .thenReturn(new PageImpl<>(List.of(application), PageRequest.of(0, 20), 1));
-        when(eventApplicationRepository.findAllWithAssociationsByIdIn(any()))
+        when(eventApplicationRepository.findAllWithAssociationsByEventIdAndIdIn(anyLong(), any()))
                 .thenReturn(List.of(application));
         when(eventApplicationRepository.count(any(Specification.class))).thenReturn(1L);
-        when(eventRepository.findAllById(any(Iterable.class))).thenReturn(List.of(event));
 
         ManagerEventParticipantListResponse response = service.getParticipants(
                 principal,
-                Set.of(event.getId()),
-                Set.of(),
+                event.getId(),
                 EventApplicationStatus.APPLIED,
                 null,
                 null,

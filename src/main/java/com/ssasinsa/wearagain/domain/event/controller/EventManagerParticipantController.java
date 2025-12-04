@@ -10,9 +10,6 @@ import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.service.EventParticipantManagerService;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailResponse;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -38,8 +35,7 @@ public class EventManagerParticipantController {
     @GetMapping("/event-applications")
     public ResponseEntity<ManagerEventParticipantListResponse> getParticipants(
             @AuthenticationPrincipal AdminAuthenticatedUser principal,
-            @RequestParam(value = "eventId", required = false) String eventIds,
-            @RequestParam(value = "eventCode", required = false) String eventCodes,
+            @RequestParam(value = "eventId") Long eventId,
             @RequestParam(value = "status", required = false) String status,
             @RequestParam(value = "suspended", required = false) Boolean suspended,
             @RequestParam(value = "keyword", required = false) String keyword,
@@ -50,8 +46,7 @@ public class EventManagerParticipantController {
     ) {
         ManagerEventParticipantListResponse response = eventParticipantManagerService.getParticipants(
                 principal,
-                parseIds(eventIds),
-                parseCodes(eventCodes),
+                eventId,
                 resolveStatus(status),
                 suspended,
                 keyword,
@@ -83,35 +78,6 @@ public class EventManagerParticipantController {
     ) {
         eventParticipantManagerService.cancelApplication(eventId, applicationId, request, principal);
         return ResponseEntity.noContent().build();
-    }
-
-    private Set<Long> parseIds(String raw) {
-        if (!StringUtils.hasText(raw)) {
-            return Set.of();
-        }
-        Set<Long> ids = new LinkedHashSet<>();
-        for (String token : raw.split(",")) {
-            if (!StringUtils.hasText(token)) {
-                continue;
-            }
-            try {
-                ids.add(Long.parseLong(token.trim()));
-            } catch (NumberFormatException exception) {
-                throw new EventException(EventErrorCode.INVALID_EVENT_QUERY, exception);
-            }
-        }
-        return ids;
-    }
-
-    private Set<String> parseCodes(String raw) {
-        if (!StringUtils.hasText(raw)) {
-            return Set.of();
-        }
-        return StringUtils.commaDelimitedListToSet(raw)
-                .stream()
-                .map(String::trim)
-                .filter(StringUtils::hasText)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     private EventApplicationStatus resolveStatus(String value) {
