@@ -49,9 +49,6 @@ public class EventOption extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(nullable = false, length = 50)
-    private String type;
-
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
@@ -73,7 +70,6 @@ public class EventOption extends BaseTimeEntity {
             Event event,
             EventOption parentOption,
             String name,
-            String type,
             int displayOrder,
             Integer capacity
     ) {
@@ -81,7 +77,6 @@ public class EventOption extends BaseTimeEntity {
                 .event(event)
                 .parentOption(parentOption)
                 .name(name)
-                .type(type)
                 .displayOrder(displayOrder)
                 .capacity(capacity)
                 .build();

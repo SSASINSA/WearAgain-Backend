@@ -77,7 +77,7 @@ class EventStaffServiceImplTest {
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
 
-        EventOption option = EventOption.create(event, null, "옵션", "TYPE", 1, null);
+        EventOption option = EventOption.create(event, null, "옵션", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         EventApplication application = EventApplication.create(
@@ -151,7 +151,7 @@ class EventStaffServiceImplTest {
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
 
-        EventOption option = EventOption.create(event, null, "옵션", "TYPE", 1, null);
+        EventOption option = EventOption.create(event, null, "옵션", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         EventApplication application = EventApplication.create(
@@ -233,7 +233,7 @@ class EventStaffServiceImplTest {
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
 
-        EventOption option = EventOption.create(event, null, "옵션", "TYPE", 1, null);
+        EventOption option = EventOption.create(event, null, "옵션", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         EventApplication application = EventApplication.create(
@@ -289,7 +289,7 @@ class EventStaffServiceImplTest {
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
 
-        EventOption option = EventOption.create(event, null, "옵션", "TYPE", 1, null);
+        EventOption option = EventOption.create(event, null, "옵션", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         EventApplication application = EventApplication.create(
@@ -345,7 +345,7 @@ class EventStaffServiceImplTest {
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
 
-        EventOption option = EventOption.create(event, null, "옵션", "TYPE", 1, null);
+        EventOption option = EventOption.create(event, null, "옵션", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         EventApplication application = EventApplication.create(

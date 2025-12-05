@@ -24,19 +24,16 @@ public final class EventExamples {
               "options": [
                 {
                   "name": "11월 15일 세션",
-                  "type": "DATE",
                   "displayOrder": 1,
                   "capacity": 10,
                   "children": [
                     {
                       "name": "오전 세션",
-                      "type": "TIME",
                       "displayOrder": 1,
                       "capacity": null,
                       "children": [
                         {
                           "name": "A조",
-                          "type": "GROUP",
                           "displayOrder": 1,
                           "capacity": 10
                         }
@@ -76,21 +73,18 @@ public final class EventExamples {
                 {
                   "eventOptionId": 2001,
                   "name": "11월 15일",
-                  "type": "DATE",
                   "displayOrder": 1,
                   "capacity": null,
                   "children": [
                     {
                       "eventOptionId": 2002,
                       "name": "오전 세션 (10:00~12:00)",
-                      "type": "TIME",
                       "displayOrder": 1,
                       "capacity": null,
                       "children": [
                         {
                           "eventOptionId": 2003,
                           "name": "A조",
-                          "type": "GROUP",
                           "displayOrder": 1,
                           "capacity": 10,
                           "children": []
@@ -207,18 +201,15 @@ public final class EventExamples {
               "optionTrail": [
                 {
                   "eventOptionId": 2001,
-                  "name": "11월 15일",
-                  "type": "DATE"
+                  "name": "11월 15일"
                 },
                 {
                   "eventOptionId": 2002,
-                  "name": "오전 세션",
-                  "type": "TIME"
+                  "name": "오전 세션"
                 },
                 {
                   "eventOptionId": 2003,
-                  "name": "A조",
-                  "type": "GROUP"
+                  "name": "A조"
                 }
               ]
             }
@@ -287,7 +278,6 @@ public final class EventExamples {
                 {
                   "optionId": 2001,
                   "name": "11월 15일",
-                  "type": "DATE",
                   "displayOrder": 1,
                   "capacity": null,
                   "appliedCount": null,
@@ -296,7 +286,6 @@ public final class EventExamples {
                     {
                       "optionId": 2003,
                       "name": "A조",
-                      "type": "GROUP",
                       "displayOrder": 1,
                       "capacity": 30,
                       "appliedCount": 25,
@@ -340,19 +329,16 @@ public final class EventExamples {
               "options": [
                 {
                   "name": "11월 20일",
-                  "type": "DATE",
                   "displayOrder": 1,
                   "capacity": null,
                   "children": [
                     {
                       "name": "오전 세션",
-                      "type": "TIME",
                       "displayOrder": 1,
                       "capacity": null,
                       "children": [
                         {
                           "name": "A조",
-                          "type": "GROUP",
                           "displayOrder": 1,
                           "capacity": 30,
                           "children": []
@@ -418,7 +404,6 @@ public final class EventExamples {
                 {
                   "optionId": 2001,
                   "name": "11월 15일",
-                  "type": "DATE",
                   "displayOrder": 1,
                   "capacity": null,
                   "appliedCount": null,
@@ -427,7 +412,6 @@ public final class EventExamples {
                     {
                       "optionId": 2002,
                       "name": "오전 세션",
-                      "type": "TIME",
                       "displayOrder": 1,
                       "capacity": null,
                       "appliedCount": null,
@@ -436,7 +420,6 @@ public final class EventExamples {
                         {
                           "optionId": 2003,
                           "name": "A조",
-                          "type": "GROUP",
                           "displayOrder": 1,
                           "capacity": 10,
                           "appliedCount": 7,

@@ -101,13 +101,13 @@ class EventUserServiceImplTest {
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 
-        EventOption rootOption = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        EventOption rootOption = EventOption.create(event, null, "11월 15일", 1, null);
         ReflectionTestUtils.setField(rootOption, "id", 2001L);
 
-        EventOption childOption = EventOption.create(event, rootOption, "오전 세션", "TIME", 1, null);
+        EventOption childOption = EventOption.create(event, rootOption, "오전 세션", 1, null);
         ReflectionTestUtils.setField(childOption, "id", 2002L);
 
-        EventOption leafOption = EventOption.create(event, childOption, "A조", "GROUP", 1, null);
+        EventOption leafOption = EventOption.create(event, childOption, "A조", 1, null);
         ReflectionTestUtils.setField(leafOption, "id", 2003L);
 
         EventApplication application = EventApplication.create(
@@ -162,7 +162,7 @@ class EventUserServiceImplTest {
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 
-        EventOption option = EventOption.create(event, null, "옵션", "DATE", 1, null);
+        EventOption option = EventOption.create(event, null, "옵션", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         EventApplication application = EventApplication.create(
@@ -215,11 +215,11 @@ class EventUserServiceImplTest {
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
-        EventOption dateOption = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        EventOption dateOption = EventOption.create(event, null, "11월 15일", 1, null);
         ReflectionTestUtils.setField(dateOption, "id", 2001L);
-        EventOption timeOption = EventOption.create(event, dateOption, "오전 세션", "TIME", 1, null);
+        EventOption timeOption = EventOption.create(event, dateOption, "오전 세션", 1, null);
         ReflectionTestUtils.setField(timeOption, "id", 2002L);
-        EventOption groupOption = EventOption.create(event, timeOption, "A조", "GROUP", 1, 10);
+        EventOption groupOption = EventOption.create(event, timeOption, "A조", 1, 10);
         ReflectionTestUtils.setField(groupOption, "id", 2003L);
 
         when(eventRepository.findWithDetailsById(101L)).thenReturn(Optional.of(event));
@@ -259,7 +259,7 @@ class EventUserServiceImplTest {
                 null
         );
         ReflectionTestUtils.setField(event, "id", 101L);
-        EventOption option = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        EventOption option = EventOption.create(event, null, "11월 15일", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
@@ -293,9 +293,9 @@ class EventUserServiceImplTest {
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
-        EventOption parentOption = EventOption.create(event, null, "11월 15일", "DATE", 1, 30);
+        EventOption parentOption = EventOption.create(event, null, "11월 15일", 1, 30);
         ReflectionTestUtils.setField(parentOption, "id", 2001L);
-        EventOption childOption = EventOption.create(event, parentOption, "오전 세션", "TIME", 1, 10);
+        EventOption childOption = EventOption.create(event, parentOption, "오전 세션", 1, 10);
         ReflectionTestUtils.setField(childOption, "id", 2002L);
 
         when(eventRepository.findById(101L)).thenReturn(Optional.of(event));
@@ -335,7 +335,7 @@ class EventUserServiceImplTest {
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 
-        EventOption option = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        EventOption option = EventOption.create(event, null, "11월 15일", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
 
         EventApplication application = EventApplication.create(

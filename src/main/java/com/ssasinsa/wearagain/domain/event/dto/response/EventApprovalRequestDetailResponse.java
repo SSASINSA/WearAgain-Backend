@@ -76,9 +76,6 @@ public record EventApprovalRequestDetailResponse(
             @Schema(description = "옵션 이름", example = "오전 세션")
             String name,
 
-            @Schema(description = "옵션 타입", example = "TIME")
-            String type,
-
             @Schema(description = "정렬 순서(1부터)", example = "1")
             int displayOrder,
 
@@ -140,7 +137,6 @@ public record EventApprovalRequestDetailResponse(
         return new OptionInfo(
                 option.getId(),
                 option.getName(),
-                option.getType(),
                 option.getDisplayOrder(),
                 option.getCapacity(),
                 children

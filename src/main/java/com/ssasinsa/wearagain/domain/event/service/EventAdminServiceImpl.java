@@ -509,7 +509,6 @@ public class EventAdminServiceImpl implements EventAdminService {
         return new EventCreateOptionResponse(
                 option.getId(),
                 option.getName(),
-                option.getType(),
                 option.getDisplayOrder(),
                 option.getCapacity(),
                 children
@@ -532,7 +531,6 @@ public class EventAdminServiceImpl implements EventAdminService {
         return new EventAdminOptionResponse(
                 option.getId(),
                 option.getName(),
-                option.getType(),
                 option.getDisplayOrder(),
                 capacity,
                 appliedCount,
@@ -604,7 +602,6 @@ public class EventAdminServiceImpl implements EventAdminService {
             List<EventAdminOptionRequest> children = convertCreateOptions(request.children());
             converted.add(new EventAdminOptionRequest(
                     request.name(),
-                    request.type(),
                     request.displayOrder(),
                     request.capacity(),
                     children
@@ -636,7 +633,6 @@ public class EventAdminServiceImpl implements EventAdminService {
         OptionRequestValidator.validateOption(request, depth);
 
         String normalizedName = request.name() == null ? null : request.name().trim();
-        String normalizedType = request.type() == null ? null : request.type().trim();
         Integer displayOrder = request.displayOrder();
 
         List<EventAdminOptionRequest> children = request.children();
@@ -647,7 +643,6 @@ public class EventAdminServiceImpl implements EventAdminService {
                 event,
                 parent,
                 normalizedName,
-                normalizedType,
                 displayOrder,
                 capacity
         );
@@ -672,8 +667,7 @@ public class EventAdminServiceImpl implements EventAdminService {
                 throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
             }
             String normalizedName = request.name() == null ? null : request.name().trim();
-            String normalizedType = request.type() == null ? null : request.type().trim();
-            if (!StringUtils.hasText(normalizedName) || !StringUtils.hasText(normalizedType)) {
+            if (!StringUtils.hasText(normalizedName)) {
                 throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
             }
             Integer displayOrder = request.displayOrder();

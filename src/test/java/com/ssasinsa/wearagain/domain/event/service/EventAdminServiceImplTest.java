@@ -93,9 +93,9 @@ class EventAdminServiceImplTest {
         EventImage image = EventImage.create(event, "https://cdn.wearagain.kr/events/101/main.jpg", "대표", 1);
         ReflectionTestUtils.setField(image, "id", 1001L);
 
-        option = EventOption.create(event, null, "11월 15일", "DATE", 1, null);
+        option = EventOption.create(event, null, "11월 15일", 1, null);
         ReflectionTestUtils.setField(option, "id", 2001L);
-        EventOption child = EventOption.create(event, option, "A조", "GROUP", 1, 30);
+        EventOption child = EventOption.create(event, option, "A조", 1, 30);
         ReflectionTestUtils.setField(child, "id", 2003L);
 
         validCreateRequest = createValidCreateRequest();
@@ -129,12 +129,10 @@ class EventAdminServiceImplTest {
     void should_fail_when_non_leaf_has_capacity() {
         EventAdminCreateRequest.EventAdminCreateOptionRequest parentOption = new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                 "상위 옵션",
-                "DATE",
                 1,
                 50,
                 List.of(new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                         "리프 옵션",
-                        "TIME",
                         1,
                         20,
                         List.of()
@@ -194,25 +192,21 @@ class EventAdminServiceImplTest {
     void should_fail_create_when_option_depth_exceeds_limit() {
         EventAdminCreateRequest.EventAdminCreateOptionRequest depth4Option = new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                 "1차",
-                "DATE",
                 1,
                 null,
                 List.of(
                         new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                 "2차",
-                                "TIME",
                                 1,
                                 null,
                                 List.of(
                                         new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                                 "3차",
-                                                "GROUP",
                                                 1,
                                                 null,
                                                 List.of(
                                                         new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                                                 "4차",
-                                                                "GROUP",
                                                                 1,
                                                                 10,
                                                                 List.of()
@@ -476,17 +470,14 @@ class EventAdminServiceImplTest {
                 List.of(new EventAdminImageRequest("https://cdn.wearagain.kr/events/101/main.jpg", "대표", 1)),
                 List.of(new EventAdminOptionRequest(
                         "11월 20일",
-                        "DATE",
                         1,
                         null,
                         List.of(new EventAdminOptionRequest(
                                 "오전 세션",
-                                "TIME",
                                 1,
                                 null,
                                 List.of(new EventAdminOptionRequest(
                                         "A조",
-                                        "GROUP",
                                         1,
                                         30,
                                         List.of()
@@ -677,19 +668,16 @@ class EventAdminServiceImplTest {
         List<EventAdminCreateRequest.EventAdminCreateOptionRequest> options = List.of(
                 new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                         "11월 15일",
-                        "DATE",
                         1,
                         null,
                         List.of(
                                 new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                         "오전 세션",
-                                        "TIME",
                                         1,
                                         null,
                                         List.of(
                                                 new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                                                         "A조",
-                                                        "GROUP",
                                                         1,
                                                         10,
                                                         List.of()
@@ -700,7 +688,6 @@ class EventAdminServiceImplTest {
                 ),
                 new EventAdminCreateRequest.EventAdminCreateOptionRequest(
                         "11월 22일",
-                        "DATE",
                         2,
                         null,
                         List.of()
@@ -761,7 +748,6 @@ class EventAdminServiceImplTest {
                 event,
                 parent,
                 request.name(),
-                request.type(),
                 request.displayOrder(),
                 request.capacity()
         );

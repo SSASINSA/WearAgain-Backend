@@ -105,9 +105,6 @@ public record EventAdminDetailResponse(
             @Schema(description = "옵션 이름", example = "11월 15일")
             String name,
 
-            @Schema(description = "옵션 타입/레벨", example = "스태프")
-            String type,
-
             @Schema(description = "정렬 순서", example = "1")
             int displayOrder,
 

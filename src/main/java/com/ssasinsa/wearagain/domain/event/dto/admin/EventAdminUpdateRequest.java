@@ -68,10 +68,6 @@ public record EventAdminUpdateRequest(
             @Size(min = 1, max = 100)
             String name,
 
-            @Schema(description = "옵션 타입 라벨", example = "DATE")
-            @Size(min = 1, max = 50)
-            String type,
-
             @Schema(description = "정렬 순서", example = "1")
             @Positive
             Integer displayOrder,

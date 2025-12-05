@@ -75,7 +75,7 @@ class EventParticipantManagerServiceImplTest {
         ReflectionTestUtils.setField(event, "id", 100L);
         ReflectionTestUtils.setField(event, "staffCode", "ABC123");
 
-        EventOption option = EventOption.create(event, null, "셀렉트", "CATEGORY", 1, 20);
+        EventOption option = EventOption.create(event, null, "셀렉트", 1, 20);
         User user = User.create("user@wearagain.kr", "참가자", null);
         ReflectionTestUtils.setField(user, "id", 500L);
 
