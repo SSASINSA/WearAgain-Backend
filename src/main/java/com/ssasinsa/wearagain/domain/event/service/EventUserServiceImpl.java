@@ -401,8 +401,7 @@ public class EventUserServiceImpl implements EventUserService {
     private List<EventApplicationDetailResponse.OptionTrailResponse> buildOptionTrail(EventOption option) {
         return buildOptionTrail(option, step -> new EventApplicationDetailResponse.OptionTrailResponse(
                 step.getId(),
-                step.getName(),
-                step.getType()
+                step.getName()
         ));
     }
 
@@ -515,7 +514,6 @@ public class EventUserServiceImpl implements EventUserService {
         return new EventDetailOptionResponse(
                 option.getId(),
                 option.getName(),
-                option.getType(),
                 option.getDisplayOrder(),
                 capacity,
                 appliedCount,

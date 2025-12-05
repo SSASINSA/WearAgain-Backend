@@ -83,9 +83,6 @@ public record EventCreateResponse(
             @Schema(description = "옵션 이름", example = "11월 15일")
             String name,
 
-            @Schema(description = "옵션 타입 라벨", example = "DATE")
-            String type,
-
             @Schema(description = "정렬 순서 (1부터 시작)", example = "1")
             int displayOrder,
 

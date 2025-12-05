@@ -54,9 +54,7 @@ public record EventApplicationDetailResponse(
             @Schema(description = "옵션 ID", example = "2001")
             Long eventOptionId,
             @Schema(description = "옵션 이름", example = "11월 15일")
-            String name,
-            @Schema(description = "옵션 타입", example = "DATE")
-            String type
+            String name
     ) {
     }
 }

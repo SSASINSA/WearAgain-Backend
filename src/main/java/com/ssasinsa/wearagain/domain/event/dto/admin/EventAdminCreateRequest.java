@@ -76,11 +76,6 @@ public record EventAdminCreateRequest(
             @Size(min = 1, max = 100)
             String name,
 
-            @Schema(description = "옵션 타입 라벨", example = "DATE")
-            @NotBlank
-            @Size(min = 1, max = 50)
-            String type,
-
             @Schema(description = "정렬 순서 (1부터 시작)", example = "1")
             @Positive
             int displayOrder,
@@ -90,7 +85,7 @@ public record EventAdminCreateRequest(
 
             @Schema(
                     description = "하위 옵션 목록",
-                    example = "[{\"name\":\"오전 세션\",\"type\":\"TIME\",\"displayOrder\":1,\"capacity\":null,\"children\":[]}]"
+                    example = "[{\"name\":\"오전 세션\",\"displayOrder\":1,\"capacity\":null,\"children\":[]}]"
             )
             List<@Valid EventAdminCreateOptionRequest> children
     ) {
