@@ -225,7 +225,6 @@
   - `PUT /api/v1/admin/events/{eventId}`: 부분 수정(기본 정보/이미지/옵션)
   - `PATCH /api/v1/admin/events/{eventId}/status`: 상태 변경(권한/전환 검증 포함)
   - `DELETE /api/v1/admin/events/{eventId}`: 보관 처리(ARCHIVED)
-  - `PATCH /api/v1/admin/applications/{applicationId}/reject`: 신청 반려
 - **사용자(User)**
   - `GET /api/v1/events`: cursor 기반 행사 목록 조회
   - `GET /api/v1/events/{eventId}`: 행사 상세 조회

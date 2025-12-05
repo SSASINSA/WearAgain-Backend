@@ -15,6 +15,7 @@ import com.ssasinsa.wearagain.domain.growth.repository.UserGrowthRepository;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminImpactSummaryResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminMascotResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailResponse;
+import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantKeywordScope;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListItemResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListResponse;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantListSummaryResponse;
@@ -24,6 +25,7 @@ import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantUpdateReques
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminRecentEventResponse;
 import com.ssasinsa.wearagain.domain.user.exception.UserErrorCode;
 import com.ssasinsa.wearagain.domain.user.exception.UserException;
+import com.ssasinsa.wearagain.domain.user.repository.UserSpecifications;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -39,6 +41,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -59,16 +62,25 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public AdminParticipantListResponse getParticipants(Boolean suspended, String sortBy, Pageable pageable) {
+    public AdminParticipantListResponse getParticipants(
+            Boolean suspended,
+            String sortBy,
+            String keyword,
+            AdminParticipantKeywordScope keywordScope,
+            Pageable pageable
+    ) {
         Pageable pageableWithSort = PageRequest.of(
                 pageable.getPageNumber(),
                 pageable.getPageSize(),
                 resolveSort(sortBy)
         );
 
-        Page<User> page = suspended == null
-                ? userRepository.findAll(pageableWithSort)
-                : userRepository.findAllBySuspended(suspended, pageableWithSort);
+        Specification<User> specification = Specification.allOf(
+                UserSpecifications.suspendedEquals(suspended),
+                UserSpecifications.keywordMatches(keyword, keywordScope)
+        );
+
+        Page<User> page = userRepository.findAll(specification, pageableWithSort);
 
         List<AdminParticipantListItemResponse> items = page.getContent()
                 .stream()

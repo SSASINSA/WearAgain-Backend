@@ -6,13 +6,18 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.Query;
 
-public interface EventApplicationRepository extends JpaRepository<EventApplication, Long> {
+public interface EventApplicationRepository extends
+        JpaRepository<EventApplication, Long>,
+        JpaSpecificationExecutor<EventApplication> {
 
     boolean existsByUserIdAndEventOptionIdAndStatusIn(Long userId, Long eventOptionId, Collection<EventApplicationStatus> statuses);
 
@@ -62,6 +67,21 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
     List<EventApplication> findAllWithUserByEventId(@Param("eventId") Long eventId);
 
     @Query("""
+            select distinct ea from EventApplication ea
+            left join fetch ea.event e
+            left join fetch e.organizerAdmin
+            left join fetch ea.user
+            left join fetch ea.eventOption eo
+            left join fetch eo.parentOption pop
+            left join fetch pop.parentOption
+            where ea.id in :ids and e.id = :eventId
+            """)
+    List<EventApplication> findAllWithAssociationsByEventIdAndIdIn(
+            @Param("eventId") Long eventId,
+            @Param("ids") Collection<Long> ids
+    );
+
+    @Query("""
             select ea.id from EventApplication ea
             where ea.user.id = :userId
             and ea.status in :statuses
@@ -92,6 +112,16 @@ public interface EventApplicationRepository extends JpaRepository<EventApplicati
             where ea.id in :ids
             """)
     List<EventApplication> findByIdsWithEventAndImages(@Param("ids") Collection<Long> ids);
+
+    @EntityGraph(attributePaths = {
+            "event",
+            "event.organizerAdmin",
+            "eventOption",
+            "eventOption.parentOption",
+            "eventOption.parentOption.parentOption",
+            "user"
+    })
+    Page<EventApplication> findAll(Specification<EventApplication> specification, Pageable pageable);
 
     @EntityGraph(attributePaths = {
             "eventOption",

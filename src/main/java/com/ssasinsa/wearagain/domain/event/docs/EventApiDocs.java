@@ -2,7 +2,6 @@ package com.ssasinsa.wearagain.domain.event.docs;
 
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.*;
 import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
@@ -162,22 +161,6 @@ public final class EventApiDocs {
                     """
     )
     public @interface DeleteEvent {
-    }
-
-    @SecurityRequirement(name = "adminJWT")
-    @Target(ElementType.METHOD)
-    @Retention(RetentionPolicy.RUNTIME)
-    @ApiDoc(
-            summary = "행사 신청 반려",
-            description = """
-                    특정 신청 건을 반려 처리하고 사유를 기록합니다.
-                    이미 반려/취소된 신청은 멱등하게 현재 상태를 반환합니다.
-                    """,
-            requestExample = EventExamples.ADMIN_EVENT_REJECT_REQUEST,
-            responseSchema = EventApplicationRejectResponse.class,
-            responseExample = EventExamples.ADMIN_EVENT_REJECT_RESPONSE
-    )
-    public @interface RejectEventApplication {
     }
 
     @SecurityRequirement(name = "userJWT")

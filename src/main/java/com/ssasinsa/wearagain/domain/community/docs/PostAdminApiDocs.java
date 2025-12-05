@@ -20,7 +20,7 @@ public final class PostAdminApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "게시글 목록 조회",
-            description = "page/size/status/keywordScope 파라미터로 게시글을 필터링한다.",
+            description = "page/size/status/keywordScope 파라미터로 게시글을 필터링하여 조회합니다.",
             responseExample = PostAdminExamples.POST_LIST_RESPONSE
     )
     public @interface GetPosts {
@@ -31,7 +31,7 @@ public final class PostAdminApiDocs {
     @Retention(RetentionPolicy.RUNTIME)
     @ApiDoc(
             summary = "게시글 상세 조회",
-            description = "게시글 본문, 이미지, 댓글, 신고 현황을 조회한다.",
+            description = "게시글 본문, 이미지, 댓글, 신고 정보를 함께 조회합니다.",
             responseExample = PostAdminExamples.POST_DETAIL_RESPONSE
     )
     public @interface GetPostDetail {

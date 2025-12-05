@@ -5,8 +5,6 @@ import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminCreateRequest;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.security.AdminAuthenticatedUser;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminListResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminUpdateRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectRequest;
-import com.ssasinsa.wearagain.domain.event.dto.admin.EventApplicationRejectResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventAdminStatusUpdateRequest;
 import com.ssasinsa.wearagain.domain.event.dto.admin.EventStaffCodeResponse;
@@ -166,17 +164,6 @@ public class EventAdminController {
     ) {
         eventAdminService.archiveEvent(eventId);
         return ResponseEntity.noContent().build();
-    }
-
-    @EventApiDocs.RejectEventApplication
-    @PatchMapping("/applications/{applicationId}/reject")
-    public ResponseEntity<EventApplicationRejectResponse> rejectApplication(
-            @PathVariable Long applicationId,
-            @Valid @RequestBody EventApplicationRejectRequest request,
-            @AuthenticationPrincipal AdminAuthenticatedUser principal
-    ) {
-        EventApplicationRejectResponse response = eventAdminService.rejectApplication(applicationId, request);
-        return ResponseEntity.ok(response);
     }
 
     @EventApiDocs.ApproveApprovalRequest

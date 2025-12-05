@@ -11,11 +11,11 @@ public final class CommunityExamples {
               "imageUrl": "https://cdn.wearagain.kr/community/posts/1/image1.jpg",
               "author": {
                 "id": 1,
-                "name": "홍길동"
+                "name": "박길동"
               },
               "createdAt": "2025-01-15T10:30:00",
               "title": "리폼 후기 공유합니다",
-              "content": "첫 리폼 경험을 공유하고 싶어서 글을 올립니다...",
+              "content": "집에서 직접 리폼해 본 경험을 공유하고 싶어서 글을 남깁니다...",
               "likeCount": 15,
               "commentCount": 8,
               "keyword": "review",
@@ -27,7 +27,7 @@ public final class CommunityExamples {
     public static final String POST_CREATE_REQUEST = """
             {
               "title": "리폼 후기 공유합니다",
-              "content": "첫 리폼 경험을 공유하고 싶어서 글을 올립니다...",
+              "content": "집에서 직접 리폼해 본 경험을 공유하고 싶어서 글을 남깁니다...",
               "keyword": "review",
               "imageUrls": [
                 "https://cdn.wearagain.kr/community/posts/1/image1.jpg"
@@ -37,8 +37,8 @@ public final class CommunityExamples {
 
     public static final String POST_UPDATE_REQUEST = """
             {
-              "title": "리폼 후기 공유합니다 (수정)",
-              "content": "첫 리폼 경험을 공유하고 싶어서 글을 올립니다... (수정)",
+              "title": "리폼 후기 공유합니다(수정)",
+              "content": "집에서 직접 리폼해 본 경험을 공유하고 싶어서 글을 남깁니다... (수정)",
               "keyword": "review",
               "imageUrls": [
                 "https://cdn.wearagain.kr/community/posts/1/image1.jpg"
@@ -57,11 +57,11 @@ public final class CommunityExamples {
                   "imageUrl": "https://cdn.wearagain.kr/community/posts/1/image1.jpg",
                   "author": {
                     "id": 1,
-                    "name": "홍길동"
+                    "name": "박길동"
                   },
                   "createdAt": "2025-01-15T10:30:00",
                   "title": "리폼 후기 공유합니다",
-                  "content": "첫 리폼 경험을 공유하고 싶어서 글을 올립니다...",
+                  "content": "집에서 직접 리폼해 본 경험을 공유하고 싶어서 글을 남깁니다...",
                   "likeCount": 15,
                   "commentCount": 8,
                   "keyword": "review",
@@ -75,8 +75,8 @@ public final class CommunityExamples {
                     "name": "김철수"
                   },
                   "createdAt": "2025-01-14T15:20:00",
-                  "title": "리폼 질문드립니다",
-                  "content": "리폼을 처음 해보는데 어떤 점을 주의해야 할까요?",
+                  "title": "리폼 질문 올립니다",
+                  "content": "리폼은 처음으로 해보려는데 어떤 자재를 준비해야 할까요?",
                   "likeCount": 5,
                   "commentCount": 3,
                   "keyword": "question",
@@ -89,19 +89,19 @@ public final class CommunityExamples {
     public static final String REPORT_POST_REQUEST = """
             {
               "postId": 1,
-              "reason": "부적절한 언어 사용"
+              "reason": "부적절한 광고성 내용으로 의심됩니다"
             }
             """;
 
     public static final String COMMENT_CREATE_REQUEST = """
             {
-              "content": "좋은 후기네요! 저도 다녀왔어요"
+              "content": "좋은 후기네요! 많이 도움이 됐어요"
             }
             """;
 
     public static final String COMMENT_UPDATE_REQUEST = """
             {
-              "content": "좋은 후기네요! 저도 다녀왔어요(수정)"
+              "content": "좋은 후기네요! 많이 도움이 됐어요 (수정)"
             }
             """;
 
@@ -115,10 +115,10 @@ public final class CommunityExamples {
                   "id": 101,
                   "author": {
                     "id": 1,
-                    "name": "홍길동"
+                    "name": "박길동"
                   },
                   "createdAt": "2025-01-15T10:30:00",
-                  "content": "좋은 후기네요! 저도 다녀왔어요",
+                  "content": "좋은 후기네요! 많이 도움이 됐어요",
                   "isMine": true
                 },
                 {
@@ -128,7 +128,7 @@ public final class CommunityExamples {
                     "name": "김철수"
                   },
                   "createdAt": "2025-01-15T09:20:00",
-                  "content": "정말 유용한 정보 감사합니다!",
+                  "content": "정보 공유해 주셔서 감사합니다",
                   "isMine": false
                 }
               ]
@@ -147,7 +147,7 @@ public final class CommunityExamples {
               "keywords": [
                 "질문",
                 "리뷰",
-                "수선"
+                "추천"
               ]
             }
             """;
@@ -159,4 +159,3 @@ public final class CommunityExamples {
             }
             """;
 }
-

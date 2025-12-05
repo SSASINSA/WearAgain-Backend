@@ -8,15 +8,18 @@ import io.swagger.v3.oas.models.media.MediaType;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.responses.ApiResponse;
 import io.swagger.v3.oas.models.responses.ApiResponses;
-import org.springdoc.core.customizers.OperationCustomizer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.stereotype.Component;
 import org.springframework.web.method.HandlerMethod;
+import org.springdoc.core.customizers.OperationCustomizer;
 
 @Component
 public class ApiDocCustomizer implements OperationCustomizer {
 
     private static final String MEDIA_TYPE_JSON = "application/json";
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     @Override
     public Operation customize(Operation operation, HandlerMethod handlerMethod) {
@@ -50,7 +53,7 @@ public class ApiDocCustomizer implements OperationCustomizer {
         MediaType mediaType = new MediaType();
 
         if (!apiDoc.responseExample().isEmpty()) {
-            mediaType.addExamples("example", new Example().value(apiDoc.responseExample()));
+            mediaType.addExamples("example", new Example().value(parseExample(apiDoc.responseExample())));
             hasContent = true;
         }
 
@@ -68,5 +71,13 @@ public class ApiDocCustomizer implements OperationCustomizer {
         Content content = new Content();
         content.addMediaType(MEDIA_TYPE_JSON, mediaType);
         return content;
+    }
+
+    private Object parseExample(String raw) {
+        try {
+            return OBJECT_MAPPER.readValue(raw, Object.class);
+        } catch (JsonProcessingException ignored) {
+            return raw;
+        }
     }
 }
