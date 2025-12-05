@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.event.repository;
 
 import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
+import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -65,4 +66,11 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
             "approvalRequest.processedByAdmin"
     })
     Page<Event> findAll(Specification<Event> spec, Pageable pageable);
+
+    long countByStatusIn(Collection<EventStatus> statuses);
+
+    @Query("select count(e) from Event e where e.organizerAdmin.role = :role")
+    long countByOrganizerRole(@Param("role") AdminRole role);
+
+    List<Event> findByStartDateGreaterThanEqualAndStatusIn(java.time.LocalDate from, Collection<EventStatus> statuses);
 }

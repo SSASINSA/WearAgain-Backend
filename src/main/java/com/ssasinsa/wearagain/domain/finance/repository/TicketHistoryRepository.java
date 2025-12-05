@@ -1,6 +1,8 @@
 package com.ssasinsa.wearagain.domain.finance.repository;
 
 import com.ssasinsa.wearagain.domain.finance.entity.TicketHistory;
+
+import java.util.Collection;
 import java.util.List;
 import java.time.LocalDateTime;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,6 +25,26 @@ public interface TicketHistoryRepository extends JpaRepository<TicketHistory, Lo
             + "WHERE th.createdAt >= :startInclusive AND th.createdAt < :endExclusive")
     Long sumChangeAmountBetween(@Param("startInclusive") LocalDateTime startInclusive,
                                 @Param("endExclusive") LocalDateTime endExclusive);
+
+    @Query("select COALESCE(SUM(th.changeAmount), 0) from TicketHistory th where th.changeAmount > 0")
+    java.util.Optional<Long> sumPositiveAmounts();
+
+    @Query("select COALESCE(SUM(ABS(th.changeAmount)), 0) from TicketHistory th where th.changeAmount < 0")
+    java.util.Optional<Long> sumNegativeAmountsAbs();
+
+    @Query("select new com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryEventSum(th.relatedEvent.id, COALESCE(SUM(th.changeAmount), 0)) "
+            + "from TicketHistory th "
+            + "where th.relatedEvent.id in :eventIds "
+            + "and th.changeAmount > 0 "
+            + "group by th.relatedEvent.id")
+    List<TicketHistoryEventSum> sumPositiveAmountsByEventIds(@Param("eventIds") Collection<Long> eventIds);
+
+    @Query("select new com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryEventSum(th.relatedEvent.id, COALESCE(SUM(ABS(th.changeAmount)), 0)) "
+            + "from TicketHistory th "
+            + "where th.relatedEvent.id in :eventIds "
+            + "and th.changeAmount < 0 "
+            + "group by th.relatedEvent.id")
+    List<TicketHistoryEventSum> sumNegativeAmountsAbsByEventIds(@Param("eventIds") Collection<Long> eventIds);
 
     interface TicketChargeSummary {
 

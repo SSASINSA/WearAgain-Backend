@@ -129,4 +129,14 @@ public interface EventApplicationRepository extends
             "eventOption.parentOption.parentOption"
     })
     Optional<EventApplication> findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(Long userId, Long eventId);
+
+    @Query("select count(a) from EventApplication a where a.status = com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus.CHECKED_IN")
+    long countCheckedIn();
+
+    @Query("select new com.ssasinsa.wearagain.domain.event.repository.EventApplicationMetrics(a.event.id, count(a)) "
+            + "from EventApplication a "
+            + "where a.status = com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus.CHECKED_IN "
+            + "and a.event.id in :eventIds "
+            + "group by a.event.id")
+    List<EventApplicationMetrics> countCheckedInByEventIds(@Param("eventIds") Collection<Long> eventIds);
 }
