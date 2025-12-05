@@ -5,6 +5,7 @@ import com.ssasinsa.wearagain.domain.dashboard.dto.DashboardSnapshotResponse;
 import com.ssasinsa.wearagain.domain.dashboard.service.DashboardQueryService;
 import com.ssasinsa.wearagain.domain.event.dto.manager.EventMetricResponse;
 import com.ssasinsa.wearagain.domain.event.dto.manager.EventMetricsPeriod;
+import com.ssasinsa.wearagain.domain.event.dto.manager.EventMetricsResponse;
 import com.ssasinsa.wearagain.domain.event.service.EventMetricsService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -36,12 +37,12 @@ public class DashboardAdminController {
 
     @DashboardApiDocs.GetEventMetrics
     @GetMapping("/metrics")
-    public ResponseEntity<List<EventMetricResponse>> getEventMetrics(
+    public ResponseEntity<EventMetricsResponse> getEventMetrics(
             @RequestParam(value = "period", required = false) String periodValue
     ) {
         EventMetricsPeriod period = EventMetricsPeriod.from(periodValue);
         LocalDate fromDate = period.fromDate(LocalDate.now());
         List<EventMetricResponse> response = eventMetricsService.getEventMetrics(fromDate);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(EventMetricsResponse.of(response));
     }
 }
