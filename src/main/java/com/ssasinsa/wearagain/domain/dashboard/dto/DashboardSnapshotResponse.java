@@ -14,7 +14,7 @@ public record DashboardSnapshotResponse(
             long managerHosted,
             long cumulativeParticipants,
             long donatedClothes,
-            long exchangedItems,
+            long exchangedClothes,
             BigDecimal exchangeRate
     ) {}
 
