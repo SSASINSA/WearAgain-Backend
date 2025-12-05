@@ -30,6 +30,20 @@ public interface TicketHistoryRepository extends JpaRepository<TicketHistory, Lo
     @Query("select COALESCE(SUM(ABS(th.changeAmount)), 0) from TicketHistory th where th.changeAmount < 0")
     java.util.Optional<Long> sumNegativeAmountsAbs();
 
+    @Query("select new com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryEventSum(th.relatedEvent.id, COALESCE(SUM(th.changeAmount), 0)) "
+            + "from TicketHistory th "
+            + "where th.relatedEvent.id in :eventIds "
+            + "and th.changeAmount > 0 "
+            + "group by th.relatedEvent.id")
+    List<TicketHistoryEventSum> sumPositiveAmountsByEventIds(@Param("eventIds") java.util.Collection<Long> eventIds);
+
+    @Query("select new com.ssasinsa.wearagain.domain.finance.repository.TicketHistoryEventSum(th.relatedEvent.id, COALESCE(SUM(ABS(th.changeAmount)), 0)) "
+            + "from TicketHistory th "
+            + "where th.relatedEvent.id in :eventIds "
+            + "and th.changeAmount < 0 "
+            + "group by th.relatedEvent.id")
+    List<TicketHistoryEventSum> sumNegativeAmountsAbsByEventIds(@Param("eventIds") java.util.Collection<Long> eventIds);
+
     interface TicketChargeSummary {
 
         Long getUserId();

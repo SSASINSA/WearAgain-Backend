@@ -69,4 +69,6 @@ public interface EventRepository extends JpaRepository<Event, Long>, JpaSpecific
 
     @Query("select count(e) from Event e where e.organizerAdmin.role = :role")
     long countByOrganizerRole(@Param("role") AdminRole role);
+
+    List<Event> findByStartDateGreaterThanEqualAndStatusIn(java.time.LocalDate from, Collection<EventStatus> statuses);
 }
