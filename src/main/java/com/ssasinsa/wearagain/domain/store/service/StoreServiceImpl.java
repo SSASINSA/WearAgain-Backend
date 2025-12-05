@@ -272,10 +272,8 @@ public class StoreServiceImpl implements StoreService {
         User orderOwner = order.getUser();
         StoreItem item = order.getItem();
         int totalPrice = order.getPrice() * order.getQuantity();
-        String thumbnailUrl = null;
-        if (item != null) {
-            thumbnailUrl = thumbnails.get(item.getId());
-        }
+        String thumbnailUrl = thumbnails.get(item.getId());
+
         return new StoreOrderSummaryResponse(
                 order.getId(),
                 orderOwner != null ? orderOwner.getEmail() : null,
