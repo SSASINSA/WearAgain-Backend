@@ -14,6 +14,8 @@ public record StoreOrderSummaryResponse(
         Long itemId,
         @Schema(description = "아이템명", example = "웰컴 티셔츠")
         String itemName,
+        @Schema(description = "대표 이미지 URL", example = "https://cdn.../main.jpg")
+        String itemThumbnailUrl,
         @Schema(description = "주문 수량", example = "2")
         int quantity,
         @Schema(description = "단가", example = "1200")
