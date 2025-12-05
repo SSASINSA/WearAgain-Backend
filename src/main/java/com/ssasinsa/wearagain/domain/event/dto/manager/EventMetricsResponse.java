@@ -12,6 +12,6 @@ public record EventMetricsResponse(
 ) {
 
     public static EventMetricsResponse of(List<EventMetricResponse> items) {
-        return new EventMetricsResponse(items.size(), items);
+        return new EventMetricsResponse(items.size(), List.copyOf(items));
     }
 }
