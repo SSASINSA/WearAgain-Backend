@@ -118,7 +118,21 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     @Override
     public AdminParticipantDetailResponse updateParticipant(Long participantId, AdminParticipantUpdateRequest request) {
-        throw new UserException(UserErrorCode.FEATURE_NOT_AVAILABLE);
+        if (request == null || (request.ticketBalance() == null && request.creditBalance() == null)) {
+            throw new UserException(UserErrorCode.INVALID_REQUEST);
+        }
+
+        User user = userRepository.findById(participantId)
+                .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+
+        if (request.ticketBalance() != null) {
+            user.updateTicketBalance(request.ticketBalance());
+        }
+        if (request.creditBalance() != null) {
+            user.updateCreditBalance(request.creditBalance());
+        }
+
+        return toDetail(user);
     }
 
     @Override

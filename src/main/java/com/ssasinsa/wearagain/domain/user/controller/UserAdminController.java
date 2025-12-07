@@ -69,6 +69,7 @@ public class UserAdminController {
         return ResponseEntity.ok(response);
     }
 
+    @AdminParticipantApiDocs.UpdateParticipantBalance
     @PutMapping("/{participantId}")
     public ResponseEntity<AdminParticipantDetailResponse> updateParticipant(
             @PathVariable Long participantId,
