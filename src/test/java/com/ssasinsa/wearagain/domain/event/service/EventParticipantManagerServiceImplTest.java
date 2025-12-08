@@ -79,7 +79,7 @@ class EventParticipantManagerServiceImplTest {
         User user = User.create("user@wearagain.kr", "참가자", null);
         ReflectionTestUtils.setField(user, "id", 500L);
 
-        application = EventApplication.create(user, event, option, EventApplicationStatus.APPLIED, null, null);
+        application = EventApplication.create(user, event, option, EventApplicationStatus.APPLIED, null);
         ReflectionTestUtils.setField(application, "id", 1000L);
     }
 
