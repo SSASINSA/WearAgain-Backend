@@ -23,4 +23,11 @@ public interface ImpactAnalyticsRepository extends JpaRepository<ImpactAnalytics
             + "COALESCE(SUM(ia.energySaved), 0)) "
             + "FROM ImpactAnalytics ia")
     ImpactSummary aggregateTotalImpact();
+
+    @Query("SELECT new com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary("
+            + "COALESCE(SUM(ia.co2Saved), 0), "
+            + "COALESCE(SUM(ia.waterSaved), 0), "
+            + "COALESCE(SUM(ia.energySaved), 0)) "
+            + "FROM ImpactAnalytics ia WHERE ia.event.id = :eventId")
+    ImpactSummary aggregateByEventId(@Param("eventId") Long eventId);
 }

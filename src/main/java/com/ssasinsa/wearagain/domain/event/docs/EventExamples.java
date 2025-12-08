@@ -305,7 +305,14 @@ public final class EventExamples {
                   "appliedAt": "2025-11-12T04:00:00Z",
                   "reason": null
                 }
-              ]
+              ],
+              "impactAnalytics": {
+                "available": true,
+                "co2Saved": 12.34,
+                "waterSaved": 210.5,
+                "energySaved": 45.67,
+                "message": null
+              }
             }
             """;
 

@@ -12,6 +12,8 @@ import com.ssasinsa.wearagain.domain.event.entity.*;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.*;
+import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
+import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import jakarta.persistence.criteria.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +31,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -58,6 +61,9 @@ class EventAdminServiceImplTest {
 
     @Mock
     private EventApprovalRequestRepository eventApprovalRequestRepository;
+
+    @Mock
+    private ImpactAnalyticsRepository impactAnalyticsRepository;
 
     @InjectMocks
     private EventAdminServiceImpl eventAdminService;
@@ -443,6 +449,40 @@ class EventAdminServiceImplTest {
         assertThat(response.applications()).hasSize(1);
         assertThat(response.staffCode()).isEqualTo("999888");
         assertThat(response.staffCodeIssuedAt()).isNotNull();
+        assertThat(response.impactAnalytics().available()).isFalse();
+        assertThat(response.impactAnalytics().message()).isEqualTo("행사 종료 후 집계 예정입니다.");
+        verify(impactAnalyticsRepository, never()).aggregateByEventId(101L);
+    }
+
+    @Test
+    void should_include_impact_analytics_when_event_finished() {
+        LocalDate pastStart = LocalDate.now().minusDays(10);
+        LocalDate pastEnd = LocalDate.now().minusDays(5);
+        event.updatePeriod(pastStart, pastEnd);
+        event.changeStatus(EventStatus.CLOSED);
+        when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+        when(eventOptionRepository.sumCapacityByEventIds(anyCollection())).thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByEventIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+        when(eventApplicationRepository.countActiveApplicationsByOptionIds(anyCollection(), anyCollection()))
+                .thenReturn(List.of());
+        when(eventApplicationRepository.findAllWithUserByEventId(101L)).thenReturn(List.of());
+        ImpactSummary summary = new ImpactSummary(
+                BigDecimal.valueOf(1.23),
+                BigDecimal.valueOf(45.6),
+                BigDecimal.valueOf(7.89)
+        );
+        when(impactAnalyticsRepository.aggregateByEventId(101L)).thenReturn(summary);
+
+        EventAdminDetailResponse response = eventAdminService.getEventDetail(101L, 11L, AdminRole.ADMIN);
+
+        assertThat(response.impactAnalytics().available()).isTrue();
+        assertThat(response.impactAnalytics().co2Saved()).isEqualByComparingTo("1.23");
+        assertThat(response.impactAnalytics().waterSaved()).isEqualByComparingTo("45.6");
+        assertThat(response.impactAnalytics().energySaved()).isEqualByComparingTo("7.89");
+        assertThat(response.impactAnalytics().message()).isNull();
+        verify(impactAnalyticsRepository).aggregateByEventId(101L);
     }
 
     @Test

@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.event.dto.admin;
 
 import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -78,7 +79,10 @@ public record EventAdminDetailResponse(
         List<EventAdminOptionResponse> options,
 
         @Schema(description = "신청 목록")
-        List<EventAdminApplicationResponse> applications
+        List<EventAdminApplicationResponse> applications,
+
+        @Schema(description = "임팩트 분석 정보")
+        EventImpactAnalyticsResponse impactAnalytics
 ) {
 
     @Schema(description = "행사 이미지 정보")
@@ -145,5 +149,36 @@ public record EventAdminDetailResponse(
             @Schema(description = "반려/취소 사유", example = "인원 초과")
             String reason
     ) {
+    }
+
+    @Schema(description = "임팩트 분석 요약")
+    public record EventImpactAnalyticsResponse(
+            @Schema(description = "집계값 제공 여부", example = "true")
+            boolean available,
+
+            @Schema(description = "CO₂ 절감량 (kg)", example = "12.345")
+            BigDecimal co2Saved,
+
+            @Schema(description = "물 절감량 (L)", example = "98.100")
+            BigDecimal waterSaved,
+
+            @Schema(description = "에너지 절감량 (kWh)", example = "45.200")
+            BigDecimal energySaved,
+
+            @Schema(description = "집계 상태 메시지", example = "행사 종료 후 집계 예정입니다.")
+            String message
+    ) {
+
+        public static EventImpactAnalyticsResponse pending(String message) {
+            return new EventImpactAnalyticsResponse(false, null, null, null, message);
+        }
+
+        public static EventImpactAnalyticsResponse completed(
+                BigDecimal co2Saved,
+                BigDecimal waterSaved,
+                BigDecimal energySaved
+        ) {
+            return new EventImpactAnalyticsResponse(true, co2Saved, waterSaved, energySaved, null);
+        }
     }
 }
