@@ -400,6 +400,7 @@ public final class EventExamples {
                   "displayOrder": 1
                 }
               ],
+              "optionDepth": 3,
               "options": [
                 {
                   "optionId": 2001,
