@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title th:text="'EVENT IMPACT REPORT - ' + ${event.title}">EVENT IMPACT REPORT</title>
+    <style>
+        @page { size: A4; margin: 20mm; }
+
+        @font-face {
+            font-family: 'NanumBarunGothic';
+            src: url('classpath:fonts/NanumBarunGothic.ttf') format('truetype');
+        }
+
+        body {
+
+            font-family: NanumBarunGothic,serif;
+            font-size: 11px; line-height: 1.6; color: #212529; margin: 0; padding: 0;
+
+         }
+        .header { padding-bottom: 10px; margin-bottom: 30px; border-bottom: 3px solid #343a40; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 700; color: #343a40; }
+        .header .meta { font-size: 10px; color: #6c757d; text-align: right; }
+        .section-title { font-size: 14px; font-weight: 700; color: #343a40; margin: 25px 0 10px 0; padding-left: 8px; border-left: 4px solid #007bff; }
+        table.report-table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+        table.report-table th, table.report-table td { padding: 8px 12px; text-align: left; border: 1px solid #dee2e6; }
+        table.report-table th { background-color: #e9ecef; font-weight: 700; color: #495057; text-align: center; }
+        table.report-table td { text-align: center; }
+        table.report-table .left-align { text-align: left; }
+        .subheader { text-align: left !important; background-color: #f8f9fa !important; font-weight: 700; color: #495057; }
+        .chart-section { padding: 20px; border: 1px solid #adb5bd; border-radius: 4px; background-color: #ffffff; }
+        .chart-placeholder { height: 200px; border: 1px dashed #adb5bd; color: #6c757d; text-align: center; padding-top: 80px; font-size: 12px; }
+        .chart-note { font-size: 10px; color: #6c757d; margin-top: 10px; }
+        .footer { margin-top: 40px; text-align: center; font-size: 9px; color: #495057; padding-top: 10px; border-top: 1px solid #adb5bd; font-style: italic; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1>EVENT IMPACT REPORT</h1>
+            <div style="font-size: 14px; margin-top: 5px; font-weight: 500;"
+                 th:text="${event.title} + ' 결과 보고서'">2025년 미래 기술 포럼 결과 보고서
+            </div>
+        </div>
+        <div class="meta text-right">
+            Document ID: <span th:text="${event.documentId}">2025-11-RPT-001</span><br/>
+            Prepared Date: <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd')}">2025-12-08</span>
+        </div>
+    </div>
+
+    <div class="section-title">1. 행사 개요 (Event Overview)</div>
+    <table class="report-table">
+        <tbody>
+        <tr>
+            <th width="20%">행사명</th>
+            <td colspan="3" class="left-align" th:text="${event.title}">미래 기술 포럼 2025</td>
+        </tr>
+        <tr>
+            <th>기간 및 장소</th>
+            <td width="30%"
+                th:text="${#temporals.format(event.startDate, 'yyyy-MM-dd')} + ' ~ ' + ${#temporals.format(event.endDate, 'yyyy-MM-dd')}">
+                2025-11-20 ~ 2025-11-21 (2일간)
+            </td>
+            <th width="15%">장소</th>
+            <td width="35%" th:text="${event.location}">서울 코엑스 홀 A</td>
+        </tr>
+        <tr>
+            <th>관리자 ID</th>
+            <td th:text="${event.managerId}">ADMIN_001</td>
+            <th>최종 상태</th>
+            <td style="font-weight: 700; color: #28a745;" th:text="${event.status}">CLOSED (정산 완료)</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="section-title">2. 핵심 성과 지표 (Key Performance Indicators)</div>
+
+    <table class="report-table">
+        <thead>
+        <tr>
+            <th width="15%">분류</th>
+            <th width="35%">항목</th>
+            <th width="25%">집계 수량 (Value)</th>
+            <th width="25%">비율/효과 (Rate/Impact)</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td colspan="4" class="subheader">2.1. 참여 및 운영 성과</td>
+        </tr>
+        <tr>
+            <td rowspan="3" style="font-weight: 700;">참여율</td>
+            <td class="left-align">총 신청자 (Total Applied)</td>
+            <td style="font-weight: 700; color: #007bff;" th:text="${stats.totalApplied} + '명'">150명</td>
+            <td>-</td>
+        </tr>
+        <tr>
+            <td class="left-align">실제 참석 인원 (Checked-in)</td>
+            <td style="font-weight: 700; color: #28a745;" th:text="${stats.checkedIn} + '명'">120명</td>
+            <td style="font-weight: 700;" th:text="${#numbers.formatDecimal(stats.attendanceRate * 100, 1, 1)} + '%'">
+                80.0%
+            </td>
+        </tr>
+        <tr>
+            <td class="left-align">노쇼 비율 (No-show Rate)</td>
+            <td style="color: #dc3545;" th:text="${stats.noShowCount} + '명'">30명</td>
+            <td th:text="${#numbers.formatDecimal(stats.noShowRate * 100, 1, 1)} + '%'">20.0%</td>
+        </tr>
+
+        <tr>
+            <td colspan="4" class="subheader">2.2. 순환 경제 성과 (Circular Economy)</td>
+        </tr>
+        <tr>
+            <td rowspan="3" style="font-weight: 700;">순환 성과</td>
+            <td class="left-align">기부된 옷 (Total Donated)</td>
+            <td style="font-weight: 700; color: #28a745;" th:text="${stats.donatedClothes} + '벌'">95벌</td>
+            <td style="font-weight: 700;">-</td>
+        </tr>
+        <tr>
+            <td class="left-align">교환된 옷 (Total Exchanged)</td>
+            <td style="font-weight: 700; color: #007bff;" th:text="${stats.exchangedClothes} + '벌'">82벌</td>
+            <td style="font-weight: 700;">-</td>
+        </tr>
+        <tr>
+            <td class="left-align">교환율 (Exchange Rate)</td>
+            <td th:text="'(' + ${stats.exchangedClothes} + '벌 / ' + ${stats.donatedClothes} + '벌)'">(82벌 / 95벌)</td>
+            <td style="font-weight: 700; color: #007bff;"
+                th:text="${#numbers.formatDecimal(stats.exchangeRate * 100, 1, 1)} + '%'">86.3%
+            </td>
+        </tr>
+
+        <tr>
+            <td colspan="4" class="subheader">2.3. 환경 임팩트 (Environmental Contribution)</td>
+        </tr>
+        <tr>
+            <td rowspan="3" style="font-weight: 700;">환경 절감</td>
+            <td class="left-align">CO2 절감량 (Carbon Footprint)</td>
+            <td style="font-weight: 700; color: #28a745;"
+                th:text="${#numbers.formatDecimal(impact.co2Saved, 1, 2)} + ' kg'">120.50 kg
+            </td>
+            <td th:text="${impact.co2Note}">-</td>
+        </tr>
+        <tr>
+            <td class="left-align">물 소비 절감량 (Water Saving)</td>
+            <td style="font-weight: 700; color: #007bff;"
+                th:text="${#numbers.formatDecimal(impact.waterSaved, 1, 2)} + ' L'">500.00 L
+            </td>
+            <td th:text="${impact.waterNote}">-</td>
+        </tr>
+        <tr>
+            <td class="left-align">에너지 절감량 (Energy Saving)</td>
+            <td style="font-weight: 700; color: #dc3545;"
+                th:text="${#numbers.formatDecimal(impact.energySaved, 1, 2)} + ' kWh'">340.20 kWh
+            </td>
+            <td th:text="${impact.energyNote}">-</td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div class="section-title">3. 운영 효율성 분석 (Operational Efficiency)</div>
+
+    <div class="chart-section">
+        <p style="font-size: 12px; font-weight: 700; margin-bottom: 10px;">3.1 시간대별 체크인 추이 (Line Chart)</p>
+            <img th:if="${chartImage != null}" th:src="'data:image/png;base64,' + ${chartImage}" alt="시간대별 체크인 추이" style="max-width:100%; max-height:180px;"/>
+            <div th:unless="${chartImage != null}">차트 이미지를 여기에 표시하세요 (시간대별 체크인 추이)</div>
+        <div class="chart-note">
+            * 위 차트는 현장 운영 인력 배치 계획 수립을 위한 핵심 데이터입니다.
+        </div>
+    </div>
+
+    <div class="footer">
+        Confidential Document | This report is generated by the Admin System for internal review only. Unauthorized
+        distribution is prohibited.
+    </div>
+</div>
+</body>
+</html>
