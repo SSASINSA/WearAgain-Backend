@@ -3,8 +3,10 @@ package com.ssasinsa.wearagain.domain.user.service;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.auth.infrastructure.RefreshTokenRedisKeyManager;
+import com.ssasinsa.wearagain.domain.event.entity.Event;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
+import com.ssasinsa.wearagain.domain.event.entity.EventImage;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
@@ -35,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.LinkedHashMap;
+import java.util.Comparator;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -45,6 +48,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 @Service
 @Transactional
@@ -283,12 +287,26 @@ public class UserAdminServiceImpl implements UserAdminService {
                 .map(app -> new AdminRecentEventResponse(
                         app.getEvent().getId(),
                         app.getEvent().getTitle(),
+                        resolveEventThumbnailUrl(app.getEvent()),
                         app.getStatus(),
                         app.getEvent().getStartDate(),
                         app.getEvent().getEndDate(),
                         app.getCreatedAt() == null ? null : app.getCreatedAt().atOffset(ZoneOffset.UTC)
                 ))
                 .toList();
+    }
+
+    private String resolveEventThumbnailUrl(Event event) {
+        if (event == null || event.getImages() == null || event.getImages().isEmpty()) {
+            return null;
+        }
+        return event.getImages()
+                .stream()
+                .filter(image -> image != null && StringUtils.hasText(image.getUrl()))
+                .sorted(Comparator.comparingInt(EventImage::getDisplayOrder))
+                .map(EventImage::getUrl)
+                .findFirst()
+                .orElse(null);
     }
 
     private long defaultLong(Long value) {

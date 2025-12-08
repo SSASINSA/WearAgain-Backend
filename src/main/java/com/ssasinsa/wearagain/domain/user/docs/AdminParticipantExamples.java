@@ -73,6 +73,7 @@ public class AdminParticipantExamples {
                 {
                   "eventId": 45,
                   "title": "12월 리사이클 플리마켓",
+                  "thumbnailUrl": "https://cdn.wearagain.kr/events/45/main.jpg",
                   "status": "APPLIED",
                   "startDate": "2025-12-20",
                   "endDate": "2025-12-20",
@@ -157,6 +158,7 @@ public class AdminParticipantExamples {
                 {
                   "eventId": 45,
                   "title": "12월 리사이클 플리마켓",
+                  "thumbnailUrl": "https://cdn.wearagain.kr/events/45/main.jpg",
                   "status": "APPLIED",
                   "startDate": "2025-12-20",
                   "endDate": "2025-12-20",
