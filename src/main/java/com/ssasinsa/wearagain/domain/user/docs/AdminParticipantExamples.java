@@ -167,4 +167,36 @@ public class AdminParticipantExamples {
               ]
             }
             """;
+
+    public static final String ADMIN_USER_LIST_RESPONSE = """
+            {
+              "content": [
+                {
+                  "adminUserId": 1,
+                  "email": "super@wearagain.kr",
+                  "name": "최고 관리자",
+                  "role": "SUPER_ADMIN",
+                  "status": "ACTIVE",
+                  "lastLoginAt": "2025-12-07T05:20:00Z",
+                  "createdAt": "2025-11-01T02:00:00Z",
+                  "updatedAt": "2025-12-05T09:00:00Z"
+                },
+                {
+                  "adminUserId": 5,
+                  "email": "event.admin@wearagain.kr",
+                  "name": "행사 관리자",
+                  "role": "ADMIN",
+                  "status": "ACTIVE",
+                  "lastLoginAt": "2025-11-25T10:00:00Z",
+                  "createdAt": "2025-11-15T08:30:00Z",
+                  "updatedAt": "2025-11-20T10:10:00Z"
+                }
+              ],
+              "page": 0,
+              "size": 20,
+              "totalElements": 6,
+              "totalPages": 1,
+              "hasNext": false
+            }
+            """;
 }

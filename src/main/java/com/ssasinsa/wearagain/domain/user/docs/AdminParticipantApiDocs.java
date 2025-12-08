@@ -88,4 +88,31 @@ public final class AdminParticipantApiDocs {
     )
     public @interface UpdateSuspension {
     }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "관리자 계정 목록 조회",
+            description = """
+                    ADMIN 또는 SUPER_ADMIN 권한으로 관리자 계정 목록을 조회합니다.
+                    status(상태), keyword/keywordScope(EMAIL|NAME|ALL), sortBy(CREATED_DESC, CREATED_ASC, NAME_ASC, NAME_DESC),
+                    page/size 파라미터를 지원합니다.
+                    """,
+            responseSchema = com.ssasinsa.wearagain.domain.user.dto.admin.AdminManagedUserListResponse.class,
+            responseExample = AdminParticipantExamples.ADMIN_USER_LIST_RESPONSE
+    )
+    public @interface GetAdminUsers {
+    }
+
+    @SecurityRequirement(name = "adminJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "관리자 계정 비활성화",
+            description = "다른 관리자 계정을 소프트 삭제(INACTIVE) 처리합니다. SUPER_ADMIN 계정이나 자기 자신은 삭제할 수 없습니다.",
+            responseSchema = Void.class
+    )
+    public @interface DeleteAdminUser {
+    }
 }
