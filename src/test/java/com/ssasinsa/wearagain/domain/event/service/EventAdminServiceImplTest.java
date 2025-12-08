@@ -554,7 +554,7 @@ class EventAdminServiceImplTest {
         AdminUser reviewer = AdminUser.createSuperAdmin("reviewer@wearagain.kr", "encoded", "검토 관리자");
         ReflectionTestUtils.setField(reviewer, "id", 55L);
         approvalRequest.approve(reviewer, LocalDateTime.now().minusDays(1), EventStatus.OPEN);
-        ReflectionTestUtils.setField(event, "approvalRequest", approvalRequest);
+        when(eventApprovalRequestRepository.findByEvent_Id(101L)).thenReturn(java.util.Optional.of(approvalRequest));
 
         EventAdminUpdateRequest request = new EventAdminUpdateRequest(
                 "매니저 수정",

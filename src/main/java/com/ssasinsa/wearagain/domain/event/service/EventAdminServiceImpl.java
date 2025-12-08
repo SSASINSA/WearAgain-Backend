@@ -774,7 +774,8 @@ public class EventAdminServiceImpl implements EventAdminService {
         if (event.getStatus() != EventStatus.DRAFT) {
             event.changeStatus(EventStatus.DRAFT);
         }
-        EventApprovalRequest approvalRequest = event.getApprovalRequest();
+        EventApprovalRequest approvalRequest = eventApprovalRequestRepository.findByEvent_Id(event.getId())
+                .orElse(null);
         if (approvalRequest == null) {
             EventApprovalRequest newRequest = EventApprovalRequest.create(event, organizer);
             eventApprovalRequestRepository.save(newRequest);
@@ -1077,7 +1078,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         AdminUser admin = adminUserRepository.findById(adminId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
-        if (admin.getRole() != AdminRole.SUPER_ADMIN) {
+        if (admin.getRole() == AdminRole.MANAGER) {
             throw new EventException(EventErrorCode.EVENT_STATUS_UPDATE_FORBIDDEN);
         }
 

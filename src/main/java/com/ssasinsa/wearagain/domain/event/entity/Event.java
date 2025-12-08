@@ -14,7 +14,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
-import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -80,9 +79,6 @@ public class Event extends BaseTimeEntity {
     @Default
     @BatchSize(size = 50)
     private List<EventImage> images = new ArrayList<>();
-
-    @OneToOne(mappedBy = "event", fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
-    private EventApprovalRequest approvalRequest;
 
     @Column(name = "usage_guide", columnDefinition = "TEXT")
     private String usageGuide;
