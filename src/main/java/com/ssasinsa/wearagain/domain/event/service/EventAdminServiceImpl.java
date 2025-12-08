@@ -43,7 +43,10 @@ import com.ssasinsa.wearagain.domain.event.repository.EventApprovalRequestSpecif
 import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventSpecifications;
+import com.ssasinsa.wearagain.domain.finance.repository.ImpactAnalyticsRepository;
+import com.ssasinsa.wearagain.domain.growth.dto.ImpactSummary;
 import com.ssasinsa.wearagain.global.dto.MessageResponse;
+import java.math.BigDecimal;
 import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -84,6 +87,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     private static final int MAX_IMAGE_COUNT = 10;
     private static final int MAX_OPTION_DEPTH = 3;
     private static final int MAX_OPTION_CAPACITY = 999;
+    private static final String IMPACT_PENDING_MESSAGE = "행사 종료 후 집계 예정입니다.";
 
     private static final Comparator<EventImage> IMAGE_ORDER = Comparator.comparingInt(EventImage::getDisplayOrder);
     private static final Comparator<EventOption> OPTION_ORDER = Comparator.comparingInt(EventOption::getDisplayOrder);
@@ -100,6 +104,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     private final EventApplicationRepository eventApplicationRepository;
     private final AdminUserRepository adminUserRepository;
     private final EventApprovalRequestRepository eventApprovalRequestRepository;
+    private final ImpactAnalyticsRepository impactAnalyticsRepository;
 
     @Override
     @Transactional
@@ -249,6 +254,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         AdminUser organizerAdmin = event.getOrganizerAdmin();
         String organizerName = organizerAdmin == null ? null : organizerAdmin.getName();
         String organizerEmail = organizerAdmin == null ? null : organizerAdmin.getEmail();
+        EventAdminDetailResponse.EventImpactAnalyticsResponse impactAnalytics = resolveImpactAnalytics(event);
 
         return new EventAdminDetailResponse(
                 event.getId(),
@@ -274,7 +280,8 @@ public class EventAdminServiceImpl implements EventAdminService {
                 toOffset(event.getUpdatedAt()),
                 images,
                 options,
-                applications
+                applications,
+                impactAnalytics
         );
     }
 
@@ -426,6 +433,21 @@ public class EventAdminServiceImpl implements EventAdminService {
         return eventApplicationRepository.countActiveApplicationsByOptionIds(optionIds, ACTIVE_APPLICATION_STATUSES)
                 .stream()
                 .collect(Collectors.toMap(EventOptionApplicationCount::eventOptionId, EventOptionApplicationCount::appliedCount));
+    }
+
+    private EventAdminDetailResponse.EventImpactAnalyticsResponse resolveImpactAnalytics(Event event) {
+        if (!isEventClosed(event)) {
+            return EventAdminDetailResponse.EventImpactAnalyticsResponse.pending(IMPACT_PENDING_MESSAGE);
+        }
+        ImpactSummary summary = impactAnalyticsRepository.aggregateByEventId(event.getId());
+        BigDecimal co2 = summary == null || summary.co2Saved() == null ? BigDecimal.ZERO : summary.co2Saved();
+        BigDecimal water = summary == null || summary.waterSaved() == null ? BigDecimal.ZERO : summary.waterSaved();
+        BigDecimal energy = summary == null || summary.energySaved() == null ? BigDecimal.ZERO : summary.energySaved();
+        return EventAdminDetailResponse.EventImpactAnalyticsResponse.completed(co2, water, energy);
+    }
+
+    private boolean isEventClosed(Event event) {
+        return event.getStatus() == EventStatus.CLOSED;
     }
 
     private EventAdminSummaryResponse mapToSummary(
