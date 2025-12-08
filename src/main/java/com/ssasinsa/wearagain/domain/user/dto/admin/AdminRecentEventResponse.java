@@ -7,6 +7,7 @@ import java.time.OffsetDateTime;
 public record AdminRecentEventResponse(
         Long eventId,
         String title,
+        String thumbnailUrl,
         EventApplicationStatus status,
         LocalDate startDate,
         LocalDate endDate,

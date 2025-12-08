@@ -73,6 +73,7 @@ public class AdminParticipantExamples {
                 {
                   "eventId": 45,
                   "title": "12월 리사이클 플리마켓",
+                  "thumbnailUrl": "https://cdn.wearagain.kr/events/45/main.jpg",
                   "status": "APPLIED",
                   "startDate": "2025-12-20",
                   "endDate": "2025-12-20",
@@ -120,6 +121,50 @@ public class AdminParticipantExamples {
                 "cycles": 2
               },
               "recentEvents": []
+            }
+            """;
+
+    public static final String PARTICIPANT_UPDATE_REQUEST = """
+            {
+              "ticketBalance": 10,
+              "creditBalance": 2000
+            }
+            """;
+
+    public static final String PARTICIPANT_UPDATE_RESPONSE = """
+            {
+              "participantId": 101,
+              "name": "김참가",
+              "email": "participant1@example.com",
+              "avatarUrl": "https://cdn.wearagain.kr/avatar/101.png",
+              "ticketBalance": 10,
+              "creditBalance": 2000,
+              "suspended": false,
+              "joinedAt": "2025-11-30T02:18:00Z",
+              "updatedAt": "2025-12-07T02:10:12Z",
+              "impact": {
+                "co2Saved": 12.45,
+                "waterSaved": 35.10,
+                "energySaved": 4.80
+              },
+              "mascot": {
+                "level": 3,
+                "exp": 40,
+                "nextLevelExp": 60,
+                "magicScissorCount": 2,
+                "cycles": 5
+              },
+              "recentEvents": [
+                {
+                  "eventId": 45,
+                  "title": "12월 리사이클 플리마켓",
+                  "thumbnailUrl": "https://cdn.wearagain.kr/events/45/main.jpg",
+                  "status": "APPLIED",
+                  "startDate": "2025-12-20",
+                  "endDate": "2025-12-20",
+                  "appliedAt": "2025-12-01T01:00:00Z"
+                }
+              ]
             }
             """;
 }

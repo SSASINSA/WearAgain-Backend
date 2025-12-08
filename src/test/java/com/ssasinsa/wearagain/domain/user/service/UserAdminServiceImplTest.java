@@ -67,14 +67,12 @@ class UserAdminServiceImplTest {
 
     @Test
     void should_return_participant_list_without_filter() {
-        // Given
         User user1 = createUser(1L, "user1@wearagain.kr", "user1", 5, 100);
         User user2 = createUser(2L, "user2@wearagain.kr", "user2", 3, 50);
         Pageable pageable = PageRequest.of(0, 10);
         when(userRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(user1, user2), pageable, 2));
 
-        // When
         AdminParticipantListResponse response = userAdminService.getParticipants(
                 null,
                 "CREATED_DESC",
@@ -83,7 +81,6 @@ class UserAdminServiceImplTest {
                 pageable
         );
 
-        // Then
         assertThat(response.content()).hasSize(2);
         assertThat(response.totalElements()).isEqualTo(2);
         assertThat(response.content().get(0).participantId()).isEqualTo(1L);
@@ -92,10 +89,8 @@ class UserAdminServiceImplTest {
 
     @Test
     void should_throw_invalid_request_when_sort_is_invalid() {
-        // Given
         Pageable pageable = PageRequest.of(0, 10);
 
-        // When & Then
         assertThatThrownBy(() -> userAdminService.getParticipants(null, "UNKNOWN", null, null, pageable))
                 .isInstanceOf(UserException.class)
                 .extracting(ex -> ((UserException) ex).getErrorCode())
@@ -104,10 +99,8 @@ class UserAdminServiceImplTest {
 
     @Test
     void should_throw_not_found_when_detail_missing() {
-        // Given
         when(userRepository.findById(100L)).thenReturn(Optional.empty());
 
-        // When & Then
         assertThatThrownBy(() -> userAdminService.getParticipantDetail(100L))
                 .isInstanceOf(UserException.class)
                 .extracting(ex -> ((UserException) ex).getErrorCode())
@@ -115,82 +108,82 @@ class UserAdminServiceImplTest {
     }
 
     @Test
-    void should_return_feature_not_available_when_update_requested() {
-        // Given
-        AdminParticipantUpdateRequest request = new AdminParticipantUpdateRequest(
-                "new-name",
-                "https://img.wearagain.kr/profile/new.png",
-                7,
-                15,
-                true
-        );
+    void should_update_participant_balances() {
+        User user = createUser(5L, "user5@wearagain.kr", "user5", 2, 10);
+        when(userRepository.findById(5L)).thenReturn(Optional.of(user));
+        AdminParticipantUpdateRequest request = new AdminParticipantUpdateRequest(7, 15);
 
-        // When & Then
-        assertThatThrownBy(() -> userAdminService.updateParticipant(5L, request))
-                .isInstanceOf(UserException.class)
-                .extracting(ex -> ((UserException) ex).getErrorCode())
-                .isEqualTo(UserErrorCode.FEATURE_NOT_AVAILABLE);
+        AdminParticipantDetailResponse response = userAdminService.updateParticipant(5L, request);
+
+        assertThat(response.ticketBalance()).isEqualTo(7);
+        assertThat(response.creditBalance()).isEqualTo(15);
     }
 
     @Test
-    void should_return_feature_not_available_when_update_requested_with_valid_ticket() {
-        // Given
-        AdminParticipantUpdateRequest request = new AdminParticipantUpdateRequest(
-                null,
-                null,
-                0,
-                0,
-                false
-        );
+    void should_allow_partial_balance_update() {
+        User user = createUser(7L, "user7@wearagain.kr", "user7", 4, 20);
+        when(userRepository.findById(7L)).thenReturn(Optional.of(user));
+        AdminParticipantUpdateRequest request = new AdminParticipantUpdateRequest(null, 30);
 
-        // When & Then
+        AdminParticipantDetailResponse response = userAdminService.updateParticipant(7L, request);
+
+        assertThat(response.ticketBalance()).isEqualTo(4);
+        assertThat(response.creditBalance()).isEqualTo(30);
+    }
+
+    @Test
+    void should_throw_invalid_request_when_balances_missing() {
+        AdminParticipantUpdateRequest request = new AdminParticipantUpdateRequest(null, null);
+
         assertThatThrownBy(() -> userAdminService.updateParticipant(7L, request))
                 .isInstanceOf(UserException.class)
                 .extracting(ex -> ((UserException) ex).getErrorCode())
-                .isEqualTo(UserErrorCode.FEATURE_NOT_AVAILABLE);
+                .isEqualTo(UserErrorCode.INVALID_REQUEST);
+    }
+
+    @Test
+    void should_throw_not_found_when_update_target_missing() {
+        when(userRepository.findById(12L)).thenReturn(Optional.empty());
+        AdminParticipantUpdateRequest request = new AdminParticipantUpdateRequest(3, 5);
+
+        assertThatThrownBy(() -> userAdminService.updateParticipant(12L, request))
+                .isInstanceOf(UserException.class)
+                .extracting(ex -> ((UserException) ex).getErrorCode())
+                .isEqualTo(UserErrorCode.USER_NOT_FOUND);
     }
 
     @Test
     void should_update_suspension() {
-        // Given
         User user = createUser(8L, "user8@wearagain.kr", "user8", 0, 0);
         when(userRepository.findById(8L)).thenReturn(Optional.of(user));
         AdminParticipantSuspensionRequest request = new AdminParticipantSuspensionRequest(false);
 
-        // When
         AdminParticipantDetailResponse response = userAdminService.updateSuspension(8L, request);
 
-        // Then
         assertThat(response.suspended()).isFalse();
     }
 
     @Test
     void should_suspend_user_when_requested() {
-        // Given
         User user = createUser(9L, "user9@wearagain.kr", "user9", 0, 0);
         when(userRepository.findById(9L)).thenReturn(Optional.of(user));
         when(refreshTokenRedisKeyManager.userRefreshTokenKey(9L)).thenReturn("auth:user:9");
         AdminParticipantSuspensionRequest request = new AdminParticipantSuspensionRequest(true);
 
-        // When
         AdminParticipantDetailResponse response = userAdminService.updateSuspension(9L, request);
 
-        // Then
         assertThat(response.suspended()).isTrue();
         verify(redisTemplate).delete("auth:user:9");
     }
 
     @Test
     void should_return_stats() {
-        // Given
         when(userRepository.count()).thenReturn(3L);
         when(userRepository.sumTicketBalance()).thenReturn(12L);
         when(userRepository.sumCreditBalance()).thenReturn(30L);
 
-        // When
         AdminParticipantStatsResponse response = userAdminService.getParticipantStats();
 
-        // Then
         assertThat(response.totalParticipants()).isEqualTo(3);
         assertThat(response.totalTickets()).isEqualTo(12);
         assertThat(response.totalCredits()).isEqualTo(30);
