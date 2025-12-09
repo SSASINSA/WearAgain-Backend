@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"/>
-    <title th:text="'EVENT IMPACT REPORT - ' + ${event.title}">EVENT IMPACT REPORT</title>
+    <title th:text="'행사 임팩트 분석 리포트 - ' + ${event.title}">행사 임팩트 분석 리포트</title>
     <style>
         @page { size: A4; margin: 20mm; }
 
@@ -34,8 +34,6 @@
             background-color: #ffffff;
             page-break-inside: avoid;
             break-inside: avoid;
-            page-break-before: always;
-            break-before: page;
             width: 100%;
             box-sizing: border-box;
         }
@@ -48,10 +46,7 @@
 <div class="container">
     <div class="header">
         <div>
-            <h1>EVENT IMPACT REPORT</h1>
-            <div style="font-size: 14px; margin-top: 5px; font-weight: 500;"
-                 th:text="${event.title} + ' 결과 보고서'">2025년 미래 기술 포럼 결과 보고서
-            </div>
+            <h1 th:text="${event.title} + ' 결과 보고서'">행사 임팩트 분석 리포트</h1>
         </div>
         <div class="meta text-right">
             Document ID: <span th:text="${event.documentId}">2025-11-RPT-001</span><br/>
@@ -67,7 +62,7 @@
             <td colspan="3" class="left-align" th:text="${event.title}">미래 기술 포럼 2025</td>
         </tr>
         <tr>
-            <th>기간 및 장소</th>
+            <th>기간</th>
             <td width="30%"
                 th:text="${#temporals.format(event.startDate, 'yyyy-MM-dd')} + ' ~ ' + ${#temporals.format(event.endDate, 'yyyy-MM-dd')}">
                 2025-11-20 ~ 2025-11-21 (2일간)
@@ -171,15 +166,29 @@
     <div class="section-title" style="page-break-before: always; break-before: page;">3. 운영 효율성 분석 (Operational Efficiency)</div>
     <div class="chart-section">
         <p style="font-size: 12px; font-weight: 700; margin-bottom: 10px;">3.1 시간대별 체크인 추이 (Line Chart)</p>
-            <img
+        <img
                 th:if="${chartImage != null}"
                 th:src="'data:image/png;base64,' + ${chartImage}"
                 alt="시간대별 체크인 추이"
-                style="display:block;width:100%;max-width:100%;height:auto;max-height:180px;object-fit:contain;"
-            />
-            <div th:unless="${chartImage != null}">차트 이미지를 여기에 표시하세요 (시간대별 체크인 추이)</div>
+                style="display:block;width:100%;max-width:100%;height:auto;max-height:250px;object-fit:contain;"
+        />
+        <div th:unless="${chartImage != null}">차트 이미지를 여기에 표시하세요 (시간대별 체크인 추이)</div>
         <div class="chart-note">
             * 위 차트는 현장 운영 인력 배치 계획 수립을 위한 핵심 데이터입니다.
+        </div>
+    </div>
+
+    <div class="chart-section">
+        <p style="font-size: 12px; font-weight: 700; margin-bottom: 10px;">3.2 시간대별 티켓 충전/사용 추이 (Line Chart)</p>
+        <img
+                th:if="${ticketChartImage != null}"
+                th:src="'data:image/png;base64,' + ${ticketChartImage}"
+                alt="시간대별 티켓 충전/사용 추이"
+                style="display:block;width:100%;max-width:100%;height:auto;max-height:250px;object-fit:contain;"
+        />
+        <div th:unless="${ticketChartImage != null}">티켓 충전/사용 차트 이미지를 여기에 표시하세요</div>
+        <div class="chart-note">
+            * 충전은 양수, 사용은 음수를 절댓값으로 표시합니다.
         </div>
     </div>
 

@@ -46,6 +46,9 @@ public interface TicketHistoryRepository extends JpaRepository<TicketHistory, Lo
             + "group by th.relatedEvent.id")
     List<TicketHistoryEventSum> sumNegativeAmountsAbsByEventIds(@Param("eventIds") Collection<Long> eventIds);
 
+    @Query("select th from TicketHistory th where th.relatedEvent.id = :eventId")
+    List<TicketHistory> findByRelatedEventId(@Param("eventId") Long eventId);
+
     interface TicketChargeSummary {
 
         Long getUserId();

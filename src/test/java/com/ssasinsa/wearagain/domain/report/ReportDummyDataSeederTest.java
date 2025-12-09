@@ -21,9 +21,11 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.concurrent.ThreadLocalRandom;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @SpringBootTest
 class ReportDummyDataSeederTest {
@@ -68,16 +70,15 @@ class ReportDummyDataSeederTest {
 
         EventOption option = eventOptionRepository.save(EventOption.create(event, null, "기본 옵션", 1, 200));
 
-        LocalTime startTime = LocalTime.of(9, 0);
         int perDay = 20;
         long runId = System.currentTimeMillis();
-
         // dayOffset: 1 = 어제, 2 = 그제
         for (int dayOffset = 1; dayOffset <= 2; dayOffset++) {
             LocalDate baseDate = LocalDate.now().minusDays(dayOffset);
             for (int i = 0; i < perDay; i++) {
                 String email = "dummy" + runId + "_" + dayOffset + "_" + i + "@wearagain.kr";
                 User user = userRepository.save(User.create(email, "참가자" + dayOffset + "_" + i, null));
+
                 EventApplication application = EventApplication.create(
                         user,
                         event,
@@ -85,20 +86,34 @@ class ReportDummyDataSeederTest {
                         EventApplicationStatus.CHECKED_IN,
                         null
                 );
-                LocalDateTime checkedInAt = LocalDateTime.of(baseDate, startTime.plusHours(i % 10));
+                int randomHour = ThreadLocalRandom.current().nextInt(9, 19); // 9~18시
+                int randomMinute = ThreadLocalRandom.current().nextInt(0, 60);
+                LocalDateTime checkedInAt = LocalDateTime.of(baseDate, LocalTime.of(randomHour, randomMinute));
                 application.checkIn(checkedInAt);
                 eventApplicationRepository.save(application);
 
-                // 더미 임팩트/티켓 데이터
+                // 더미 임팩트 데이터 (소량 랜덤성)
                 impactAnalyticsRepository.save(ImpactAnalytics.create(
                         user,
                         event,
-                        BigDecimal.valueOf(2 + (i % 3)),
-                        BigDecimal.valueOf(500 + (i % 5) * 10L),
-                        BigDecimal.valueOf(4 + (i % 4))
+                        BigDecimal.valueOf(1.5 + (i % 4)),
+                        BigDecimal.valueOf(400 + (i % 6) * 15L),
+                        BigDecimal.valueOf(3 + (i % 5))
                 ));
-                ticketHistoryRepository.save(TicketHistory.create(user, event, 5 + (i % 3), "seed-donate"));
-                ticketHistoryRepository.save(TicketHistory.create(user, event, -3 - (i % 2), "seed-exchange"));
+
+                // 티켓 충전/사용 시간대를 다양하게 분포
+                int chargeHour = ThreadLocalRandom.current().nextInt(9, 19);
+                int useHour = ThreadLocalRandom.current().nextInt(9, 19);
+                LocalDateTime chargeTime = LocalDateTime.of(baseDate, LocalTime.of(chargeHour, 0));
+                LocalDateTime useTime = LocalDateTime.of(baseDate, LocalTime.of(useHour, 0));
+                TicketHistory charge = TicketHistory.create(user, event, 5 + (i % 4), "seed-charge");
+                TicketHistory use = TicketHistory.create(user, event, -2 - (i % 3), "seed-use");
+                ReflectionTestUtils.setField(charge, "createdAt", chargeTime);
+                ReflectionTestUtils.setField(charge, "updatedAt", chargeTime);
+                ReflectionTestUtils.setField(use, "createdAt", useTime);
+                ReflectionTestUtils.setField(use, "updatedAt", useTime);
+                ticketHistoryRepository.save(charge);
+                ticketHistoryRepository.save(use);
             }
         }
 

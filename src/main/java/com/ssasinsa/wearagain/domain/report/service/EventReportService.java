@@ -167,6 +167,7 @@ public class EventReportService {
                 "energyNote", energyNote
         ));
         context.setVariable("chartImage", generateCheckinChart(event.getId()));
+        context.setVariable("ticketChartImage", generateTicketChart(event.getId()));
         return context;
     }
 
@@ -181,7 +182,46 @@ public class EventReportService {
         if (datasets.isEmpty()) {
             return null;
         }
-        return chartImageService.generateMultiLineChartBase64(hourLabels, datasets);
+        ChartData trimmed = trimChartData(hourLabels, datasets);
+        if (trimmed == null) {
+            return null;
+        }
+        return chartImageService.generateMultiLineChartBase64(trimmed.labels(), trimmed.datasets());
+    }
+
+    private String generateTicketChart(Long eventId) {
+        List<com.ssasinsa.wearagain.domain.finance.entity.TicketHistory> histories =
+                ticketHistoryRepository.findByRelatedEventId(eventId);
+        if (histories == null || histories.isEmpty()) {
+            return null;
+        }
+        List<String> hourLabels = buildHourLabels();
+        int size = hourLabels.size();
+        int[] charge = new int[size];
+        int[] use = new int[size];
+        for (var history : histories) {
+            if (history.getCreatedAt() == null) {
+                continue;
+            }
+            int hour = history.getCreatedAt().getHour();
+            if (hour < 0 || hour >= size) {
+                continue;
+            }
+            int amount = history.getChangeAmount();
+            if (amount > 0) {
+                charge[hour] += amount;
+            } else if (amount < 0) {
+                use[hour] += Math.abs(amount);
+            }
+        }
+        Map<String, List<? extends Number>> datasets = new LinkedHashMap<>();
+        datasets.put("충전", java.util.Arrays.stream(charge).boxed().toList());
+        datasets.put("사용", java.util.Arrays.stream(use).boxed().toList());
+        ChartData trimmed = trimChartData(hourLabels, datasets);
+        if (trimmed == null) {
+            return null;
+        }
+        return chartImageService.generateMultiLineChartBase64(trimmed.labels(), trimmed.datasets());
     }
 
     private Map<String, List<? extends Number>> aggregateHourlyByDate(List<LocalDateTime> checkinTimes, int hoursPerDay) {
@@ -207,6 +247,43 @@ public class EventReportService {
         return java.util.stream.IntStream.range(0, 24)
                 .mapToObj(h -> String.format("%02d:00", h))
                 .toList();
+    }
+
+    private ChartData trimChartData(List<String> labels, Map<String, List<? extends Number>> datasets) {
+        int min = labels.size();
+        int max = -1;
+        for (List<? extends Number> values : datasets.values()) {
+            for (int i = 0; i < values.size(); i++) {
+                Number v = values.get(i);
+                if (v != null && v.doubleValue() > 0) {
+                    min = Math.min(min, i);
+                    max = Math.max(max, i);
+                }
+            }
+        }
+        if (max < 0) {
+            return null; // all zero
+        }
+        int from = Math.max(0, min - 1);
+        int to = Math.min(labels.size() - 1, max + 1);
+        List<String> slicedLabels = labels.subList(from, to + 1);
+        Map<String, List<? extends Number>> slicedDatasets = new LinkedHashMap<>();
+        for (Map.Entry<String, List<? extends Number>> entry : datasets.entrySet()) {
+            List<? extends Number> vals = entry.getValue();
+            if (vals == null || vals.size() <= to) {
+                continue;
+            }
+            List<Number> slice = new java.util.ArrayList<>(vals.subList(from, to + 1));
+            if (!slice.isEmpty()) {
+                slice.set(0, 0);
+                slice.set(slice.size() - 1, 0);
+            }
+            slicedDatasets.put(entry.getKey(), slice);
+        }
+        if (slicedDatasets.isEmpty()) {
+            return null;
+        }
+        return new ChartData(slicedLabels, slicedDatasets);
     }
 
     private String renderTemplate(Context context) {
@@ -273,6 +350,9 @@ public class EventReportService {
                     + ", 1벌당 약 " + perItem.stripTrailingZeros().toPlainString() + " " + unit;
         }
         return "집계 데이터 없음";
+    }
+
+    private record ChartData(List<String> labels, Map<String, List<? extends Number>> datasets) {
     }
 
     private String formatReportFileName(Event event) {
