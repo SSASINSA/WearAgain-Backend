@@ -97,7 +97,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 "현장에는 개인 텀블러를 지참해주세요.",
-                "화재 예방을 위해 지정된 구역에서만 작업해주세요."
+                "화재 예방을 위해 지정된 구역에서만 작업해주세요.",
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 
@@ -156,7 +157,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 
@@ -207,7 +209,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
@@ -253,7 +256,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 101L);
         EventOption option = EventOption.create(event, null, "11월 15일", 1, null);
@@ -287,7 +291,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
@@ -329,7 +334,8 @@ class EventUserServiceImplTest {
                 EventStatus.CLOSED,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 

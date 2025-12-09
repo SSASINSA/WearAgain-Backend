@@ -80,6 +80,10 @@ public class Event extends BaseTimeEntity {
     @BatchSize(size = 50)
     private List<EventImage> images = new ArrayList<>();
 
+    @Column(name = "option_depth", nullable = false)
+    @Default
+    private Integer optionDepth = 1;
+
     @Column(name = "usage_guide", columnDefinition = "TEXT")
     private String usageGuide;
 
@@ -108,7 +112,8 @@ public class Event extends BaseTimeEntity {
             EventStatus status,
             AdminUser organizerAdmin,
             String usageGuide,
-            String precautions
+            String precautions,
+            Integer optionDepth
     ) {
         Event event = Event.builder()
                 .title(title)
@@ -120,6 +125,7 @@ public class Event extends BaseTimeEntity {
                 .status(status == null ? EventStatus.DRAFT : status)
                 .usageGuide(usageGuide)
                 .precautions(precautions)
+                .optionDepth(optionDepth == null ? 1 : optionDepth)
                 .build();
 
         return event;
@@ -191,6 +197,10 @@ public class Event extends BaseTimeEntity {
     public void updateStaffCode(String staffCode, LocalDateTime issuedAt) {
         this.staffCode = staffCode;
         this.staffCodeIssuedAt = issuedAt;
+    }
+
+    public void updateOptionDepth(int optionDepth) {
+        this.optionDepth = optionDepth;
     }
 
     public void markScissorGrantCompleted(LocalDateTime completedAt) {

@@ -70,7 +70,8 @@ class EventParticipantManagerServiceImplTest {
                 EventStatus.OPEN,
                 organizer,
                 null,
-                null
+                null,
+                1
         );
         ReflectionTestUtils.setField(event, "id", 100L);
         ReflectionTestUtils.setField(event, "staffCode", "ABC123");

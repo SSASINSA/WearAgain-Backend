@@ -14,6 +14,7 @@ public final class EventExamples {
               "location": "서울시 마포구 연남동 223-14 2F",
               "startDate": "2025-11-10",
               "endDate": "2025-11-30",
+              "optionDepth": 3,
               "images": [
                 {
                   "url": "https://cdn.wearagain.kr/events/123/main.jpg",
@@ -60,6 +61,7 @@ public final class EventExamples {
               "organizerAdminName": "홍길동",
               "startDate": "2025-11-10",
               "endDate": "2025-11-30",
+              "optionDepth": 3,
               "status": "DRAFT",
               "images": [
                 {
@@ -274,6 +276,7 @@ public final class EventExamples {
                   "displayOrder": 1
                 }
               ],
+              "optionDepth": 3,
               "options": [
                 {
                   "optionId": 2001,

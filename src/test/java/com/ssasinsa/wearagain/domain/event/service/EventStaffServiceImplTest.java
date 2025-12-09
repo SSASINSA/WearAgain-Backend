@@ -1,37 +1,33 @@
 package com.ssasinsa.wearagain.domain.event.service;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInRequest;
 import com.ssasinsa.wearagain.domain.event.dto.staff.EventStaffCheckInResponse;
-import com.ssasinsa.wearagain.domain.event.entity.Event;
-import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
-import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
-import com.ssasinsa.wearagain.domain.event.entity.EventOption;
-import com.ssasinsa.wearagain.domain.event.entity.EventStatus;
+import com.ssasinsa.wearagain.domain.event.entity.*;
 import com.ssasinsa.wearagain.domain.event.exception.EventErrorCode;
 import com.ssasinsa.wearagain.domain.event.exception.EventException;
 import com.ssasinsa.wearagain.domain.event.repository.EventApplicationRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
 import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class EventStaffServiceImplTest {
@@ -73,7 +69,8 @@ class EventStaffServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
@@ -144,7 +141,8 @@ class EventStaffServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
@@ -190,7 +188,8 @@ class EventStaffServiceImplTest {
                 EventStatus.CLOSED,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
@@ -224,7 +223,8 @@ class EventStaffServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
@@ -278,7 +278,8 @@ class EventStaffServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));
@@ -332,7 +333,8 @@ class EventStaffServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
         event.updateStaffCode(STAFF_CODE, LocalDateTime.now(ZoneOffset.UTC));

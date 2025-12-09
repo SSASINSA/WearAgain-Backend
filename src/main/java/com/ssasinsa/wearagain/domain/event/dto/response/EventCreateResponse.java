@@ -49,6 +49,9 @@ public record EventCreateResponse(
         @Schema(description = "행사 상태", example = "DRAFT")
         String status,
 
+        @Schema(description = "행사 옵션 최대 깊이", example = "2")
+        int optionDepth,
+
         @Schema(description = "행사 이미지 목록")
         List<EventCreateImageResponse> images,
 

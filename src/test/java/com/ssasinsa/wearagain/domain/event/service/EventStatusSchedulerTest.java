@@ -48,7 +48,8 @@ class EventStatusSchedulerTest {
                 EventStatus.APPROVAL,
                 organizer,
                 "유의사항",
-                "주의사항"
+                "주의사항",
+                1
         );
     }
 
