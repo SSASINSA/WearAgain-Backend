@@ -114,9 +114,7 @@ class EventUserServiceImplTest {
                 user,
                 event,
                 leafOption,
-                EventApplicationStatus.APPLIED,
-                null,
-                null
+                EventApplicationStatus.APPLIED, null
         );
         ReflectionTestUtils.setField(application, "id", applicationId);
 
@@ -169,9 +167,7 @@ class EventUserServiceImplTest {
                 owner,
                 event,
                 option,
-                EventApplicationStatus.APPLIED,
-                null,
-                null
+                EventApplicationStatus.APPLIED, null
         );
         ReflectionTestUtils.setField(application, "id", 100L);
 
@@ -344,9 +340,7 @@ class EventUserServiceImplTest {
                 user,
                 event,
                 option,
-                EventApplicationStatus.APPLIED,
-                null,
-                null
+                EventApplicationStatus.APPLIED, null
         );
         ReflectionTestUtils.setField(application, "id", 5001L);
         ReflectionTestUtils.setField(application, "createdAt", LocalDateTime.now());

@@ -182,8 +182,7 @@ public class EventUserServiceImpl implements EventUserService {
                     event,
                     option,
                     EventApplicationStatus.APPLIED,
-                    StringUtils.hasText(request.memo()) ? request.memo().trim() : null,
-                    null
+                    StringUtils.hasText(request.memo()) ? request.memo().trim() : null
             );
 
             EventApplication saved = eventApplicationRepository.save(application);

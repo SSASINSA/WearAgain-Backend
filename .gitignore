@@ -102,3 +102,4 @@ Results.md
 .DS_Store
 .env
 *.p8
+report/**

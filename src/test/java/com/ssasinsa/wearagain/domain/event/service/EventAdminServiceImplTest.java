@@ -427,7 +427,7 @@ class EventAdminServiceImplTest {
 
         User user = User.create("user@wearagain.kr", "사용자", null);
         ReflectionTestUtils.setField(user, "id", 10L);
-        EventApplication application = EventApplication.create(user, event, option.getChildOptions().get(0), EventApplicationStatus.APPLIED, null, null);
+        EventApplication application = EventApplication.create(user, event, option.getChildOptions().get(0), EventApplicationStatus.APPLIED, null);
         ReflectionTestUtils.setField(application, "id", 5001L);
         when(eventApplicationRepository.findAllWithUserByEventId(101L)).thenReturn(List.of(application));
 

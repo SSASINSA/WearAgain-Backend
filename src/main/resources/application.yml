@@ -109,6 +109,11 @@ auth:
     token-uri: https://appleid.apple.com/auth/token
     key-uri: https://appleid.apple.com/auth/keys
 
+report:
+  storage:
+    output-dir: ${REPORT_OUTPUT_DIR:/data/report}
+    base-url: ${REPORT_BASE_URL:http://localhost:8080/reports}
+
 admin:
   jwt:
     issuer: ${ADMIN_JWT_ISSUER:wearagain-admin}

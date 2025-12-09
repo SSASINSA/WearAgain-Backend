@@ -2,6 +2,7 @@ package com.ssasinsa.wearagain.domain.event.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -84,9 +85,7 @@ class EventStaffServiceImplTest {
                 user,
                 event,
                 option,
-                EventApplicationStatus.APPLIED,
-                null,
-                null
+                EventApplicationStatus.APPLIED, null
         );
         ReflectionTestUtils.setField(application, "id", 123L);
 
@@ -111,7 +110,6 @@ class EventStaffServiceImplTest {
         assertThat(response.status()).isEqualTo(EventApplicationStatus.CHECKED_IN.name());
         assertThat(response.userDisplayName()).isEqualTo(user.getDisplayName());
         assertThat(application.getStatus()).isEqualTo(EventApplicationStatus.CHECKED_IN);
-        assertThat(application.getQrToken()).isNull();
         verify(eventQrTokenStore).deleteToken(user.getId());
     }
 
@@ -158,9 +156,7 @@ class EventStaffServiceImplTest {
                 user,
                 event,
                 option,
-                EventApplicationStatus.APPLIED,
-                null,
-                null
+                EventApplicationStatus.APPLIED, null
         );
         ReflectionTestUtils.setField(application, "id", 123L);
 
@@ -240,9 +236,7 @@ class EventStaffServiceImplTest {
                 user,
                 event,
                 option,
-                EventApplicationStatus.CHECKED_IN,
-                null,
-                null
+                EventApplicationStatus.CHECKED_IN, null
         );
         ReflectionTestUtils.setField(application, "id", 123L);
 
@@ -296,9 +290,7 @@ class EventStaffServiceImplTest {
                 user,
                 event,
                 option,
-                EventApplicationStatus.CANCELED,
-                null,
-                null
+                EventApplicationStatus.CANCELED, null
         );
         ReflectionTestUtils.setField(application, "id", 123L);
 
@@ -352,9 +344,7 @@ class EventStaffServiceImplTest {
                 user,
                 event,
                 option,
-                EventApplicationStatus.REJECTED,
-                null,
-                null
+                EventApplicationStatus.REJECTED, null
         );
         ReflectionTestUtils.setField(application, "id", 123L);
 

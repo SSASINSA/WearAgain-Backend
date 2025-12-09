@@ -139,4 +139,16 @@ public interface EventApplicationRepository extends
             + "and a.event.id in :eventIds "
             + "group by a.event.id")
     List<EventApplicationMetrics> countCheckedInByEventIds(@Param("eventIds") Collection<Long> eventIds);
+
+    long countByEvent_IdAndStatusIn(Long eventId, Collection<EventApplicationStatus> statuses);
+
+    @Query("""
+            select ea.checkedInAt
+            from EventApplication ea
+            where ea.event.id = :eventId
+            and ea.status = com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus.CHECKED_IN
+            and ea.checkedInAt is not null
+            order by ea.checkedInAt asc
+            """)
+    List<LocalDateTime> findCheckedInTimesByEventId(@Param("eventId") Long eventId);
 }

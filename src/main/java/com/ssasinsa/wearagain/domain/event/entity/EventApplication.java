@@ -28,7 +28,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AttributeOverrides({
         @AttributeOverride(name = "createdAt", column = @Column(name = "applied_at", updatable = false)),
-        @AttributeOverride(name = "updatedAt", column = @Column(name = "checked_in_at"))
+        @AttributeOverride(name = "updatedAt", column = @Column(name = "updated_at"))
 })
 public class EventApplication extends BaseTimeEntity {
 
@@ -56,35 +56,34 @@ public class EventApplication extends BaseTimeEntity {
     @Column(length = 255)
     private String reason;
 
-    @Column(name = "qr_token", length = 64)
-    private String qrToken;
-
     @Column(name = "canceled_at")
     private LocalDateTime canceledAt;
 
     @Column(name = "rejected_at")
     private LocalDateTime rejectedAt;
 
+    @Column(name = "checked_in_at")
+    private LocalDateTime checkedInAt;
+
     @Builder(access = AccessLevel.PRIVATE)
-    private EventApplication(User user, Event event, EventOption eventOption, EventApplicationStatus status, String reason, String qrToken, LocalDateTime canceledAt, LocalDateTime rejectedAt) {
+    private EventApplication(User user, Event event, EventOption eventOption, EventApplicationStatus status, String reason, LocalDateTime canceledAt, LocalDateTime rejectedAt, LocalDateTime checkedInAt) {
         this.user = user;
         this.event = event;
         this.eventOption = eventOption;
         this.status = status == null ? EventApplicationStatus.APPLIED : status;
         this.reason = reason;
-        this.qrToken = qrToken;
         this.canceledAt = canceledAt;
         this.rejectedAt = rejectedAt;
+        this.checkedInAt = checkedInAt;
     }
 
-    public static EventApplication create(User user, Event event, EventOption eventOption, EventApplicationStatus status, String reason, String qrToken) {
+    public static EventApplication create(User user, Event event, EventOption eventOption, EventApplicationStatus status, String reason) {
         EventApplication application = EventApplication.builder()
                 .user(user)
                 .event(event)
                 .eventOption(eventOption)
                 .status(status)
                 .reason(reason)
-                .qrToken(qrToken)
                 .build();
         if (event != null) {
             event.addApplication(application);
@@ -112,7 +111,7 @@ public class EventApplication extends BaseTimeEntity {
         this.reason = null;
         this.canceledAt = null;
         this.rejectedAt = null;
-        this.qrToken = null;
+        this.checkedInAt = checkedInAt;
     }
 
     @Override
