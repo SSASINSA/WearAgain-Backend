@@ -75,6 +75,9 @@ public record EventAdminDetailResponse(
         @Schema(description = "이미지 목록")
         List<EventAdminImageResponse> images,
 
+        @Schema(description = "행사 옵션 최대 깊이", example = "3")
+        int optionDepth,
+
         @Schema(description = "옵션 트리")
         List<EventAdminOptionResponse> options,
 

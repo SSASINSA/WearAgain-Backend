@@ -2,6 +2,8 @@ package com.ssasinsa.wearagain.domain.event.dto.admin;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
@@ -42,6 +44,12 @@ public record EventAdminCreateRequest(
         @Schema(description = "행사 종료일", example = "2025-11-30")
         @NotNull
         LocalDate endDate,
+
+        @Schema(description = "행사 옵션 최대 깊이 (1~3)", example = "2")
+        @NotNull(message = "optionDepth는 필수 값입니다.")
+        @Min(value = 1, message = "optionDepth는 1 이상이어야 합니다.")
+        @Max(value = 3, message = "optionDepth는 3 이하로 설정해야 합니다.")
+        Integer optionDepth,
 
         @Schema(description = "행사 이미지 목록")
         @NotEmpty

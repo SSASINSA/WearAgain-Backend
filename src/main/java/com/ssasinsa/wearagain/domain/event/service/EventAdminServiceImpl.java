@@ -125,7 +125,8 @@ public class EventAdminServiceImpl implements EventAdminService {
                 status,
                 organizer,
                 normalizeText(request.usageGuide()),
-                normalizeText(request.precautions())
+                normalizeText(request.precautions()),
+                request.optionDepth()
         );
 
         List<EventAdminCreateImageRequest> createImages = request.images();
@@ -143,6 +144,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         event.assignImages(images);
 
         List<EventAdminOptionRequest> optionRequests = convertCreateOptions(request.options());
+        validateOptionDepthStructureForRequests(request.optionDepth(), optionRequests);
         List<EventOption> options = buildEventOptions(event, optionRequests);
         event.assignOptions(options);
 
@@ -279,6 +281,7 @@ public class EventAdminServiceImpl implements EventAdminService {
                 toOffset(event.getCreatedAt()),
                 toOffset(event.getUpdatedAt()),
                 images,
+                event.getOptionDepth(),
                 options,
                 applications,
                 impactAnalytics
@@ -318,14 +321,25 @@ public class EventAdminServiceImpl implements EventAdminService {
             event.changeStatus(request.status());
         }
 
+        int targetOptionDepth = request.optionDepth() != null
+                ? request.optionDepth()
+                : (event.getOptionDepth() == null ? 1 : event.getOptionDepth());
+
         if (request.images() != null) {
             List<EventImage> images = buildEventImages(event, request.images());
             event.assignImages(images);
         }
 
         if (request.options() != null) {
+            validateOptionDepthStructureForRequests(targetOptionDepth, request.options());
             List<EventOption> options = buildEventOptions(event, request.options());
             event.assignOptions(options);
+        } else if (request.optionDepth() != null) {
+            validateOptionDepthStructureForEntities(targetOptionDepth, event.getOptions());
+        }
+
+        if (request.optionDepth() != null) {
+            event.updateOptionDepth(targetOptionDepth);
         }
 
         if (requiresApproval(role)) {
@@ -516,6 +530,7 @@ public class EventAdminServiceImpl implements EventAdminService {
                 event.getStartDate(),
                 event.getEndDate(),
                 event.getStatus().name(),
+                event.getOptionDepth(),
                 imageResponses,
                 optionResponses,
                 toOffset(event.getCreatedAt())
@@ -646,6 +661,96 @@ public class EventAdminServiceImpl implements EventAdminService {
         return options;
     }
 
+    private void validateOptionDepthStructureForRequests(int optionDepth, List<EventAdminOptionRequest> requests) {
+        ensureOptionDepthRange(optionDepth);
+        if (CollectionUtils.isEmpty(requests)) {
+            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+        }
+        boolean[] depthCovered = new boolean[optionDepth];
+        Deque<OptionDepthContext<EventAdminOptionRequest>> stack = new ArrayDeque<>();
+        for (EventAdminOptionRequest request : requests) {
+            stack.push(new OptionDepthContext<>(request, 1));
+        }
+        while (!stack.isEmpty()) {
+            OptionDepthContext<EventAdminOptionRequest> context = stack.pop();
+            int depth = context.depth();
+            if (depth > optionDepth) {
+                throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+            }
+            depthCovered[depth - 1] = true;
+
+            List<EventAdminOptionRequest> children = context.value().children();
+            boolean hasChildren = !CollectionUtils.isEmpty(children);
+            if (depth < optionDepth && !hasChildren) {
+                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+            }
+            if (depth == optionDepth && hasChildren) {
+                throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+            }
+            if (hasChildren) {
+                for (EventAdminOptionRequest child : children) {
+                    stack.push(new OptionDepthContext<>(child, depth + 1));
+                }
+            }
+        }
+        ensureAllDepthsCovered(depthCovered);
+    }
+
+    private void validateOptionDepthStructureForEntities(int optionDepth, List<EventOption> options) {
+        ensureOptionDepthRange(optionDepth);
+        List<EventOption> roots = toDistinctOptions(options)
+                .stream()
+                .filter(option -> option.getParentOption() == null)
+                .toList();
+        if (CollectionUtils.isEmpty(roots)) {
+            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+        }
+        boolean[] depthCovered = new boolean[optionDepth];
+        Deque<OptionDepthContext<EventOption>> stack = new ArrayDeque<>();
+        roots.forEach(root -> stack.push(new OptionDepthContext<>(root, 1)));
+
+        while (!stack.isEmpty()) {
+            OptionDepthContext<EventOption> context = stack.pop();
+            int depth = context.depth();
+            if (depth > optionDepth) {
+                throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+            }
+            depthCovered[depth - 1] = true;
+
+            List<EventOption> children = toDistinctOptions(context.value().getChildOptions());
+            boolean hasChildren = !CollectionUtils.isEmpty(children);
+            if (depth < optionDepth && !hasChildren) {
+                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+            }
+            if (depth == optionDepth && hasChildren) {
+                throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+            }
+            if (hasChildren) {
+                for (EventOption child : children) {
+                    stack.push(new OptionDepthContext<>(child, depth + 1));
+                }
+            }
+        }
+        ensureAllDepthsCovered(depthCovered);
+    }
+
+    private void ensureOptionDepthRange(int optionDepth) {
+        if (optionDepth < 1) {
+            throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+        }
+        if (optionDepth > MAX_OPTION_DEPTH) {
+            throw new EventException(EventErrorCode.OPTION_DEPTH_LIMIT_EXCEEDED);
+        }
+    }
+
+    private void ensureAllDepthsCovered(boolean[] depthCovered) {
+        for (boolean covered : depthCovered) {
+            if (!covered) {
+                throw new EventException(EventErrorCode.INVALID_OPTION_STRUCTURE);
+            }
+        }
+    }
+
     private EventOption createOption(
             Event event,
             EventOption parent,
@@ -680,6 +785,9 @@ public class EventAdminServiceImpl implements EventAdminService {
             option.assignChildren(childOptions);
         }
         return option;
+    }
+
+    private record OptionDepthContext<T>(T value, int depth) {
     }
 
     private static class OptionRequestValidator {

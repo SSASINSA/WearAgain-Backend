@@ -31,6 +31,7 @@ import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
@@ -97,7 +98,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 "현장에는 개인 텀블러를 지참해주세요.",
-                "화재 예방을 위해 지정된 구역에서만 작업해주세요."
+                "화재 예방을 위해 지정된 구역에서만 작업해주세요.",
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 
@@ -156,7 +158,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 
@@ -207,7 +210,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
@@ -253,7 +257,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 101L);
         EventOption option = EventOption.create(event, null, "11월 15일", 1, null);
@@ -267,9 +272,37 @@ class EventUserServiceImplTest {
         EventDetailResponse response = eventUserService.getEventDetail(101L, null);
 
         // Then
-        assertThat(response.optionDepth()).isEqualTo(1);
+        assertThat(response.optionDepth()).isEqualTo(3);
         verify(eventApplicationRepository, never())
                 .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(anyLong(), anyLong());
+    }
+
+    @Test
+    void should_return_zero_option_depth_when_event_has_no_options() {
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", 10L);
+
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.of(2025, 2, 10),
+                LocalDate.of(2025, 2, 11),
+                "서울시 마포구",
+                EventStatus.OPEN,
+                admin,
+                null,
+                null,
+                1
+        );
+        ReflectionTestUtils.setField(event, "id", 301L);
+        ReflectionTestUtils.setField(event, "optionDepth", null);
+        ReflectionTestUtils.setField(event, "options", new ArrayList<>());
+
+        when(eventRepository.findWithDetailsById(301L)).thenReturn(Optional.of(event));
+        EventDetailResponse response = eventUserService.getEventDetail(301L, 5L);
+
+        assertThat(response.optionDepth()).isEqualTo(0);
+        assertThat(response.options()).isEmpty();
     }
 
     @Test
@@ -287,7 +320,8 @@ class EventUserServiceImplTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
@@ -329,7 +363,8 @@ class EventUserServiceImplTest {
                 EventStatus.CLOSED,
                 admin,
                 null,
-                null
+                null,
+                3
         );
         ReflectionTestUtils.setField(event, "id", 45L);
 

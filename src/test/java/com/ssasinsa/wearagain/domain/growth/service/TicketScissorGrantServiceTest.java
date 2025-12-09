@@ -189,7 +189,8 @@ class TicketScissorGrantServiceTest {
                 EventStatus.OPEN,
                 admin,
                 null,
-                null
+                null,
+                1
         );
         ReflectionTestUtils.setField(event, "id", id);
         return event;

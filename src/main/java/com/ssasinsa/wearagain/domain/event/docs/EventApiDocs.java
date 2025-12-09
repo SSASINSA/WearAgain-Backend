@@ -33,7 +33,7 @@ public final class EventApiDocs {
             summary = "관리자 행사 등록",
             description = """
                     관리자 백오피스에서 행사 기본 정보, 이미지 배열, 옵션 트리를 등록합니다.
-                    이미지 URL과 옵션 구조는 사전에 검증되며, 저장 결과로 생성된 ID와 구조를 반환합니다.
+                    `optionDepth`(1~3)을 필수로 받고 depth에 맞지 않는 children 구조를 보내면 400을 반환합니다.
                     """,
             requestExample = EventExamples.ADMIN_EVENT_CREATE_REQUEST,
             responseSchema = EventCreateResponse.class,
@@ -79,7 +79,7 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "관리자 행사 상세 조회",
             description = """
-                    관리자 전용 상세 정보(이미지, 옵션 트리, 신청 목록 및 통계)와 행사 담당 관리자 정보를 반환합니다.
+                    관리자 전용 상세 정보(이미지, optionDepth, 옵션 트리, 신청 목록 및 통계)와 행사 담당 관리자 정보를 반환합니다.
                     존재하지 않는 행사 ID 요청 시 404 에러를 반환합니다.
                     """,
             responseSchema = EventAdminDetailResponse.class,
@@ -95,7 +95,8 @@ public final class EventApiDocs {
             summary = "관리자 행사 수정",
             description = """
                     행사 기본 정보, 이미지, 옵션 트리를 부분 갱신합니다.
-                    `null` 필드는 변경하지 않으며, 빈 배열을 전달하면 해당 목록을 모두 제거합니다.
+                    `optionDepth`가 null이면 기존 값을 유지하고, 값이 있으면 새 depth 규칙을 검증합니다.
+                    배열을 빈 값으로 전달하면 해당 목록을 모두 제거합니다.
                     """,
             requestExample = EventExamples.ADMIN_EVENT_UPDATE_REQUEST,
             responseSchema = EventAdminDetailResponse.class,
@@ -216,8 +217,8 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "사용자 행사 상세 조회",
             description = """
-                    단일 행사의 상세 정보와 이미지, 옵션 트리를 조회합니다.
-                    DRAFT/ARCHIVED 상태의 행사는 노출되지 않습니다.
+                    단일 행사의 상세 정보와 이미지, optionDepth, 옵션 트리를 조회합니다.
+                    옵션이 없으면 optionDepth는 0으로 내려가며, DRAFT/ARCHIVED 상태의 행사는 노출되지 않습니다.
                     """,
             responseSchema = EventDetailResponse.class,
             responseExample = EventExamples.USER_EVENT_DETAIL_RESPONSE

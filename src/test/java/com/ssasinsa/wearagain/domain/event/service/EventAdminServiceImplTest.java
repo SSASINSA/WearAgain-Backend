@@ -92,7 +92,8 @@ class EventAdminServiceImplTest {
                 EventStatus.OPEN,
                 adminUser,
                 "준비물은 개인 텀블러를 지참해주세요.",
-                "화재 예방을 위해 지정된 구역에서만 작업해주세요."
+                "화재 예방을 위해 지정된 구역에서만 작업해주세요.",
+                2
         );
         ReflectionTestUtils.setField(event, "id", 101L);
 
@@ -129,6 +130,7 @@ class EventAdminServiceImplTest {
         assertThat(response.images()).hasSize(2);
         assertThat(response.options()).hasSize(2);
         assertThat(response.status()).isEqualTo(EventStatus.DRAFT.name());
+        assertThat(response.optionDepth()).isEqualTo(validCreateRequest.optionDepth());
     }
 
     @Test
@@ -152,6 +154,7 @@ class EventAdminServiceImplTest {
                 "서울시 마포구 연남동",
                 defaultStartDate,
                 defaultEndDate,
+                2,
                 List.of(new EventAdminCreateRequest.EventAdminCreateImageRequest("https://wearagain.kr/1.jpg", "대표", 1)),
                 List.of(parentOption)
         );
@@ -185,8 +188,9 @@ class EventAdminServiceImplTest {
                 "서울시 마포구",
                 LocalDate.now(),
                 LocalDate.now().minusDays(1),
+                1,
                 List.of(new EventAdminCreateRequest.EventAdminCreateImageRequest("https://example.com/1.png", "대표", 1)),
-                List.of()
+                List.of(new EventAdminCreateRequest.EventAdminCreateOptionRequest("1일차", 1, 10, List.of()))
         );
 
         assertThatThrownBy(() -> eventAdminService.createEvent(request, 11L, AdminRole.MANAGER))
@@ -232,6 +236,7 @@ class EventAdminServiceImplTest {
                 validCreateRequest.location(),
                 validCreateRequest.startDate(),
                 validCreateRequest.endDate(),
+                validCreateRequest.optionDepth(),
                 validCreateRequest.images(),
                 List.of(depth4Option)
         );
@@ -506,6 +511,7 @@ class EventAdminServiceImplTest {
                 "서울시 성동구 왕십리로 32",
                 updatedStartDate,
                 updatedEndDate,
+                3,
                 EventStatus.OPEN,
                 List.of(new EventAdminImageRequest("https://cdn.wearagain.kr/events/101/main.jpg", "대표", 1)),
                 List.of(new EventAdminOptionRequest(
@@ -566,6 +572,7 @@ class EventAdminServiceImplTest {
                 defaultEndDate.plusDays(2),
                 null,
                 null,
+                null,
                 null
         );
 
@@ -601,6 +608,7 @@ class EventAdminServiceImplTest {
                 "서울특별시 강남구 1",
                 defaultStartDate.plusDays(3),
                 defaultEndDate.plusDays(4),
+                2,
                 null,
                 null,
                 null
@@ -622,6 +630,7 @@ class EventAdminServiceImplTest {
 
         EventAdminUpdateRequest request = new EventAdminUpdateRequest(
                 "수정",
+                null,
                 null,
                 null,
                 null,
@@ -730,7 +739,21 @@ class EventAdminServiceImplTest {
                         "11월 22일",
                         2,
                         null,
-                        List.of()
+                        List.of(
+                                new EventAdminCreateRequest.EventAdminCreateOptionRequest(
+                                        "오후 세션",
+                                        1,
+                                        null,
+                                        List.of(
+                                                new EventAdminCreateRequest.EventAdminCreateOptionRequest(
+                                                        "B조",
+                                                        1,
+                                                        12,
+                                                        List.of()
+                                                )
+                                        )
+                                )
+                        )
                 )
         );
 
@@ -742,6 +765,7 @@ class EventAdminServiceImplTest {
                 "서울시 마포구 연남동",
                 defaultStartDate,
                 defaultEndDate,
+                3,
                 images,
                 options
         );
@@ -757,7 +781,8 @@ class EventAdminServiceImplTest {
                 EventStatus.DRAFT,
                 adminUser,
                 request.usageGuide(),
-                request.precautions()
+                request.precautions(),
+                request.optionDepth()
         );
         ReflectionTestUtils.setField(event, "id", 1L);
 

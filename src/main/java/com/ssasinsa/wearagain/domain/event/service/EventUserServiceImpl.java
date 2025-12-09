@@ -464,7 +464,8 @@ public class EventUserServiceImpl implements EventUserService {
             List<EventOption> rootOptions,
             Map<Long, Long> counts
     ) {
-        int optionDepth = calculateOptionDepth(rootOptions);
+        Integer storedDepth = event.getOptionDepth();
+        int optionDepth = storedDepth == null || storedDepth <= 0 ? 0 : storedDepth;
         List<EventDetailImageResponse> images = event.getImages()
                 .stream()
                 .sorted(IMAGE_ORDER)
@@ -521,24 +522,6 @@ public class EventUserServiceImpl implements EventUserService {
                 remaining,
                 children
         );
-    }
-
-    private int calculateOptionDepth(List<EventOption> rootOptions) {
-        if (rootOptions == null || rootOptions.isEmpty()) {
-            return 0;
-        }
-        int maxDepth = 0;
-        Deque<OptionLevel> stack = new ArrayDeque<>();
-        rootOptions.forEach(option -> stack.push(new OptionLevel(option, 1)));
-        while (!stack.isEmpty()) {
-            OptionLevel current = stack.pop();
-            maxDepth = Math.max(maxDepth, current.depth());
-            List<EventOption> children = toDistinctOptions(current.option().getChildOptions());
-            for (EventOption child : children) {
-                stack.push(new OptionLevel(child, current.depth() + 1));
-            }
-        }
-        return maxDepth;
     }
 
     private Integer safeToInteger(long value) {
