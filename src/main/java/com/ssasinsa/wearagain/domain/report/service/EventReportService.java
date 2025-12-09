@@ -329,7 +329,7 @@ public class EventReportService {
 
     private String buildDownloadUrl(String fileName) {
         String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-        return "/report/" + encodedName;
+        return "/reports/" + encodedName;
     }
 
     private void ensureOutputDir() {
