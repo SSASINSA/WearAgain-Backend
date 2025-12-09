@@ -216,8 +216,8 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "사용자 행사 상세 조회",
             description = """
-                    단일 행사의 상세 정보와 이미지, 옵션 트리를 조회합니다.
-                    DRAFT/ARCHIVED 상태의 행사는 노출되지 않습니다.
+                    단일 행사의 상세 정보와 이미지, optionDepth, 옵션 트리를 조회합니다.
+                    옵션이 없으면 optionDepth는 0으로 내려가며, DRAFT/ARCHIVED 상태의 행사는 노출되지 않습니다.
                     """,
             responseSchema = EventDetailResponse.class,
             responseExample = EventExamples.USER_EVENT_DETAIL_RESPONSE
