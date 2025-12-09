@@ -232,6 +232,7 @@ class EventUserServiceImplTest {
         // Then
         assertThat(response.eventId()).isEqualTo(101L);
         assertThat(response.options()).hasSize(1);
+        assertThat(response.optionDepth()).isEqualTo(3);
         EventDetailResponse.EventDetailOptionResponse root = response.options().get(0);
         assertThat(root.children()).hasSize(1);
         EventDetailResponse.EventDetailOptionResponse group = root.children().get(0).children().get(0);
@@ -270,6 +271,7 @@ class EventUserServiceImplTest {
         EventDetailResponse response = eventUserService.getEventDetail(101L, null);
 
         // Then
+        assertThat(response.optionDepth()).isEqualTo(1);
         verify(eventApplicationRepository, never())
                 .findTopByUserIdAndEventIdOrderByCreatedAtDescIdDesc(anyLong(), anyLong());
     }

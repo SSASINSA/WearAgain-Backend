@@ -36,6 +36,9 @@ public record EventDetailResponse(
         @Schema(description = "이미지 목록")
         List<EventDetailImageResponse> images,
 
+        @Schema(description = "옵션 최대 깊이", example = "2")
+        int optionDepth,
+
         @Schema(description = "옵션 트리")
         List<EventDetailOptionResponse> options
 ) {
