@@ -27,7 +27,18 @@
         table.report-table td { text-align: center; }
         table.report-table .left-align { text-align: left; }
         .subheader { text-align: left !important; background-color: #f8f9fa !important; font-weight: 700; color: #495057; }
-        .chart-section { padding: 20px; border: 1px solid #adb5bd; border-radius: 4px; background-color: #ffffff; }
+        .chart-section {
+            padding: 20px;
+            border: 1px solid #adb5bd;
+            border-radius: 4px;
+            background-color: #ffffff;
+            page-break-inside: avoid;
+            break-inside: avoid;
+            page-break-before: always;
+            break-before: page;
+            width: 100%;
+            box-sizing: border-box;
+        }
         .chart-placeholder { height: 200px; border: 1px dashed #adb5bd; color: #6c757d; text-align: center; padding-top: 80px; font-size: 12px; }
         .chart-note { font-size: 10px; color: #6c757d; margin-top: 10px; }
         .footer { margin-top: 40px; text-align: center; font-size: 9px; color: #495057; padding-top: 10px; border-top: 1px solid #adb5bd; font-style: italic; }
@@ -157,11 +168,15 @@
         </tbody>
     </table>
 
-    <div class="section-title">3. 운영 효율성 분석 (Operational Efficiency)</div>
-
+    <div class="section-title" style="page-break-before: always; break-before: page;">3. 운영 효율성 분석 (Operational Efficiency)</div>
     <div class="chart-section">
         <p style="font-size: 12px; font-weight: 700; margin-bottom: 10px;">3.1 시간대별 체크인 추이 (Line Chart)</p>
-            <img th:if="${chartImage != null}" th:src="'data:image/png;base64,' + ${chartImage}" alt="시간대별 체크인 추이" style="max-width:100%; max-height:180px;"/>
+            <img
+                th:if="${chartImage != null}"
+                th:src="'data:image/png;base64,' + ${chartImage}"
+                alt="시간대별 체크인 추이"
+                style="display:block;width:100%;max-width:100%;height:auto;max-height:180px;object-fit:contain;"
+            />
             <div th:unless="${chartImage != null}">차트 이미지를 여기에 표시하세요 (시간대별 체크인 추이)</div>
         <div class="chart-note">
             * 위 차트는 현장 운영 인력 배치 계획 수립을 위한 핵심 데이터입니다.

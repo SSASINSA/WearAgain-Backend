@@ -146,7 +146,15 @@ public class ChartImageService {
                     plugins: { legend: { display: true, position: 'bottom' } },
                     scales: {
                       x: { ticks: { color: '#495057' } },
-                      y: { ticks: { color: '#495057' }, beginAtZero: true, suggestedMax: 10 }
+                      y: {
+                        ticks: {
+                          color: '#495057',
+                          stepSize: 1,
+                          callback: (value) => Number.isInteger(value) ? value : ''
+                        },
+                        beginAtZero: true,
+                        suggestedMax: 10
+                      }
                     }
                   }
                 }
