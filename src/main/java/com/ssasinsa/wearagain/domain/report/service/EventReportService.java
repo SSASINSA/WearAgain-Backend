@@ -329,7 +329,11 @@ public class EventReportService {
 
     private String buildDownloadUrl(String fileName) {
         String encodedName = URLEncoder.encode(fileName, StandardCharsets.UTF_8).replace("+", "%20");
-        return "/reports/" + encodedName;
+        String baseUrl = StringUtils.hasText(storageProperties.getBaseUrl())
+                ? storageProperties.getBaseUrl()
+                : "https://ssasinsa.co.kr/reports";
+        String normalizedBase = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
+        return normalizedBase + "/" + encodedName;
     }
 
     private void ensureOutputDir() {
