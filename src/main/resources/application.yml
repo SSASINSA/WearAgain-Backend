@@ -78,6 +78,18 @@ spring:
 #            jwk-set-uri: https://appleid.apple.com/auth/keys
 #            user-name-attribute: sub
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: wearagain
+
 jwt:
   issuer: ${JWT_ISSUER:wearagain}
   access-token:
