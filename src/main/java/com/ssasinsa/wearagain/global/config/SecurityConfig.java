@@ -76,7 +76,7 @@ public class SecurityConfig {
                 .oauth2Login(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        .requestMatchers("/actuator/prometheus").permitAll()
+                        .requestMatchers("/actuator/**").permitAll()
                         .requestMatchers(securityWhitelist.getPublicMatchers()).permitAll()
                         .anyRequest().authenticated()
                 )
