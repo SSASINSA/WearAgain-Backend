@@ -142,6 +142,8 @@ public interface EventApplicationRepository extends
 
     long countByEvent_IdAndStatusIn(Long eventId, Collection<EventApplicationStatus> statuses);
 
+    long countByEventOption_IdIn(Collection<Long> optionIds);
+
     @Query("""
             select ea.checkedInAt
             from EventApplication ea
