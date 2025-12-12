@@ -77,8 +77,10 @@ import java.util.StringTokenizer;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EventAdminServiceImpl implements EventAdminService {
 
@@ -332,6 +334,7 @@ public class EventAdminServiceImpl implements EventAdminService {
 
         if (request.options() != null) {
             validateOptionDepthStructureForRequests(targetOptionDepth, request.options());
+            logCascadeDeletion(event);
             List<EventOption> options = buildEventOptions(event, request.options());
             event.assignOptions(options);
         } else if (request.optionDepth() != null) {
@@ -1083,6 +1086,17 @@ public class EventAdminServiceImpl implements EventAdminService {
             toDistinctOptions(option.getChildOptions()).forEach(stack::push);
         }
         return ids;
+    }
+
+    private void logCascadeDeletion(Event event) {
+        Set<Long> existingOptionIds = collectOptionIds(event.getOptions());
+        if (existingOptionIds.isEmpty()) {
+            return;
+        }
+        long affected = eventApplicationRepository.countByEventOption_IdIn(existingOptionIds);
+        if (affected > 0) {
+            log.warn("행사 {} 옵션 재구성으로 신청 {}건이 삭제됩니다.", event.getId(), affected);
+        }
     }
 
     private Integer safeToInteger(long value) {
