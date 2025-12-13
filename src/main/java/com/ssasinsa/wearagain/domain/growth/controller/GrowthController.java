@@ -9,6 +9,7 @@ import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResponse;
 import com.ssasinsa.wearagain.domain.growth.dto.MagicScissorUseResult;
 import com.ssasinsa.wearagain.domain.growth.service.GrowthCommandService;
 import com.ssasinsa.wearagain.domain.growth.service.GrowthQueryService;
+import com.ssasinsa.wearagain.domain.growth.service.TicketScissorGrantService;
 import com.ssasinsa.wearagain.domain.ranking.dto.RankingResponse;
 import com.ssasinsa.wearagain.domain.ranking.service.RankingQueryService;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
@@ -34,6 +35,7 @@ public class GrowthController {
     private final GrowthQueryService growthQueryService;
     private final GrowthCommandService growthCommandService;
     private final RankingQueryService rankingQueryService;
+    private final TicketScissorGrantService ticketScissorGrantService;
 
     @GrowthApiDocs.GetStatus
     @GetMapping("/status")
@@ -60,5 +62,12 @@ public class GrowthController {
     public ResponseEntity<RankingResponse> getRanking(@AuthenticationPrincipal AuthenticatedUser user) {
         RankingResponse response = rankingQueryService.getLatestRanking(user.userId());
         return ResponseEntity.ok(response);
+    }
+
+    @GrowthApiDocs.TriggerGrantForClosedEventsTest
+    @PostMapping("/magic-scissors/grant/test")
+    public ResponseEntity<Void> triggerGrantForClosedEventsTest() {
+        ticketScissorGrantService.grantScissorsForClosedEvents();
+        return ResponseEntity.ok().build();
     }
 }
