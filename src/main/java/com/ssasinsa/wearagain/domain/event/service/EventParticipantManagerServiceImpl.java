@@ -246,7 +246,7 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
                 buildOptionPath(application.getEventOption()),
                 application.getStatus() == null ? null : application.getStatus().name(),
                 toOffset(application.getCreatedAt()),
-                toOffset(application.getUpdatedAt()),
+                toOffset(application.getCheckedInAt()),
                 application.getUser() != null && application.getUser().isSuspended()
         );
     }
