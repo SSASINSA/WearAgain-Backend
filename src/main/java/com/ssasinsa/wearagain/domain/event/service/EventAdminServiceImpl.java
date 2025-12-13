@@ -1211,7 +1211,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         EventStatus targetStatus = resolveApprovedStatus(event.getStartDate(), event.getEndDate());
         approvalRequest.approve(admin, LocalDateTime.now(), targetStatus);
 
-        return MessageResponse.of("Approval request approved");
+        return MessageResponse.of("행사 승인 요청을 승인했습니다.");
     }
 
     @Override
@@ -1234,6 +1234,6 @@ public class EventAdminServiceImpl implements EventAdminService {
 
         approvalRequest.reject(admin, LocalDateTime.now());
 
-        return MessageResponse.of("Approval request rejected");
+        return MessageResponse.of("행사 승인 요청을 거절했습니다.");
     }
 }
