@@ -215,10 +215,11 @@ public class UserAdminServiceImpl implements UserAdminService {
                 .map(growth -> {
                     int currentExp = growth.getExp();
                     int threshold = GrowthConstants.LEVEL_EXP_THRESHOLD;
-                    int remaining = Math.max(threshold - currentExp, 0);
-                    BigDecimal percent = threshold == 0
+                    int progressExp = threshold <= 0 ? currentExp : Math.floorMod(currentExp, threshold);
+                    int remaining = threshold <= 0 ? 0 : Math.max(threshold - progressExp, 0);
+                    BigDecimal percent = threshold <= 0
                             ? BigDecimal.ZERO
-                            : BigDecimal.valueOf(currentExp)
+                            : BigDecimal.valueOf(progressExp)
                                     .multiply(BigDecimal.valueOf(100))
                                     .divide(BigDecimal.valueOf(threshold), 2, RoundingMode.HALF_UP);
                     return new AdminMascotResponse(
