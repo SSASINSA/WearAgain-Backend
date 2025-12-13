@@ -212,13 +212,25 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     private AdminMascotResponse resolveMascot(Long userId) {
         return userGrowthRepository.findByUserId(userId)
-                .map(growth -> new AdminMascotResponse(
-                        growth.getCurrentLevel(),
-                        growth.getExp(),
-                        GrowthConstants.LEVEL_EXP_THRESHOLD,
-                        growth.getMagicScissorCount(),
-                        growth.getCycles()
-                ))
+                .map(growth -> {
+                    int currentExp = growth.getExp();
+                    int threshold = GrowthConstants.LEVEL_EXP_THRESHOLD;
+                    int remaining = Math.max(threshold - currentExp, 0);
+                    BigDecimal percent = threshold == 0
+                            ? BigDecimal.ZERO
+                            : BigDecimal.valueOf(currentExp)
+                                    .multiply(BigDecimal.valueOf(100))
+                                    .divide(BigDecimal.valueOf(threshold), 2, RoundingMode.HALF_UP);
+                    return new AdminMascotResponse(
+                            growth.getCurrentLevel(),
+                            currentExp,
+                            threshold,
+                            remaining,
+                            percent,
+                            growth.getMagicScissorCount(),
+                            growth.getCycles()
+                    );
+                })
                 .orElse(null);
     }
 
