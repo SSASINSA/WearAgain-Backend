@@ -50,4 +50,14 @@ public final class GrowthApiDocs {
     )
     public @interface UseMagicScissors {
     }
+
+    @SecurityRequirement(name = "userJWT")
+    @Target(ElementType.METHOD)
+    @Retention(RetentionPolicy.RUNTIME)
+    @ApiDoc(
+            summary = "마법의 가위 지급 배치 수동 실행(테스트)",
+            description = "종료된 이벤트에 대한 마법의 가위 지급 배치를 즉시 실행합니다. 테스트/QA 용도로만 사용하세요."
+    )
+    public @interface TriggerGrantForClosedEventsTest {
+    }
 }
