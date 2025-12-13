@@ -1183,7 +1183,10 @@ public class EventAdminServiceImpl implements EventAdminService {
         EventApprovalRequest request = eventApprovalRequestRepository.findById(approvalRequestId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPROVAL_REQUEST_NOT_FOUND));
 
-        return EventApprovalRequestDetailResponse.from(request);
+        Event event = request.getEvent();
+        Long totalCapacity = loadCapacityByEventIds(List.of(event)).getOrDefault(event.getId(), null);
+
+        return EventApprovalRequestDetailResponse.from(request, totalCapacity);
     }
 
     @Override
