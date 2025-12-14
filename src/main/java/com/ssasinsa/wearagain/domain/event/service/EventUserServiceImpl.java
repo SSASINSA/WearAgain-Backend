@@ -68,6 +68,8 @@ import org.springframework.util.StringUtils;
 public class EventUserServiceImpl implements EventUserService {
 
     private static final EnumSet<EventStatus> DEFAULT_VISIBLE_STATUSES = EnumSet.of(EventStatus.OPEN);
+    private static final EnumSet<EventStatus> APPLICABLE_EVENT_STATUSES =
+            EnumSet.of(EventStatus.OPEN, EventStatus.APPROVAL);
     private static final EnumSet<EventApplicationStatus> ACTIVE_APPLICATION_STATUSES =
             EnumSet.of(EventApplicationStatus.APPLIED, EventApplicationStatus.CHECKED_IN);
     private static final EnumSet<EventApplicationStatus> REJECTED_APPLICATION_STATUSES =
@@ -147,7 +149,7 @@ public class EventUserServiceImpl implements EventUserService {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
 
-        if (event.getStatus() != EventStatus.OPEN) {
+        if (!APPLICABLE_EVENT_STATUSES.contains(event.getStatus())) {
             throw new EventException(EventErrorCode.EVENT_NOT_OPEN);
         }
 
