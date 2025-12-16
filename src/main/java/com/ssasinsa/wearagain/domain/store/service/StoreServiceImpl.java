@@ -17,6 +17,7 @@ import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -35,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class StoreServiceImpl implements StoreService {
 
@@ -127,6 +129,12 @@ public class StoreServiceImpl implements StoreService {
             throw exception;
         }
 
+        log.info("[Store] action=PURCHASE userId={} orderId={} itemId={} quantity={} usedCredit={}",
+                userId,
+                saved.getId(),
+                item.getId(),
+                request.quantity(),
+                usedCredit);
         return new StoreOrderCreateResponse(
                 saved.getId(),
                 item.getId(),
@@ -158,6 +166,11 @@ public class StoreServiceImpl implements StoreService {
         order.cancel();
 
         creditHistoryRepository.save(CreditHistory.create(user, order, refundAmount, "STORE_CANCEL"));
+        log.info("[Store] action=CANCEL_PURCHASE userId={} orderId={} itemId={} refundAmount={}",
+                userId,
+                orderId,
+                item.getId(),
+                refundAmount);
 
         return new StoreOrderCancelResponse(
                 order.getId(),

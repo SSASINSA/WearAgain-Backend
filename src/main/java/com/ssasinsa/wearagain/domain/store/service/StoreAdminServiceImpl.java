@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -53,6 +54,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class StoreAdminServiceImpl implements StoreAdminService {
 
@@ -93,6 +95,12 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
         StoreItem saved = storeItemRepository.save(item);
         saveImages(saved, images);
+        log.info("[Store] action=ADMIN_CREATE_ITEM adminId={} itemId={} status={} price={} stock={}",
+                adminId,
+                saved.getId(),
+                saved.getStatus(),
+                saved.getPrice(),
+                saved.getStock());
         return StoreItemCreateResponse.of(saved.getId(), saved.getName(), saved.getStatus());
     }
 
@@ -166,6 +174,12 @@ public class StoreAdminServiceImpl implements StoreAdminService {
             saveImages(item, images);
         }
 
+        log.info("[Store] action=ADMIN_UPDATE_ITEM adminId={} itemId={} status={} price={} stock={}",
+                adminId,
+                itemId,
+                item.getStatus(),
+                item.getPrice(),
+                item.getStock());
         return mapToDetail(item);
     }
 
@@ -179,6 +193,10 @@ public class StoreAdminServiceImpl implements StoreAdminService {
             throw new StoreException(StoreErrorCode.STORE_ITEM_STATUS_INVALID);
         }
         item.changeStatus(request.status());
+        log.info("[Store] action=ADMIN_UPDATE_ITEM_STATUS adminId={} itemId={} status={}",
+                adminId,
+                itemId,
+                request.status());
         return mapToDetail(item);
     }
 
@@ -189,6 +207,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         StoreItem item = findItem(itemId);
         ensureNotDeleted(item);
         item.markDeleted(LocalDateTime.now(ZoneOffset.UTC), adminUser);
+        log.info("[Store] action=ADMIN_DELETE_ITEM adminId={} itemId={}", adminId, itemId);
     }
 
     @Override
@@ -237,6 +256,11 @@ public class StoreAdminServiceImpl implements StoreAdminService {
         order.cancel();
 
         creditHistoryRepository.save(CreditHistory.create(user, order, refundAmount, "STORE_CANCEL_ADMIN"));
+        log.info("[Store] action=ADMIN_CANCEL_ORDER adminId={} orderId={} itemId={} refundAmount={}",
+                adminId,
+                orderId,
+                item.getId(),
+                refundAmount);
 
         return new StoreAdminOrderCancelResponse(
                 order.getId(),

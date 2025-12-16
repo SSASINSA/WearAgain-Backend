@@ -56,6 +56,7 @@ import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -64,6 +65,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EventUserServiceImpl implements EventUserService {
 
@@ -188,6 +190,12 @@ public class EventUserServiceImpl implements EventUserService {
             );
 
             EventApplication saved = eventApplicationRepository.save(application);
+            log.info("[Event] action=APPLY userId={} eventId={} optionId={} applicationId={} status={}",
+                    userId,
+                    eventId,
+                    option.getId(),
+                    saved.getId(),
+                    saved.getStatus());
             return new EventApplyResponse(saved.getId(), saved.getStatus().name());
         } catch (RuntimeException exception) {
             releaseCapacity(option);
@@ -209,6 +217,14 @@ public class EventUserServiceImpl implements EventUserService {
         application.cancel(LocalDateTime.now(), reason);
 
         releaseCapacity(application.getEventOption());
+
+        boolean hasReason = StringUtils.hasText(reason);
+        log.info("[Event] action=CANCEL userId={} applicationId={} eventId={} hasReason={} status={}",
+                userId,
+                application.getId(),
+                application.getEvent() != null ? application.getEvent().getId() : null,
+                hasReason,
+                application.getStatus());
 
         return new EventCancelResponse(application.getId(), application.getStatus().name());
     }

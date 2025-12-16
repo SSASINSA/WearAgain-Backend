@@ -40,6 +40,7 @@ import java.util.LinkedHashMap;
 import java.util.Comparator;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -51,6 +52,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 @Service
+@Slf4j
 @Transactional
 @RequiredArgsConstructor
 public class UserAdminServiceImpl implements UserAdminService {
@@ -128,6 +130,8 @@ public class UserAdminServiceImpl implements UserAdminService {
 
         User user = userRepository.findById(participantId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        int beforeTicketBalance = user.getTicketBalance();
+        int beforeCreditBalance = user.getCreditBalance();
 
         if (request.ticketBalance() != null) {
             user.updateTicketBalance(request.ticketBalance());
@@ -136,6 +140,12 @@ public class UserAdminServiceImpl implements UserAdminService {
             user.updateCreditBalance(request.creditBalance());
         }
 
+        log.info("[AdminUser] action=UPDATE_BALANCE participantId={} ticketBefore={} ticketAfter={} creditBefore={} creditAfter={}",
+                participantId,
+                beforeTicketBalance,
+                user.getTicketBalance(),
+                beforeCreditBalance,
+                user.getCreditBalance());
         return toDetail(user);
     }
 
@@ -146,10 +156,15 @@ public class UserAdminServiceImpl implements UserAdminService {
         }
         User user = userRepository.findById(participantId)
                 .orElseThrow(() -> new UserException(UserErrorCode.USER_NOT_FOUND));
+        boolean beforeSuspended = user.isSuspended();
         user.updateSuspended(request.suspended());
         if (request.suspended()) {
             clearRefreshToken(user.getId());
         }
+        log.info("[AdminUser] action=UPDATE_SUSPENSION participantId={} beforeSuspended={} afterSuspended={}",
+                participantId,
+                beforeSuspended,
+                request.suspended());
         return toDetail(user);
     }
 
