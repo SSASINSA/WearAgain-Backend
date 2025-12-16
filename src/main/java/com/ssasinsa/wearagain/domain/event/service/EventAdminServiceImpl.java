@@ -162,6 +162,12 @@ public class EventAdminServiceImpl implements EventAdminService {
             eventApprovalRequestRepository.save(approvalRequest);
         }
 
+        log.info("[Event] action=CREATE_EVENT adminId={} role={} eventId={} status={}",
+                adminId,
+                role,
+                savedEvent.getId(),
+                savedEvent.getStatus());
+
         return mapToCreateResponse(savedEvent);
     }
 
@@ -349,6 +355,12 @@ public class EventAdminServiceImpl implements EventAdminService {
             resetApprovalRequest(event);
         }
 
+        log.info("[Event] action=UPDATE_EVENT adminId={} role={} eventId={} status={}",
+                adminId,
+                role,
+                eventId,
+                event.getStatus());
+
         return getEventDetail(eventId, adminId, role);
     }
 
@@ -363,6 +375,7 @@ public class EventAdminServiceImpl implements EventAdminService {
         if (event.getStatus() != status) {
             event.changeStatus(status);
         }
+        log.info("[Event] action=CHANGE_STATUS eventId={} targetStatus={} role={}", eventId, status, role);
         return getEventDetail(eventId, null, role);
     }
 
@@ -371,6 +384,7 @@ public class EventAdminServiceImpl implements EventAdminService {
     public void archiveEvent(Long eventId) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
+        EventStatus previousStatus = event.getStatus();
         if (event.getStatus() == EventStatus.ARCHIVED) {
             throw new EventException(EventErrorCode.EVENT_ALREADY_ARCHIVED);
         }
@@ -381,6 +395,7 @@ public class EventAdminServiceImpl implements EventAdminService {
             throw new EventException(EventErrorCode.EVENT_APPLICATION_ALREADY_PROCESSED);
         }
         event.changeStatus(EventStatus.ARCHIVED);
+        log.info("[Event] action=ARCHIVE_EVENT eventId={} previousStatus={}", eventId, previousStatus);
     }
 
     @Override
