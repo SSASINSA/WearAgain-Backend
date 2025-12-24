@@ -188,7 +188,7 @@
 
 ## 관리자 행사 스태프 코드 API
 
-행사 담당 관리자(organizerAdmin)는 다음 API로 현장 스태프용 6자리 숫자 코드를 관리합니다. 코드는 DB `event.staff_code` 컬럼에 저장되며 만료 시간 없이 유지됩니다.
+행사 담당 관리자(organizerAdmin) 또는 ADMIN/SUPER_ADMIN 역할의 관리자는 다음 API로 현장 스태프용 6자리 숫자 코드를 관리합니다. 코드는 DB `event.staff_code` 컬럼에 저장되며 만료 시간 없이 유지됩니다.
 
 - **POST** `/api/v1/admin/events/{eventId}/staff-code`
   - 새 6자리 숫자 코드를 발급하고 기존 코드가 있다면 즉시 대체합니다.
@@ -200,9 +200,9 @@
       "issuedAt": "2025-02-01T10:15:20Z"
     }
     ```
-  - organizerAdmin이 아닌 사용자가 호출하면 `E1024`가 반환됩니다.
+  - MANAGER 역할 사용자는 organizerAdmin 본인일 때만 호출할 수 있으며, 그렇지 않거나 미인증인 경우 `E1024`가 반환됩니다. ADMIN/SUPER_ADMIN은 행사 담당자가 아니어도 호출할 수 있습니다.
 - **GET** `/api/v1/admin/events/{eventId}/staff-code`
-  - 이미 발급된 스태프 코드를 조회합니다.
+  - 이미 발급된 스태프 코드를 조회합니다. ADMIN/SUPER_ADMIN은 담당자가 아니어도 조회할 수 있으며, MANAGER는 organizerAdmin 본인일 때만 가능합니다.
   - 코드가 없다면 `E1025` 에러가 발생합니다.
 
 발급·조회는 모두 관리자 인증 토큰이 필요하며, 응답의 `issuedAt`은 UTC 기준입니다.

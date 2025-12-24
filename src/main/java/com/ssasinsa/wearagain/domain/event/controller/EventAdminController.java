@@ -142,7 +142,11 @@ public class EventAdminController {
             @PathVariable Long eventId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        EventStaffCodeResponse response = eventAdminService.issueStaffCode(eventId, principal.adminId());
+        EventStaffCodeResponse response = eventAdminService.issueStaffCode(
+                eventId,
+                principal.adminId(),
+                principal.role()
+        );
         return ResponseEntity.ok(response);
     }
 
@@ -152,7 +156,11 @@ public class EventAdminController {
             @PathVariable Long eventId,
             @AuthenticationPrincipal AdminAuthenticatedUser principal
     ) {
-        EventStaffCodeResponse response = eventAdminService.getStaffCode(eventId, principal.adminId());
+        EventStaffCodeResponse response = eventAdminService.getStaffCode(
+                eventId,
+                principal.adminId(),
+                principal.role()
+        );
         return ResponseEntity.ok(response);
     }
 
