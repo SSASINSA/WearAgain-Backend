@@ -31,9 +31,9 @@ public interface EventAdminService {
 
     void archiveEvent(Long eventId);
 
-    EventStaffCodeResponse issueStaffCode(Long eventId, Long adminId);
+    EventStaffCodeResponse issueStaffCode(Long eventId, Long adminId, AdminRole role);
 
-    EventStaffCodeResponse getStaffCode(Long eventId, Long adminId);
+    EventStaffCodeResponse getStaffCode(Long eventId, Long adminId, AdminRole role);
 
     EventApprovalRequestPageResponse getPendingApprovalRequests(
             int page,

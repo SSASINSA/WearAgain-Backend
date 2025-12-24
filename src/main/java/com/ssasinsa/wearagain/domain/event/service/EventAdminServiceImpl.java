@@ -400,10 +400,10 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional
-    public EventStaffCodeResponse issueStaffCode(Long eventId, Long adminId) {
+    public EventStaffCodeResponse issueStaffCode(Long eventId, Long adminId, AdminRole role) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
-        enforceStaffCodePermission(event, adminId);
+        enforceStaffCodePermission(event, adminId, role);
 
         String staffCode = generateStaffCode();
         LocalDateTime issuedAt = LocalDateTime.now(ZoneOffset.UTC);
@@ -414,10 +414,10 @@ public class EventAdminServiceImpl implements EventAdminService {
 
     @Override
     @Transactional(readOnly = true)
-    public EventStaffCodeResponse getStaffCode(Long eventId, Long adminId) {
+    public EventStaffCodeResponse getStaffCode(Long eventId, Long adminId, AdminRole role) {
         Event event = eventRepository.findById(eventId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_NOT_FOUND));
-        enforceStaffCodePermission(event, adminId);
+        enforceStaffCodePermission(event, adminId, role);
 
         if (!StringUtils.hasText(event.getStaffCode())) {
             throw new EventException(EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
@@ -910,9 +910,12 @@ public class EventAdminServiceImpl implements EventAdminService {
         approvalRequest.reopen(organizer);
     }
 
-    private void enforceStaffCodePermission(Event event, Long adminId) {
-        if (adminId == null) {
+    private void enforceStaffCodePermission(Event event, Long adminId, AdminRole role) {
+        if (adminId == null || role == null) {
             throw new EventException(EventErrorCode.EVENT_STAFF_CODE_FORBIDDEN);
+        }
+        if (role == AdminRole.ADMIN || role == AdminRole.SUPER_ADMIN) {
+            return;
         }
         AdminUser organizer = event.getOrganizerAdmin();
         if (organizer == null || organizer.getId() == null || !organizer.getId().equals(adminId)) {

@@ -260,7 +260,7 @@ class EventAdminServiceImplTest {
         when(eventRepository.findWithDetailsById(101L)).thenReturn(java.util.Optional.of(event));
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
 
-        EventStaffCodeResponse response = eventAdminService.issueStaffCode(101L, 11L);
+        EventStaffCodeResponse response = eventAdminService.issueStaffCode(101L, 11L, AdminRole.MANAGER);
 
         assertThat(response.eventId()).isEqualTo(101L);
         assertThat(response.staffCode()).matches("\\d{6}");
@@ -273,9 +273,18 @@ class EventAdminServiceImplTest {
     void should_fail_issue_staff_code_when_not_organizer() {
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
 
-        assertThatThrownBy(() -> eventAdminService.issueStaffCode(101L, 999L))
+        assertThatThrownBy(() -> eventAdminService.issueStaffCode(101L, 999L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_STAFF_CODE_FORBIDDEN);
+    }
+
+    @Test
+    void should_allow_admin_roles_to_issue_staff_code_even_when_not_organizer() {
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+
+        EventStaffCodeResponse response = eventAdminService.issueStaffCode(101L, 999L, AdminRole.ADMIN);
+
+        assertThat(response.staffCode()).matches("\\d{6}");
     }
 
     @Test
@@ -283,7 +292,7 @@ class EventAdminServiceImplTest {
         event.updateStaffCode("123456", LocalDateTime.now(ZoneOffset.UTC));
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
 
-        EventStaffCodeResponse response = eventAdminService.getStaffCode(101L, 11L);
+        EventStaffCodeResponse response = eventAdminService.getStaffCode(101L, 11L, AdminRole.MANAGER);
 
         assertThat(response.staffCode()).isEqualTo("123456");
         assertThat(response.issuedAt()).isNotNull();
@@ -293,9 +302,19 @@ class EventAdminServiceImplTest {
     void should_fail_get_staff_code_when_not_issued() {
         when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
 
-        assertThatThrownBy(() -> eventAdminService.getStaffCode(101L, 11L))
+        assertThatThrownBy(() -> eventAdminService.getStaffCode(101L, 11L, AdminRole.MANAGER))
                 .isInstanceOf(EventException.class)
                 .hasFieldOrPropertyWithValue("errorCode", EventErrorCode.EVENT_STAFF_CODE_NOT_ISSUED);
+    }
+
+    @Test
+    void should_allow_admin_roles_to_get_staff_code_even_when_not_organizer() {
+        event.updateStaffCode("654321", LocalDateTime.now(ZoneOffset.UTC));
+        when(eventRepository.findById(101L)).thenReturn(java.util.Optional.of(event));
+
+        EventStaffCodeResponse response = eventAdminService.getStaffCode(101L, 999L, AdminRole.SUPER_ADMIN);
+
+        assertThat(response.staffCode()).isEqualTo("654321");
     }
 
     @Test

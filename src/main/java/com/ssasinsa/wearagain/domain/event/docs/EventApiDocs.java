@@ -127,8 +127,9 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "행사 스태프 코드 발급",
             description = """
-                    행사 담당 관리자(organizerAdmin)가 현장 스태프용 6자리 숫자 코드를 발급합니다.
-                    발급 시 기존 코드는 즉시 대체되며, 응답에는 새 코드와 발급 시각이 포함됩니다.
+                    행사 담당 관리자(organizerAdmin) 또는 ADMIN/SUPER_ADMIN 권한의 관리자가
+                    현장 스태프용 6자리 숫자 코드를 발급합니다. 발급 시 기존 코드는 즉시 대체되며,
+                    응답에는 새 코드와 발급 시각이 포함됩니다.
                     """,
             responseSchema = EventStaffCodeResponse.class,
             responseExample = EventExamples.ADMIN_EVENT_STAFF_CODE_RESPONSE
@@ -142,8 +143,9 @@ public final class EventApiDocs {
     @ApiDoc(
             summary = "행사 스태프 코드 조회",
             description = """
-                    이미 발급된 스태프 코드를 조회합니다.
-                    organizerAdmin 본인만 접근할 수 있으며, 아직 코드가 없다면 404를 반환합니다.
+                    이미 발급된 스태프 코드를 조회합니다. ADMIN/SUPER_ADMIN 권한은 담당자가
+                    아니어도 접근할 수 있으며, MANAGER 권한은 organizerAdmin 본인일 때만 허용됩니다.
+                    아직 코드가 없다면 404를 반환합니다.
                     """,
             responseSchema = EventStaffCodeResponse.class,
             responseExample = EventExamples.ADMIN_EVENT_STAFF_CODE_RESPONSE
