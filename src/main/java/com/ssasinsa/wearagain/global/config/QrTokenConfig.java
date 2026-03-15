@@ -27,7 +27,8 @@ public class QrTokenConfig {
                 EVENT_USER_KEY_PREFIX,
                 EVENT_TOKEN_KEY_PREFIX,
                 CheckinTokenPayload.class,
-                CheckinTokenPayload::token
+                CheckinTokenPayload::token,
+                CheckinTokenPayload::userId
         );
     }
 
@@ -42,7 +43,8 @@ public class QrTokenConfig {
                 TICKET_USER_KEY_PREFIX,
                 TICKET_TOKEN_KEY_PREFIX,
                 TicketQrTokenPayload.class,
-                TicketQrTokenPayload::token
+                TicketQrTokenPayload::token,
+                TicketQrTokenPayload::userId
         );
     }
 }
