@@ -96,7 +96,7 @@ public class TicketStaffServiceImpl implements TicketStaffService {
 
     private TicketQrTokenPayload getToken(String qrToken) {
         try {
-            return ticketQrTokenStore.getTokenByToken(qrToken)
+            return ticketQrTokenStore.consumeTokenByToken(qrToken)
                     .orElseThrow(() -> new TicketException(TicketErrorCode.TICKET_QR_TOKEN_NOT_FOUND));
         } catch (IllegalStateException exception) {
             throw new TicketException(TicketErrorCode.TICKET_QR_TOKEN_STORE_FAILED, exception);

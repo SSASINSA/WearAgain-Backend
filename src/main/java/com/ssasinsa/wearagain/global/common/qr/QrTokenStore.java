@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.global.common.qr;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Duration;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -10,9 +11,18 @@ import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 
 @RequiredArgsConstructor
 public class QrTokenStore<T> {
+
+    private static final DefaultRedisScript<String> CONSUME_SCRIPT = new DefaultRedisScript<>(
+            "local payload = redis.call('GET', KEYS[1])\n"
+                    + "if not payload then return nil end\n"
+                    + "redis.call('DEL', KEYS[1])\n"
+                    + "return payload",
+            String.class
+    );
 
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
@@ -20,6 +30,7 @@ public class QrTokenStore<T> {
     private final String tokenKeyPrefix;
     private final Class<T> payloadType;
     private final Function<T, String> tokenExtractor;
+    private final Function<T, Long> userIdExtractor;
 
     public String generateToken() {
         return UUID.randomUUID().toString().replace("-", "");
@@ -48,9 +59,26 @@ public class QrTokenStore<T> {
         if (json == null) {
             return Optional.empty();
         }
+        return Optional.of(readPayload(json));
+    }
+
+    public Optional<T> consumeTokenByToken(String token) {
         try {
-            T payload = objectMapper.readValue(json, payloadType);
+            String json = redisTemplate.execute(CONSUME_SCRIPT, List.of(tokenKey(token)));
+            if (json == null) {
+                return Optional.empty();
+            }
+            T payload = readPayload(json);
+            deleteUserKey(payload);
             return Optional.of(payload);
+        } catch (DataAccessException exception) {
+            throw new IllegalStateException("Failed to consume QR token payload", exception);
+        }
+    }
+
+    private T readPayload(String json) {
+        try {
+            return objectMapper.readValue(json, payloadType);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Failed to deserialize QR token payload", exception);
         }
@@ -95,5 +123,16 @@ public class QrTokenStore<T> {
 
     private String tokenKey(String token) {
         return tokenKeyPrefix + token;
+    }
+
+    private void deleteUserKey(T payload) {
+        if (payload == null || userIdExtractor == null) {
+            return;
+        }
+        Long userId = userIdExtractor.apply(payload);
+        if (userId == null) {
+            return;
+        }
+        redisTemplate.delete(userKey(userId));
     }
 }
