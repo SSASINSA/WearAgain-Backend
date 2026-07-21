@@ -2,9 +2,10 @@ package com.ssasinsa.wearagain.domain.event.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,19 +14,13 @@ public class OptionCapacityService {
 
     private static final String KEY_FORMAT = "event:option:used:%d";
 
-    private static final DefaultRedisScript<Long> RESERVE_SCRIPT = new DefaultRedisScript<>(
-            "local used = redis.call('GET', KEYS[1]) or '0'\n"
-                    + "if tonumber(used) >= tonumber(ARGV[1]) then return -1 end\n"
-                    + "local newUsed = redis.call('INCR', KEYS[1])\n"
-                    + "if tonumber(newUsed) > tonumber(ARGV[1]) then redis.call('DECR', KEYS[1]); return -1 end\n"
-                    + "return newUsed",
+    private static final RedisScript<Long> RESERVE_SCRIPT = RedisScript.of(
+            new ClassPathResource("redis/event/reserve-option-capacity.lua"),
             Long.class
     );
 
-    private static final DefaultRedisScript<Long> RELEASE_SCRIPT = new DefaultRedisScript<>(
-            "local used = redis.call('GET', KEYS[1]) or '0'\n"
-                    + "if tonumber(used) <= 0 then return 0 end\n"
-                    + "return redis.call('DECR', KEYS[1])",
+    private static final RedisScript<Long> RELEASE_SCRIPT = RedisScript.of(
+            new ClassPathResource("redis/event/release-option-capacity.lua"),
             Long.class
     );
 

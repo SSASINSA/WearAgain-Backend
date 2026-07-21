@@ -2,9 +2,10 @@ package com.ssasinsa.wearagain.domain.store.service;
 
 import java.util.List;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -13,19 +14,13 @@ public class StoreStockService {
 
     private static final String KEY_FORMAT = "store:stock:item:%d";
 
-    private static final DefaultRedisScript<Long> RESERVE_SCRIPT = new DefaultRedisScript<>(
-            "local stock = redis.call('GET', KEYS[1]) or '0'\n"
-                    + "if tonumber(stock) < tonumber(ARGV[1]) then return -1 end\n"
-                    + "local newStock = redis.call('DECRBY', KEYS[1], tonumber(ARGV[1]))\n"
-                    + "if tonumber(newStock) < 0 then redis.call('INCRBY', KEYS[1], tonumber(ARGV[1])); return -1 end\n"
-                    + "return newStock",
+    private static final RedisScript<Long> RESERVE_SCRIPT = RedisScript.of(
+            new ClassPathResource("redis/store/reserve-stock.lua"),
             Long.class
     );
 
-    private static final DefaultRedisScript<Long> RELEASE_SCRIPT = new DefaultRedisScript<>(
-            "local stock = redis.call('GET', KEYS[1]) or '0'\n"
-                    + "local newStock = redis.call('INCRBY', KEYS[1], tonumber(ARGV[1]))\n"
-                    + "return newStock",
+    private static final RedisScript<Long> RELEASE_SCRIPT = RedisScript.of(
+            new ClassPathResource("redis/store/release-stock.lua"),
             Long.class
     );
 
