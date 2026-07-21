@@ -1,0 +1,28 @@
+spring:
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:wearagain-test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+    show-sql: false
+  flyway:
+    enabled: false
+  sql:
+    init:
+      mode: never
+  data:
+    redis:
+      host: redis.test.invalid
+      port: 6379
+      password:
+
+logging:
+  level:
+    org.hibernate.SQL: WARN
+    org.hibernate.orm.jdbc.bind: WARN

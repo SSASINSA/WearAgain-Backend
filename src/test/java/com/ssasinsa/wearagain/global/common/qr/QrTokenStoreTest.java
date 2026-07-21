@@ -5,30 +5,33 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.ssasinsa.wearagain.domain.ticket.support.TicketQrTokenPayload;
+import com.ssasinsa.wearagain.support.RedisTestContainerSupport;
 import java.time.Duration;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
-class QrTokenStoreTest {
-    //  해당 테스트 실행시 redis가 전부 비워지도록 해놓았으므로, 운영환경 등 민감한 곳에서는 이 테스트 금지
+class QrTokenStoreTest extends RedisTestContainerSupport {
+
     private static final String TICKET_USER_KEY_PREFIX = "ticket:qr:user:";
     private static final String TICKET_TOKEN_KEY_PREFIX = "ticket:qr:token:";
+    private static final Long USER_ID = 1L;
+    private static final String TOKEN = "ticket-token";
 
+    private LettuceConnectionFactory connectionFactory;
     private StringRedisTemplate redisTemplate;
     private QrTokenStore<TicketQrTokenPayload> qrTokenStore;
 
     @BeforeEach
     void setUp() {
-        RedisConnectionFactory connectionFactory = new LettuceConnectionFactory("localhost", 6379);
-        ((LettuceConnectionFactory) connectionFactory).afterPropertiesSet();
-        redisTemplate = new StringRedisTemplate(connectionFactory);
-        redisTemplate.afterPropertiesSet();
+        connectionFactory = createRedisConnectionFactory();
+        redisTemplate = createRedisTemplate(connectionFactory);
+        deleteTestKeys();
+
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.registerModule(new JavaTimeModule());
         qrTokenStore = new QrTokenStore<>(
@@ -40,36 +43,42 @@ class QrTokenStoreTest {
                 TicketQrTokenPayload::token,
                 TicketQrTokenPayload::userId
         );
-        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
     }
 
     @AfterEach
     void tearDown() {
-        redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
+        deleteTestKeys();
+        connectionFactory.destroy();
     }
 
     @Test
-    void consume_ticket_only_once() {
-        Long userId = 1L;
-        String token = "ticket-token";
+    void should_consume_ticket_only_once() {
         OffsetDateTime issuedAt = OffsetDateTime.now(ZoneOffset.UTC);
         TicketQrTokenPayload payload = new TicketQrTokenPayload(
-                userId,
-                token,
+                USER_ID,
+                TOKEN,
                 3,
                 issuedAt,
                 issuedAt.plusMinutes(15)
         );
 
-        qrTokenStore.saveToken(userId, payload, Duration.ofMinutes(15));
+        qrTokenStore.saveToken(USER_ID, payload, Duration.ofMinutes(15));
 
-        var firstConsume = qrTokenStore.consumeTokenByToken(token);
-        var secondConsume = qrTokenStore.consumeTokenByToken(token);
+        var firstConsume = qrTokenStore.consumeTokenByToken(TOKEN);
+        var secondConsume = qrTokenStore.consumeTokenByToken(TOKEN);
 
         assertThat(firstConsume).isPresent();
         assertThat(firstConsume.get()).isEqualTo(payload);
         assertThat(secondConsume).isEmpty();
-        assertThat(redisTemplate.opsForValue().get(TICKET_TOKEN_KEY_PREFIX + token)).isNull();
-        assertThat(redisTemplate.opsForValue().get(TICKET_USER_KEY_PREFIX + userId)).isNull();
+        assertThat(redisTemplate.opsForValue().get(TICKET_TOKEN_KEY_PREFIX + TOKEN)).isNull();
+        assertThat(redisTemplate.opsForValue().get(TICKET_USER_KEY_PREFIX + USER_ID)).isNull();
+    }
+
+    private void deleteTestKeys() {
+        deleteKeys(
+                redisTemplate,
+                TICKET_TOKEN_KEY_PREFIX + TOKEN,
+                TICKET_USER_KEY_PREFIX + USER_ID
+        );
     }
 }
