@@ -22,8 +22,13 @@ import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
+import com.ssasinsa.wearagain.global.common.redis.RedisTransactionCallbackRegistrar;
+import java.time.Duration;
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.Optional;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -44,6 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -68,14 +74,33 @@ class StoreAdminServiceImplTest {
     @Mock
     private StoreStockService storeStockService;
 
+    @Mock
+    private RedisResourceGuard redisResourceGuard;
+
+    @Mock
+    private RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
+
+    @Mock
+    private RedisResourceGuard.LockHandle lockHandle;
+
     @InjectMocks
     private StoreAdminServiceImpl storeAdminService;
 
     @DisplayName("상품 상태 변경 요청에 status가 없으면 예외 발생")
     @Test
     void should_throw_when_status_null_on_update_status() {
-        StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
-        when(storeItemRepository.findById(1L)).thenReturn(java.util.Optional.of(item));
+        StoreItem item = StoreItem.create(
+                "name",
+                "desc",
+                "cat",
+                1000,
+                0,
+                1,
+                StoreItemStatus.ACTIVE,
+                List.of(),
+                List.of("강남")
+        );
+        when(storeItemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(adminUserRepository.findById(10L)).thenReturn(java.util.Optional.of(admin()));
 
         StoreItemStatusUpdateRequest request = new StoreItemStatusUpdateRequest(null);
@@ -87,16 +112,20 @@ class StoreAdminServiceImplTest {
 
     @DisplayName("이미 삭제된 상품은 상태를 변경할 수 없다")
     @Test
-    void should_throw_when_item_already_deleted_on_update_status() {
+    void should_throw_when_item_already_deleted_on_update_status() throws Exception {
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.DELETED, List.of(), List.of("강남"));
+        setId(item, 1L);
         when(storeItemRepository.findById(1L)).thenReturn(java.util.Optional.of(item));
         when(adminUserRepository.findById(10L)).thenReturn(java.util.Optional.of(admin()));
+        when(redisResourceGuard.tryAcquireWrite(eq(RedisResourceKey.storeItem(1L)), any(Duration.class)))
+                .thenReturn(Optional.of(lockHandle));
 
         StoreItemStatusUpdateRequest request = new StoreItemStatusUpdateRequest(StoreItemStatus.ACTIVE);
 
         assertThatThrownBy(() -> storeAdminService.updateItemStatus(1L, request, 10L))
                 .isInstanceOf(StoreException.class)
                 .hasMessage(StoreErrorCode.STORE_ITEM_ALREADY_DELETED.getMessage());
+        verify(lockHandle).close();
     }
 
     @DisplayName("상품 삭제 시 상태와 삭제 정보가 기록된다")
@@ -118,13 +147,21 @@ class StoreAdminServiceImplTest {
 
     @DisplayName("상품 등록 시 엔티티가 저장된다")
     @Test
-    void should_create_item_and_save() {
+    void should_create_item_and_save() throws Exception {
         AdminUser admin = admin();
         when(adminUserRepository.findById(5L)).thenReturn(java.util.Optional.of(admin));
 
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 10, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
         setId(item, 100L);
         when(storeItemRepository.save(any(StoreItem.class))).thenReturn(item);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(100L);
+        when(redisResourceGuard.tryAcquireWrite(eq(resourceKey), any(Duration.class)))
+                .thenReturn(Optional.of(lockHandle));
+        when(redisTransactionCallbackRegistrar.registerAfterCommit(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(true);
 
         StoreItemCreateRequest request = new StoreItemCreateRequest(
                 "name",
@@ -140,10 +177,22 @@ class StoreAdminServiceImplTest {
 
         StoreItemCreateResponse response = storeAdminService.createItem(request, 5L);
 
+        ArgumentCaptor<Runnable> actionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(redisTransactionCallbackRegistrar).registerAfterCommit(
+                eq(resourceKey),
+                actionCaptor.capture(),
+                completionCaptor.capture()
+        );
+        actionCaptor.getValue().run();
+        completionCaptor.getValue().run();
+
         assertThat(response.id()).isEqualTo(100L);
         assertThat(response.status()).isEqualTo(StoreItemStatus.ACTIVE);
         verify(storeItemRepository).save(any(StoreItem.class));
         verify(storeItemImageRepository).saveAll(any());
+        verify(storeStockService).reset(100L, 10);
+        verify(lockHandle).close();
     }
 
     @DisplayName("픽업 장소가 없으면 상품을 등록할 수 없다")
@@ -193,6 +242,59 @@ class StoreAdminServiceImplTest {
         verify(storeItemImageRepository).deleteByStoreItem(item);
         verify(storeItemImageRepository).saveAll(any());
         assertThat(item.getImages()).hasSize(1);
+    }
+
+    @DisplayName("관리자 재고 수정은 exclusive lock 안에서 commit 후 Redis에 반영")
+    @Test
+    void should_reset_redis_after_stock_update_commits() throws Exception {
+        StoreItem item = StoreItem.create(
+                "name",
+                "desc",
+                "cat",
+                1000,
+                3,
+                1,
+                StoreItemStatus.ACTIVE,
+                List.of(),
+                List.of("강남")
+        );
+        setId(item, 1L);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(1L);
+        when(adminUserRepository.findById(5L)).thenReturn(Optional.of(admin()));
+        when(redisResourceGuard.tryAcquireWrite(eq(resourceKey), any(Duration.class)))
+                .thenReturn(Optional.of(lockHandle));
+        when(storeItemRepository.findById(1L)).thenReturn(Optional.of(item));
+        when(redisTransactionCallbackRegistrar.registerAfterCommit(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(true);
+        StoreItemUpdateRequest request = new StoreItemUpdateRequest(
+                null,
+                null,
+                null,
+                null,
+                8,
+                null,
+                null,
+                null,
+                null
+        );
+        ArgumentCaptor<Runnable> actionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
+
+        storeAdminService.updateItem(1L, request, 5L);
+
+        verify(redisTransactionCallbackRegistrar).registerAfterCommit(
+                eq(resourceKey),
+                actionCaptor.capture(),
+                completionCaptor.capture()
+        );
+        actionCaptor.getValue().run();
+        completionCaptor.getValue().run();
+        assertThat(item.getStock()).isEqualTo(8);
+        verify(storeStockService).reset(1L, 8);
+        verify(lockHandle).close();
     }
 
     @DisplayName("관리자 상품 목록 조회 시 정렬이 적용된다")
@@ -261,8 +363,26 @@ class StoreAdminServiceImplTest {
         StoreOrder order = StoreOrder.create(user, item, 1500, 2, "서울");
         setId(order, 1000L);
         when(storeOrderRepository.findById(1000L)).thenReturn(java.util.Optional.of(order));
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(77L);
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(redisTransactionCallbackRegistrar.registerAfterCommit(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(true);
+
+        ArgumentCaptor<Runnable> actionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
 
         StoreAdminOrderCancelResponse response = storeAdminService.cancelOrder(1000L, 9L);
+
+        verify(redisTransactionCallbackRegistrar).registerAfterCommit(
+                eq(resourceKey),
+                actionCaptor.capture(),
+                completionCaptor.capture()
+        );
+        actionCaptor.getValue().run();
+        completionCaptor.getValue().run();
 
         assertThat(response.orderId()).isEqualTo(1000L);
         assertThat(response.status()).isEqualTo(StoreOrderStatus.CANCELED);
@@ -271,6 +391,7 @@ class StoreAdminServiceImplTest {
         assertThat(user.getCreditBalance()).isEqualTo(3000);
         verify(creditHistoryRepository).save(any());
         verify(storeStockService).release(77L, 2);
+        verify(lockHandle).close();
     }
 
     private AdminUser admin() {

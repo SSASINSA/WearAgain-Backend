@@ -26,6 +26,9 @@ import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
+import com.ssasinsa.wearagain.global.common.redis.RedisTransactionCallbackRegistrar;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -34,6 +37,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -58,6 +62,12 @@ class StoreServiceImplTest {
     private CreditHistoryRepository creditHistoryRepository;
     @Mock
     private StoreStockService storeStockService;
+    @Mock
+    private RedisResourceGuard redisResourceGuard;
+    @Mock
+    private RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
+    @Mock
+    private RedisResourceGuard.LockHandle lockHandle;
 
     @InjectMocks
     private StoreServiceImpl storeService;
@@ -71,7 +81,14 @@ class StoreServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(storeItemRepository.findById(10L)).thenReturn(Optional.of(item));
         when(storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED)).thenReturn(0L);
-        when(storeStockService.reserve(10L, 2)).thenReturn(true);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(storeStockService.reserve(10L, 2)).thenReturn(StoreStockService.ReserveResult.RESERVED);
+        when(redisTransactionCallbackRegistrar.registerRollbackCompensation(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(true);
         when(storeOrderRepository.save(any(StoreOrder.class))).thenAnswer(invocation -> {
             StoreOrder order = invocation.getArgument(0);
             ReflectionTestUtils.setField(order, "id", 50L);
@@ -121,15 +138,115 @@ class StoreServiceImplTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(storeOrderRepository.findById(77L)).thenReturn(Optional.of(order));
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(redisTransactionCallbackRegistrar.registerAfterCommit(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(true);
+
+        ArgumentCaptor<Runnable> actionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
 
         StoreOrderCancelResponse response = storeService.cancelOrder(77L, 1L);
+
+        verify(redisTransactionCallbackRegistrar).registerAfterCommit(
+                eq(resourceKey),
+                actionCaptor.capture(),
+                completionCaptor.capture()
+        );
+        actionCaptor.getValue().run();
+        completionCaptor.getValue().run();
 
         assertThat(response.refundedCredit()).isEqualTo(2000);
         assertThat(item.getStock()).isEqualTo(2);
         assertThat(user.getCreditBalance()).isEqualTo(2000);
         assertThat(order.getStatus()).isEqualTo(StoreOrderStatus.CANCELED);
         verify(storeStockService).release(10L, 2);
+        verify(lockHandle).close();
         verify(creditHistoryRepository).save(any());
+    }
+
+    @DisplayName("Redis 재고 key가 없으면 재고 부족이 아닌 일시 처리 불가 예외 발생")
+    @Test
+    void should_throw_unavailable_when_stock_key_missing() {
+        User user = user(1L, 5000);
+        StoreItem item = item(10L, 1000, 5, 2);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(storeItemRepository.findById(10L)).thenReturn(Optional.of(item));
+        when(storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED))
+                .thenReturn(0L);
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(storeStockService.reserve(10L, 1)).thenReturn(StoreStockService.ReserveResult.CACHE_MISS);
+
+        StoreOrderCreateRequest request = new StoreOrderCreateRequest(10L, 1, "강남 팝업스토어");
+
+        assertThatThrownBy(() -> storeService.createOrder(request, 1L))
+                .isInstanceOf(StoreException.class)
+                .hasMessage(StoreErrorCode.STORE_STOCK_UNAVAILABLE.getMessage());
+        verify(storeStockService, never()).release(anyLong(), anyInt());
+        verify(lockHandle).close();
+    }
+
+    @DisplayName("보상 callback 등록 실패 시 선점 재고와 lock을 즉시 반환")
+    @Test
+    void should_release_stock_when_rollback_callback_registration_fails() {
+        User user = user(1L, 5000);
+        StoreItem item = item(10L, 1000, 5, 2);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(storeItemRepository.findById(10L)).thenReturn(Optional.of(item));
+        when(storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED))
+                .thenReturn(0L);
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(storeStockService.reserve(10L, 1)).thenReturn(StoreStockService.ReserveResult.RESERVED);
+        when(redisTransactionCallbackRegistrar.registerRollbackCompensation(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(false);
+
+        StoreOrderCreateRequest request = new StoreOrderCreateRequest(10L, 1, "강남 팝업스토어");
+
+        assertThatThrownBy(() -> storeService.createOrder(request, 1L))
+                .isInstanceOf(StoreException.class)
+                .hasMessage(StoreErrorCode.STORE_STOCK_UNAVAILABLE.getMessage());
+        verify(storeStockService).release(10L, 1);
+        verify(lockHandle).close();
+        verifyNoInteractions(creditHistoryRepository);
+    }
+
+    @DisplayName("취소 callback 등록 실패 시 DB와 Redis 재고를 변경하지 않음")
+    @Test
+    void should_not_cancel_order_when_after_commit_callback_registration_fails() {
+        User user = user(1L, 0);
+        StoreItem item = item(10L, 1000, 0, 2);
+        StoreOrder order = StoreOrder.create(user, item, 1000, 2, "강남 팝업스토어");
+        ReflectionTestUtils.setField(order, "id", 77L);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(storeOrderRepository.findById(77L)).thenReturn(Optional.of(order));
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(redisTransactionCallbackRegistrar.registerAfterCommit(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(false);
+
+        assertThatThrownBy(() -> storeService.cancelOrder(77L, 1L))
+                .isInstanceOf(StoreException.class)
+                .hasMessage(StoreErrorCode.STORE_STOCK_UNAVAILABLE.getMessage());
+        assertThat(item.getStock()).isZero();
+        assertThat(user.getCreditBalance()).isZero();
+        assertThat(order.getStatus()).isEqualTo(StoreOrderStatus.PURCHASED);
+        verify(storeStockService, never()).release(anyLong(), anyInt());
+        verify(lockHandle).close();
+        verifyNoInteractions(creditHistoryRepository);
     }
 
     @DisplayName("스토어 상품 목록 커서 조회 시 ACTIVE만 반환")

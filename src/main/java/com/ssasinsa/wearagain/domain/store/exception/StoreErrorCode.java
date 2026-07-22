@@ -20,7 +20,8 @@ public enum StoreErrorCode implements ErrorCode {
     STORE_ORDER_NOT_FOUND("S1013", "주문을 찾을 수 없습니다.", HttpStatus.NOT_FOUND.value()),
     STORE_ORDER_CANCEL_INVALID("S1014", "취소할 수 없는 주문 상태입니다.", HttpStatus.CONFLICT.value()),
     STORE_PURCHASE_LIMIT_EXCEEDED("S1015", "사용자별 최대 구매 횟수를 초과했습니다.", HttpStatus.CONFLICT.value()),
-    STORE_ORDER_STATUS_INVALID("S1016", "주문 상태 값이 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value());
+    STORE_ORDER_STATUS_INVALID("S1016", "주문 상태 값이 올바르지 않습니다.", HttpStatus.BAD_REQUEST.value()),
+    STORE_STOCK_UNAVAILABLE("S1017", "상품 재고를 일시적으로 처리할 수 없습니다.", HttpStatus.SERVICE_UNAVAILABLE.value());
 
     private final String code;
     private final String message;
