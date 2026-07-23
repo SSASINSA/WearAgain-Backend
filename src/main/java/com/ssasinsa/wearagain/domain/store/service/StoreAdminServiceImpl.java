@@ -45,6 +45,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -54,6 +55,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -74,6 +76,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     private final StoreStockService storeStockService;
     private final RedisResourceGuard redisResourceGuard;
     private final RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
+    private final TransactionOperations transactionOperations;
 
     @Override
     @Transactional
@@ -152,48 +155,82 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     @Override
     @Transactional
     public StoreItemDetailResponse updateItem(Long itemId, StoreItemUpdateRequest request, Long adminId) {
-        getAdmin(adminId);
-        if (requiresStockReset(request)) {
-            return updateItemWithStockReset(itemId, request, adminId);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            getAdmin(adminId);
+            StoreItem item = findItem(itemId);
+            ensureNotDeleted(item);
+            applyItemUpdate(item, request);
+            callbackRegistered = requiresStockReset(request)
+                    ? registerStockReset(resourceKey, lockHandle, item)
+                    : registerLockRelease(resourceKey, lockHandle);
+            if (!callbackRegistered) {
+                throw stockUnavailable();
+            }
+            return updatedItemResponse(item, adminId);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
         }
-
-        StoreItem item = findItem(itemId);
-        ensureNotDeleted(item);
-        applyItemUpdate(item, request);
-        return updatedItemResponse(item, adminId);
     }
 
     @Override
     @Transactional
     public StoreItemDetailResponse updateItemStatus(Long itemId, StoreItemStatusUpdateRequest request, Long adminId) {
-        getAdmin(adminId);
-        if (request.status() == null) {
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            getAdmin(adminId);
             StoreItem item = findItem(itemId);
             ensureNotDeleted(item);
-            throw new StoreException(StoreErrorCode.STORE_ITEM_STATUS_INVALID);
-        }
-        if (request.status() == StoreItemStatus.ACTIVE) {
-            return activateItemWithStockReset(itemId, adminId);
-        }
+            if (request.status() == null) {
+                throw new StoreException(StoreErrorCode.STORE_ITEM_STATUS_INVALID);
+            }
 
-        StoreItem item = findItem(itemId);
-        ensureNotDeleted(item);
-        item.changeStatus(request.status());
-        log.info("[Store] action=ADMIN_UPDATE_ITEM_STATUS adminId={} itemId={} status={}",
-                adminId,
-                itemId,
-                request.status());
-        return mapToDetail(item);
+            item.changeStatus(request.status());
+            callbackRegistered = request.status() == StoreItemStatus.ACTIVE
+                    ? registerStockReset(resourceKey, lockHandle, item)
+                    : registerLockRelease(resourceKey, lockHandle);
+            if (!callbackRegistered) {
+                throw stockUnavailable();
+            }
+            log.info("[Store] action=ADMIN_UPDATE_ITEM_STATUS adminId={} itemId={} status={}",
+                    adminId,
+                    itemId,
+                    request.status());
+            return mapToDetail(item);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
+        }
     }
 
     @Override
     @Transactional
     public void deleteItem(Long itemId, Long adminId) {
-        AdminUser adminUser = getAdmin(adminId);
-        StoreItem item = findItem(itemId);
-        ensureNotDeleted(item);
-        item.markDeleted(LocalDateTime.now(ZoneOffset.UTC), adminUser);
-        log.info("[Store] action=ADMIN_DELETE_ITEM adminId={} itemId={}", adminId, itemId);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            AdminUser adminUser = getAdmin(adminId);
+            StoreItem item = findItem(itemId);
+            ensureNotDeleted(item);
+            item.markDeleted(LocalDateTime.now(ZoneOffset.UTC), adminUser);
+            callbackRegistered = registerLockRelease(resourceKey, lockHandle);
+            if (!callbackRegistered) {
+                throw stockUnavailable();
+            }
+            log.info("[Store] action=ADMIN_DELETE_ITEM adminId={} itemId={}", adminId, itemId);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
+        }
     }
 
     @Override
@@ -224,107 +261,75 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     }
 
     @Override
-    @Transactional
     public StoreAdminOrderCancelResponse cancelOrder(Long orderId, Long adminId) {
         getAdmin(adminId);
+        Long itemId = findOrderItemId(orderId);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        AtomicBoolean callbackRegistered = new AtomicBoolean();
+        try {
+            return transactionOperations.execute(
+                    status -> cancelOrderInTransaction(
+                            orderId,
+                            adminId,
+                            resourceKey,
+                            lockHandle,
+                            callbackRegistered
+                    )
+            );
+        } finally {
+            if (!callbackRegistered.get()) {
+                lockHandle.close();
+            }
+        }
+    }
+
+    /**
+     * 관리자 주문 취소를 DB에 반영하는 메서드.
+     */
+    private StoreAdminOrderCancelResponse cancelOrderInTransaction(
+            Long orderId,
+            Long adminId,
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle,
+            AtomicBoolean callbackRegistered
+    ) {
         StoreOrder order = findOrder(orderId);
         if (order.getStatus() != StoreOrderStatus.PURCHASED) {
             throw new StoreException(StoreErrorCode.STORE_ORDER_CANCEL_INVALID);
         }
 
         StoreItem item = order.getItem();
-        RedisResourceKey resourceKey = RedisResourceKey.storeItem(item.getId());
-        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
-        boolean callbackRegistered = false;
-        try {
-            callbackRegistered = redisTransactionCallbackRegistrar.registerAfterCommit(
-                    resourceKey,
-                    () -> storeStockService.release(item.getId(), order.getQuantity()),
-                    lockHandle::close
-            );
-            if (!callbackRegistered) {
-                throw stockUnavailable();
-            }
-
-            item.increaseStock(order.getQuantity());
-
-            User user = order.getUser();
-            int refundAmount = order.getPrice() * order.getQuantity();
-            user.increaseCreditBalance(refundAmount);
-            order.cancel();
-
-            creditHistoryRepository.save(CreditHistory.create(user, order, refundAmount, "STORE_CANCEL_ADMIN"));
-            log.info("[Store] action=ADMIN_CANCEL_ORDER adminId={} orderId={} itemId={} refundAmount={}",
-                    adminId,
-                    orderId,
-                    item.getId(),
-                    refundAmount);
-
-            return new StoreAdminOrderCancelResponse(
-                    order.getId(),
-                    order.getStatus(),
-                    refundAmount,
-                    toOffset(order.getUpdatedAt())
-            );
-        } finally {
-            if (!callbackRegistered) {
-                lockHandle.close();
-            }
+        boolean registered = redisTransactionCallbackRegistrar.registerAfterCommit(
+                resourceKey,
+                () -> storeStockService.release(item.getId(), order.getQuantity()),
+                lockHandle::close
+        );
+        callbackRegistered.set(registered);
+        if (!registered) {
+            throw stockUnavailable();
         }
-    }
 
-    /**
-     * 재고 변경 또는 판매 활성화 상품 수정 메서드.
-     */
-    private StoreItemDetailResponse updateItemWithStockReset(
-            Long itemId,
-            StoreItemUpdateRequest request,
-            Long adminId
-    ) {
-        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
-        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
-        boolean callbackRegistered = false;
-        try {
-            StoreItem item = findItem(itemId);
-            ensureNotDeleted(item);
-            applyItemUpdate(item, request);
-            callbackRegistered = registerStockReset(resourceKey, lockHandle, item);
-            if (!callbackRegistered) {
-                throw stockUnavailable();
-            }
-            return updatedItemResponse(item, adminId);
-        } finally {
-            if (!callbackRegistered) {
-                lockHandle.close();
-            }
-        }
-    }
+        item.increaseStock(order.getQuantity());
 
-    /**
-     * 판매 활성화와 Redis 재고 반영 메서드.
-     */
-    private StoreItemDetailResponse activateItemWithStockReset(Long itemId, Long adminId) {
-        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
-        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
-        boolean callbackRegistered = false;
-        try {
-            StoreItem item = findItem(itemId);
-            ensureNotDeleted(item);
-            item.changeStatus(StoreItemStatus.ACTIVE);
-            callbackRegistered = registerStockReset(resourceKey, lockHandle, item);
-            if (!callbackRegistered) {
-                throw stockUnavailable();
-            }
-            log.info("[Store] action=ADMIN_UPDATE_ITEM_STATUS adminId={} itemId={} status={}",
-                    adminId,
-                    itemId,
-                    StoreItemStatus.ACTIVE);
-            return mapToDetail(item);
-        } finally {
-            if (!callbackRegistered) {
-                lockHandle.close();
-            }
-        }
+        User user = order.getUser();
+        int refundAmount = order.getPrice() * order.getQuantity();
+        user.increaseCreditBalance(refundAmount);
+        order.cancel();
+
+        creditHistoryRepository.save(CreditHistory.create(user, order, refundAmount, "STORE_CANCEL_ADMIN"));
+        log.info("[Store] action=ADMIN_CANCEL_ORDER adminId={} orderId={} itemId={} refundAmount={}",
+                adminId,
+                orderId,
+                item.getId(),
+                refundAmount);
+
+        return new StoreAdminOrderCancelResponse(
+                order.getId(),
+                order.getStatus(),
+                refundAmount,
+                toOffset(order.getUpdatedAt())
+        );
     }
 
     /**
@@ -408,6 +413,16 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     }
 
     /**
+     * DB transaction 종료 후 상품 write lock 해제 등록 메서드.
+     */
+    private boolean registerLockRelease(
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle
+    ) {
+        return redisTransactionCallbackRegistrar.registerCompletion(resourceKey, lockHandle::close);
+    }
+
+    /**
      * 상품 재고 exclusive lock 획득 메서드.
      */
     private RedisResourceGuard.LockHandle acquireStockWriteLock(RedisResourceKey resourceKey) {
@@ -455,6 +470,11 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
     private StoreOrder findOrder(Long orderId) {
         return storeOrderRepository.findById(orderId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    private Long findOrderItemId(Long orderId) {
+        return storeOrderRepository.findItemIdById(orderId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
     }
 

@@ -29,11 +29,13 @@ import java.time.Duration;
 import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Optional;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
@@ -42,6 +44,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionOperations;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -51,6 +55,8 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,14 +87,25 @@ class StoreAdminServiceImplTest {
     private RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
 
     @Mock
+    private TransactionOperations transactionOperations;
+
+    @Mock
     private RedisResourceGuard.LockHandle lockHandle;
 
     @InjectMocks
     private StoreAdminServiceImpl storeAdminService;
 
+    @BeforeEach
+    void setUp() {
+        lenient().when(transactionOperations.execute(any())).thenAnswer(invocation -> {
+            TransactionCallback<?> callback = invocation.getArgument(0);
+            return callback.doInTransaction(null);
+        });
+    }
+
     @DisplayName("상품 상태 변경 요청에 status가 없으면 예외 발생")
     @Test
-    void should_throw_when_status_null_on_update_status() {
+    void should_throw_when_status_null_on_update_status() throws Exception {
         StoreItem item = StoreItem.create(
                 "name",
                 "desc",
@@ -102,6 +119,10 @@ class StoreAdminServiceImplTest {
         );
         when(storeItemRepository.findById(1L)).thenReturn(Optional.of(item));
         when(adminUserRepository.findById(10L)).thenReturn(java.util.Optional.of(admin()));
+        when(redisResourceGuard.tryAcquireWrite(
+                eq(RedisResourceKey.storeItem(1L)),
+                any(Duration.class)
+        )).thenReturn(Optional.of(lockHandle));
 
         StoreItemStatusUpdateRequest request = new StoreItemStatusUpdateRequest(null);
 
@@ -130,16 +151,29 @@ class StoreAdminServiceImplTest {
 
     @DisplayName("상품 삭제 시 상태와 삭제 정보가 기록된다")
     @Test
-    void should_mark_deleted_on_delete() {
+    void should_mark_deleted_on_delete() throws Exception {
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
         AdminUser admin = admin();
         setId(admin, 5L);
 
         when(storeItemRepository.findById(1L)).thenReturn(java.util.Optional.of(item));
         when(adminUserRepository.findById(5L)).thenReturn(java.util.Optional.of(admin));
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(1L);
+        when(redisResourceGuard.tryAcquireWrite(eq(resourceKey), any(Duration.class)))
+                .thenReturn(Optional.of(lockHandle));
+        when(redisTransactionCallbackRegistrar.registerCompletion(
+                eq(resourceKey),
+                any(Runnable.class)
+        )).thenReturn(true);
 
         storeAdminService.deleteItem(1L, 5L);
 
+        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(redisTransactionCallbackRegistrar).registerCompletion(
+                eq(resourceKey),
+                completionCaptor.capture()
+        );
+        completionCaptor.getValue().run();
         assertThat(item.getStatus()).isEqualTo(StoreItemStatus.DELETED);
         assertThat(item.getDeletedBy()).isEqualTo(admin);
         assertThat(item.getDeletedAt()).isNotNull();
@@ -220,10 +254,17 @@ class StoreAdminServiceImplTest {
 
     @DisplayName("상품 수정 시 이미지가 교체된다")
     @Test
-    void should_replace_images_on_update() {
+    void should_replace_images_on_update() throws Exception {
         StoreItem item = StoreItem.create("name", "desc", "cat", 1000, 0, 1, StoreItemStatus.ACTIVE, List.of(), List.of("강남"));
         when(storeItemRepository.findById(1L)).thenReturn(java.util.Optional.of(item));
         when(adminUserRepository.findById(5L)).thenReturn(java.util.Optional.of(admin()));
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(1L);
+        when(redisResourceGuard.tryAcquireWrite(eq(resourceKey), any(Duration.class)))
+                .thenReturn(Optional.of(lockHandle));
+        when(redisTransactionCallbackRegistrar.registerCompletion(
+                eq(resourceKey),
+                any(Runnable.class)
+        )).thenReturn(true);
 
         StoreItemUpdateRequest request = new StoreItemUpdateRequest(
                 null,
@@ -239,6 +280,16 @@ class StoreAdminServiceImplTest {
 
         storeAdminService.updateItem(1L, request, 5L);
 
+        InOrder ordered = inOrder(redisResourceGuard, adminUserRepository, storeItemRepository);
+        ordered.verify(redisResourceGuard).tryAcquireWrite(eq(resourceKey), any(Duration.class));
+        ordered.verify(adminUserRepository).findById(5L);
+        ordered.verify(storeItemRepository).findById(1L);
+        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(redisTransactionCallbackRegistrar).registerCompletion(
+                eq(resourceKey),
+                completionCaptor.capture()
+        );
+        completionCaptor.getValue().run();
         verify(storeItemImageRepository).deleteByStoreItem(item);
         verify(storeItemImageRepository).saveAll(any());
         assertThat(item.getImages()).hasSize(1);
@@ -363,6 +414,7 @@ class StoreAdminServiceImplTest {
         StoreOrder order = StoreOrder.create(user, item, 1500, 2, "서울");
         setId(order, 1000L);
         when(storeOrderRepository.findById(1000L)).thenReturn(java.util.Optional.of(order));
+        when(storeOrderRepository.findItemIdById(1000L)).thenReturn(Optional.of(77L));
         RedisResourceKey resourceKey = RedisResourceKey.storeItem(77L);
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
         when(redisTransactionCallbackRegistrar.registerAfterCommit(
@@ -371,11 +423,10 @@ class StoreAdminServiceImplTest {
                 any(Runnable.class)
         )).thenReturn(true);
 
-        ArgumentCaptor<Runnable> actionCaptor = ArgumentCaptor.forClass(Runnable.class);
-        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
-
         StoreAdminOrderCancelResponse response = storeAdminService.cancelOrder(1000L, 9L);
 
+        ArgumentCaptor<Runnable> actionCaptor = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> completionCaptor = ArgumentCaptor.forClass(Runnable.class);
         verify(redisTransactionCallbackRegistrar).registerAfterCommit(
                 eq(resourceKey),
                 actionCaptor.capture(),
@@ -383,7 +434,6 @@ class StoreAdminServiceImplTest {
         );
         actionCaptor.getValue().run();
         completionCaptor.getValue().run();
-
         assertThat(response.orderId()).isEqualTo(1000L);
         assertThat(response.status()).isEqualTo(StoreOrderStatus.CANCELED);
         assertThat(response.refundedAmount()).isEqualTo(3000);

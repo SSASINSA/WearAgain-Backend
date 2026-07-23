@@ -87,6 +87,21 @@ public class RedisTransactionCallbackRegistrar {
     }
 
     /**
+     * DB transaction 결과와 관계없이 종료 후 실행할 작업 등록 메서드.
+     */
+    public boolean registerCompletion(RedisResourceKey resourceKey, Runnable completion) {
+        Objects.requireNonNull(resourceKey);
+        Objects.requireNonNull(completion);
+
+        return register(new TransactionSynchronization() {
+            @Override
+            public void afterCompletion(int status) {
+                executeCompletion(resourceKey, completion);
+            }
+        });
+    }
+
+    /**
      * 현재 DB transaction에 callback 등록 메서드.
      */
     private boolean register(TransactionSynchronization synchronization) {

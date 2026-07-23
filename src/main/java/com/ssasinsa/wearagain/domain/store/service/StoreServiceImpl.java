@@ -26,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -37,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Slf4j
@@ -53,6 +55,7 @@ public class StoreServiceImpl implements StoreService {
     private final StoreStockService storeStockService;
     private final RedisResourceGuard redisResourceGuard;
     private final RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
+    private final TransactionOperations transactionOperations;
 
     @Override
     @Transactional(readOnly = true)
@@ -94,87 +97,48 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    @Transactional
     public StoreOrderCreateResponse createOrder(StoreOrderCreateRequest request, Long userId) {
-        User user = findUser(userId);
-        StoreItem item = findActiveItem(request.itemId());
-        validatePickupLocation(item, request.pickupLocation());
-
-        if (request.quantity() <= 0) {
+        if (userId == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+        if (request == null || request.itemId() == null || request.quantity() <= 0) {
             throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID);
         }
 
-        int unitPrice = item.getPrice();
-        int usedCredit = unitPrice * request.quantity();
-
-        enforcePurchaseLimit(user, item, request.quantity());
-
-        RedisResourceKey resourceKey = RedisResourceKey.storeItem(item.getId());
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(request.itemId());
         RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
         boolean reserved = false;
-        boolean callbackRegistered = false;
+        AtomicBoolean callbackRegistered = new AtomicBoolean();
         try {
             StoreStockService.ReserveResult reserveResult = storeStockService.reserve(
-                    item.getId(),
+                    request.itemId(),
                     request.quantity()
             );
             if (reserveResult == StoreStockService.ReserveResult.STOCK_SHORTAGE) {
                 throw new StoreException(StoreErrorCode.STORE_STOCK_SHORTAGE);
+            }
+            if (reserveResult == StoreStockService.ReserveResult.CACHE_MISS) {
+                findActiveItem(request.itemId());
             }
             if (reserveResult != StoreStockService.ReserveResult.RESERVED) {
                 throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
             }
             reserved = true;
 
-            callbackRegistered = redisTransactionCallbackRegistrar.registerRollbackCompensation(
-                    resourceKey,
-                    () -> storeStockService.release(item.getId(), request.quantity()),
-                    lockHandle::close
-            );
-            if (!callbackRegistered) {
-                throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
-            }
-
-            try {
-                user.decreaseCreditBalance(usedCredit);
-            } catch (IllegalStateException exception) {
-                throw new StoreException(StoreErrorCode.STORE_CREDIT_NOT_ENOUGH, exception);
-            }
-
-            StoreOrder order = StoreOrder.create(
-                    user,
-                    item,
-                    unitPrice,
-                    request.quantity(),
-                    request.pickupLocation().trim()
-            );
-            StoreOrder saved = storeOrderRepository.save(order);
-            creditHistoryRepository.save(CreditHistory.create(user, saved, -usedCredit, "STORE_PURCHASE"));
-
-            item.decreaseStock(request.quantity());
-
-            log.info("[Store] action=PURCHASE userId={} orderId={} itemId={} quantity={} usedCredit={}",
-                    userId,
-                    saved.getId(),
-                    item.getId(),
-                    request.quantity(),
-                    usedCredit);
-            return new StoreOrderCreateResponse(
-                    saved.getId(),
-                    item.getId(),
-                    item.getName(),
-                    saved.getQuantity(),
-                    saved.getPrice(),
-                    usedCredit,
-                    saved.getPickupLocation(),
-                    saved.getStatus(),
-                    toOffset(saved.getCreatedAt())
+            return transactionOperations.execute(
+                    status -> createOrderInTransaction(
+                            request,
+                            userId,
+                            resourceKey,
+                            lockHandle,
+                            callbackRegistered
+                    )
             );
         } finally {
-            if (!callbackRegistered) {
+            if (!callbackRegistered.get()) {
                 try {
                     if (reserved) {
-                        storeStockService.release(item.getId(), request.quantity());
+                        storeStockService.release(request.itemId(), request.quantity());
                     }
                 } finally {
                     lockHandle.close();
@@ -183,9 +147,108 @@ public class StoreServiceImpl implements StoreService {
         }
     }
 
+    /**
+     * Redis 재고 선점 이후 주문을 DB에 반영하는 메서드.
+     */
+    private StoreOrderCreateResponse createOrderInTransaction(
+            StoreOrderCreateRequest request,
+            Long userId,
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle,
+            AtomicBoolean callbackRegistered
+    ) {
+        boolean registered = redisTransactionCallbackRegistrar.registerRollbackCompensation(
+                resourceKey,
+                () -> storeStockService.release(request.itemId(), request.quantity()),
+                lockHandle::close
+        );
+        callbackRegistered.set(registered);
+        if (!registered) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+        }
+
+        User user = findUser(userId);
+        StoreItem item = findActiveItem(request.itemId());
+        validatePickupLocation(item, request.pickupLocation());
+        enforcePurchaseLimit(user, item, request.quantity());
+
+        int unitPrice = item.getPrice();
+        int usedCredit = unitPrice * request.quantity();
+
+        try {
+            user.decreaseCreditBalance(usedCredit);
+        } catch (IllegalStateException exception) {
+            throw new StoreException(StoreErrorCode.STORE_CREDIT_NOT_ENOUGH, exception);
+        }
+
+        StoreOrder order = StoreOrder.create(
+                user,
+                item,
+                unitPrice,
+                request.quantity(),
+                request.pickupLocation().trim()
+        );
+        StoreOrder saved = storeOrderRepository.save(order);
+        creditHistoryRepository.save(CreditHistory.create(user, saved, -usedCredit, "STORE_PURCHASE"));
+
+        item.decreaseStock(request.quantity());
+
+        log.info("[Store] action=PURCHASE userId={} orderId={} itemId={} quantity={} usedCredit={}",
+                userId,
+                saved.getId(),
+                item.getId(),
+                request.quantity(),
+                usedCredit);
+        return new StoreOrderCreateResponse(
+                saved.getId(),
+                item.getId(),
+                item.getName(),
+                saved.getQuantity(),
+                saved.getPrice(),
+                usedCredit,
+                saved.getPickupLocation(),
+                saved.getStatus(),
+                toOffset(saved.getCreatedAt())
+        );
+    }
+
     @Override
-    @Transactional
     public StoreOrderCancelResponse cancelOrder(Long orderId, Long userId) {
+        if (userId == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+
+        Long itemId = findOrderItemId(orderId);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        AtomicBoolean callbackRegistered = new AtomicBoolean();
+        try {
+            return transactionOperations.execute(
+                    status -> cancelOrderInTransaction(
+                            orderId,
+                            userId,
+                            resourceKey,
+                            lockHandle,
+                            callbackRegistered
+                    )
+            );
+        } finally {
+            if (!callbackRegistered.get()) {
+                lockHandle.close();
+            }
+        }
+    }
+
+    /**
+     * 주문 취소를 DB에 반영하는 메서드.
+     */
+    private StoreOrderCancelResponse cancelOrderInTransaction(
+            Long orderId,
+            Long userId,
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle,
+            AtomicBoolean callbackRegistered
+    ) {
         User user = findUser(userId);
         StoreOrder order = findOrderOwnedBy(orderId, user);
         if (order.getStatus() != StoreOrderStatus.PURCHASED) {
@@ -193,42 +256,34 @@ public class StoreServiceImpl implements StoreService {
         }
 
         StoreItem item = order.getItem();
-        RedisResourceKey resourceKey = RedisResourceKey.storeItem(item.getId());
-        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
-        boolean callbackRegistered = false;
-        try {
-            callbackRegistered = redisTransactionCallbackRegistrar.registerAfterCommit(
-                    resourceKey,
-                    () -> storeStockService.release(item.getId(), order.getQuantity()),
-                    lockHandle::close
-            );
-            if (!callbackRegistered) {
-                throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
-            }
-
-            item.increaseStock(order.getQuantity());
-            int refundAmount = order.getPrice() * order.getQuantity();
-            user.increaseCreditBalance(refundAmount);
-            order.cancel();
-
-            creditHistoryRepository.save(CreditHistory.create(user, order, refundAmount, "STORE_CANCEL"));
-            log.info("[Store] action=CANCEL_PURCHASE userId={} orderId={} itemId={} refundAmount={}",
-                    userId,
-                    orderId,
-                    item.getId(),
-                    refundAmount);
-
-            return new StoreOrderCancelResponse(
-                    order.getId(),
-                    order.getStatus(),
-                    refundAmount,
-                    toOffset(order.getUpdatedAt())
-            );
-        } finally {
-            if (!callbackRegistered) {
-                lockHandle.close();
-            }
+        boolean registered = redisTransactionCallbackRegistrar.registerAfterCommit(
+                resourceKey,
+                () -> storeStockService.release(item.getId(), order.getQuantity()),
+                lockHandle::close
+        );
+        callbackRegistered.set(registered);
+        if (!registered) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
         }
+
+        item.increaseStock(order.getQuantity());
+        int refundAmount = order.getPrice() * order.getQuantity();
+        user.increaseCreditBalance(refundAmount);
+        order.cancel();
+
+        creditHistoryRepository.save(CreditHistory.create(user, order, refundAmount, "STORE_CANCEL"));
+        log.info("[Store] action=CANCEL_PURCHASE userId={} orderId={} itemId={} refundAmount={}",
+                userId,
+                orderId,
+                item.getId(),
+                refundAmount);
+
+        return new StoreOrderCancelResponse(
+                order.getId(),
+                order.getStatus(),
+                refundAmount,
+                toOffset(order.getUpdatedAt())
+        );
     }
 
     @Override
@@ -424,6 +479,11 @@ public class StoreServiceImpl implements StoreService {
     private StoreOrder findOrderOwnedBy(Long orderId, User user) {
         return storeOrderRepository.findById(orderId)
                 .filter(order -> order.getUser().equals(user))
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    private Long findOrderItemId(Long orderId) {
+        return storeOrderRepository.findItemIdById(orderId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
     }
 

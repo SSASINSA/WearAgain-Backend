@@ -67,6 +67,17 @@ class RedisTransactionCallbackRegistrarTest {
     }
 
     @Test
+    void should_run_registered_completion_after_transaction_finishes() {
+        AtomicBoolean completed = new AtomicBoolean(false);
+
+        boolean registered = registrar.registerCompletion(STORE_ITEM_KEY, () -> completed.set(true));
+        getRegisteredSynchronization().afterCompletion(TransactionSynchronization.STATUS_COMMITTED);
+
+        assertThat(registered).isTrue();
+        assertThat(completed).isTrue();
+    }
+
+    @Test
     void should_skip_compensation_when_transaction_status_is_unknown() {
         List<String> executionOrder = new ArrayList<>();
 
