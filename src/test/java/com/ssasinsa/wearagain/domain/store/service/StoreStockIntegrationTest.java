@@ -3,9 +3,13 @@ package com.ssasinsa.wearagain.domain.store.service;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
+import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
+import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
 import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
+import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemUpdateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreOrderCreateRequest;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItem;
 import com.ssasinsa.wearagain.domain.store.entity.StoreItemStatus;
@@ -16,8 +20,15 @@ import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
 import com.ssasinsa.wearagain.support.RedisTestContainerSupport;
+import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -36,11 +47,15 @@ class StoreStockIntegrationTest extends RedisTestContainerSupport {
     @Autowired
     private StoreService storeService;
     @Autowired
+    private StoreAdminService storeAdminService;
+    @Autowired
     private StoreItemRepository storeItemRepository;
     @Autowired
     private StoreOrderRepository storeOrderRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private AdminUserRepository adminUserRepository;
     @Autowired
     private CreditHistoryRepository creditHistoryRepository;
     @Autowired
@@ -53,8 +68,11 @@ class StoreStockIntegrationTest extends RedisTestContainerSupport {
     private PlatformTransactionManager transactionManager;
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    @Autowired
+    private RedisResourceGuard redisResourceGuard;
 
     private User user;
+    private AdminUser admin;
     private StoreItem item;
 
     @BeforeEach
@@ -67,6 +85,14 @@ class StoreStockIntegrationTest extends RedisTestContainerSupport {
             user = User.create("buyer@test.com", "구매자", null);
             user.updateCreditBalance(10_000);
             user = userRepository.save(user);
+            admin = adminUserRepository.save(
+                    AdminUser.createApproved(
+                            "store-stock-admin@test.com",
+                            "encoded",
+                            "관리자",
+                            AdminRole.ADMIN
+                    )
+            );
 
             item = StoreItem.create(
                     "테스트 상품",
@@ -97,6 +123,7 @@ class StoreStockIntegrationTest extends RedisTestContainerSupport {
             storeItemImageRepository.deleteAllInBatch();
             storeItemRepository.deleteAllInBatch();
             userRepository.deleteAllInBatch();
+            adminUserRepository.deleteAllInBatch();
         });
     }
 
@@ -167,8 +194,122 @@ class StoreStockIntegrationTest extends RedisTestContainerSupport {
         assertThat(storeItemRepository.findById(item.getId()).orElseThrow().getStock()).isEqualTo(5);
     }
 
+    @Test
+    void should_purchase_from_stock_committed_by_admin_first() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> purchase;
+        try {
+            RedisResourceKey resourceKey = RedisResourceKey.storeItem(item.getId());
+            try (RedisResourceGuard.LockHandle ignored = redisResourceGuard
+                    .tryAcquireWrite(resourceKey, Duration.ofSeconds(1))
+                    .orElseThrow()) {
+                purchase = executor.submit(() -> storeService.createOrder(
+                        new StoreOrderCreateRequest(item.getId(), 1, "강남 팝업스토어"),
+                        user.getId()
+                ));
+                storeAdminService.updateItem(item.getId(), stockUpdateRequest(20), admin.getId());
+            }
+            purchase.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(fetchDatabaseStock()).isEqualTo(19);
+        assertThat(fetchRedisStock()).isEqualTo(19);
+    }
+
+    @Test
+    void should_apply_admin_stock_after_purchase_commits_first() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> stockUpdate;
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(item.getId());
+        try {
+            try (RedisResourceGuard.LockHandle ignored = redisResourceGuard.acquireRead(resourceKey)) {
+                stockUpdate = executor.submit(
+                        () -> storeAdminService.updateItem(
+                                item.getId(),
+                                stockUpdateRequest(20),
+                                admin.getId()
+                        )
+                );
+                storeService.createOrder(
+                        new StoreOrderCreateRequest(item.getId(), 1, "강남 팝업스토어"),
+                        user.getId()
+                );
+            }
+            stockUpdate.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        assertThat(fetchDatabaseStock()).isEqualTo(20);
+        assertThat(fetchRedisStock()).isEqualTo(20);
+    }
+
+    @Test
+    void should_preserve_purchase_stock_when_admin_updates_information() throws Exception {
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        Future<?> informationUpdate;
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(item.getId());
+        try {
+            try (RedisResourceGuard.LockHandle ignored = redisResourceGuard.acquireRead(resourceKey)) {
+                informationUpdate = executor.submit(
+                        () -> storeAdminService.updateItem(
+                                item.getId(),
+                                informationUpdateRequest("변경된 설명"),
+                                admin.getId()
+                        )
+                );
+                storeService.createOrder(
+                        new StoreOrderCreateRequest(item.getId(), 1, "강남 팝업스토어"),
+                        user.getId()
+                );
+            }
+            informationUpdate.get(5, TimeUnit.SECONDS);
+        } finally {
+            executor.shutdownNow();
+        }
+
+        StoreItem currentItem = storeItemRepository.findById(item.getId()).orElseThrow();
+        assertThat(currentItem.getDescription()).isEqualTo("변경된 설명");
+        assertThat(currentItem.getStock()).isEqualTo(4);
+        assertThat(fetchRedisStock()).isEqualTo(4);
+    }
+
     private int fetchRedisStock() {
         String value = redisTemplate.opsForValue().get("store:stock:item:" + item.getId());
         return value == null ? 0 : Integer.parseInt(value);
+    }
+
+    private int fetchDatabaseStock() {
+        return storeItemRepository.findById(item.getId()).orElseThrow().getStock();
+    }
+
+    private StoreItemUpdateRequest stockUpdateRequest(int stock) {
+        return new StoreItemUpdateRequest(
+                null,
+                null,
+                null,
+                null,
+                stock,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private StoreItemUpdateRequest informationUpdateRequest(String description) {
+        return new StoreItemUpdateRequest(
+                null,
+                description,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
     }
 }
