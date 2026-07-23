@@ -6,13 +6,16 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anySet;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.event.dto.request.EventApplyRequest;
+import com.ssasinsa.wearagain.domain.event.dto.request.EventCancelRequest;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventApplicationDetailResponse;
 import com.ssasinsa.wearagain.domain.event.dto.response.EventDetailResponse;
 import com.ssasinsa.wearagain.domain.event.entity.Event;
@@ -27,6 +30,9 @@ import com.ssasinsa.wearagain.domain.event.repository.EventOptionRepository;
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
 import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
+import com.ssasinsa.wearagain.global.common.redis.RedisTransactionCallbackRegistrar;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.LocalDate;
@@ -37,6 +43,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -62,6 +69,15 @@ class EventUserServiceImplTest {
     @Mock
     private OptionCapacityService optionCapacityService;
 
+    @Mock
+    private RedisResourceGuard redisResourceGuard;
+
+    @Mock
+    private RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
+
+    @Mock
+    private RedisResourceGuard.LockHandle lockHandle;
+
     private EventUserServiceImpl eventUserService;
 
     @BeforeEach
@@ -73,7 +89,9 @@ class EventUserServiceImplTest {
                 null,
                 userRepository,
                 eventQrTokenStore,
-                optionCapacityService
+                optionCapacityService,
+                redisResourceGuard,
+                redisTransactionCallbackRegistrar
         );
     }
 
@@ -346,6 +364,164 @@ class EventUserServiceImplTest {
     }
 
     @Test
+    void should_register_rollback_compensation_after_capacity_reservation() {
+        Long eventId = 401L;
+        Long optionId = 4001L;
+        Long userId = 41L;
+        Event event = event(eventId);
+        EventOption option = option(event, optionId, 10);
+        User user = user(userId);
+        RedisResourceKey resourceKey = RedisResourceKey.eventOption(optionId);
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventOptionRepository.findByIdAndEventId(optionId, eventId)).thenReturn(Optional.of(option));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(optionCapacityService.reserve(optionId, 10))
+                .thenReturn(OptionCapacityService.ReserveResult.RESERVED);
+        when(redisTransactionCallbackRegistrar.registerRollbackCompensation(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(true);
+        when(eventApplicationRepository.save(any(EventApplication.class))).thenAnswer(invocation -> {
+            EventApplication application = invocation.getArgument(0);
+            ReflectionTestUtils.setField(application, "id", 9001L);
+            return application;
+        });
+
+        eventUserService.apply(eventId, new EventApplyRequest(optionId, null), userId);
+
+        ArgumentCaptor<Runnable> compensation = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> completion = ArgumentCaptor.forClass(Runnable.class);
+        verify(redisTransactionCallbackRegistrar).registerRollbackCompensation(
+                eq(resourceKey),
+                compensation.capture(),
+                completion.capture()
+        );
+        verify(optionCapacityService, never()).release(optionId);
+        compensation.getValue().run();
+        completion.getValue().run();
+        verify(optionCapacityService).release(optionId);
+        verify(lockHandle).close();
+    }
+
+    @Test
+    void should_compensate_immediately_when_transaction_callback_cannot_be_registered() {
+        Long eventId = 402L;
+        Long optionId = 4002L;
+        Long userId = 42L;
+        Event event = event(eventId);
+        EventOption option = option(event, optionId, 10);
+        RedisResourceKey resourceKey = RedisResourceKey.eventOption(optionId);
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventOptionRepository.findByIdAndEventId(optionId, eventId)).thenReturn(Optional.of(option));
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(optionCapacityService.reserve(optionId, 10))
+                .thenReturn(OptionCapacityService.ReserveResult.RESERVED);
+
+        assertThatThrownBy(() -> eventUserService.apply(
+                eventId,
+                new EventApplyRequest(optionId, null),
+                userId
+        ))
+                .isInstanceOf(EventException.class)
+                .extracting(throwable -> ((EventException) throwable).getErrorCode())
+                .isEqualTo(EventErrorCode.EVENT_CAPACITY_UNAVAILABLE);
+        verify(optionCapacityService).release(optionId);
+        verify(lockHandle).close();
+    }
+
+    @Test
+    void should_return_unavailable_when_redis_reservation_fails() {
+        Long eventId = 403L;
+        Long optionId = 4003L;
+        Event event = event(eventId);
+        EventOption option = option(event, optionId, 10);
+        RedisResourceKey resourceKey = RedisResourceKey.eventOption(optionId);
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventOptionRepository.findByIdAndEventId(optionId, eventId)).thenReturn(Optional.of(option));
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(optionCapacityService.reserve(optionId, 10))
+                .thenReturn(OptionCapacityService.ReserveResult.UNAVAILABLE);
+
+        assertThatThrownBy(() -> eventUserService.apply(
+                eventId,
+                new EventApplyRequest(optionId, null),
+                43L
+        ))
+                .isInstanceOf(EventException.class)
+                .extracting(throwable -> ((EventException) throwable).getErrorCode())
+                .isEqualTo(EventErrorCode.EVENT_CAPACITY_UNAVAILABLE);
+        verify(optionCapacityService, never()).release(optionId);
+        verify(lockHandle).close();
+    }
+
+    @Test
+    void should_release_capacity_only_after_cancel_commit_callback() {
+        Long userId = 44L;
+        Event event = event(404L);
+        EventOption option = option(event, 4004L, 10);
+        User user = user(userId);
+        EventApplication application = EventApplication.create(
+                user,
+                event,
+                option,
+                EventApplicationStatus.APPLIED,
+                null
+        );
+        ReflectionTestUtils.setField(application, "id", 9404L);
+        RedisResourceKey resourceKey = RedisResourceKey.eventOption(option.getId());
+
+        when(eventApplicationRepository.findByIdAndUserId(application.getId(), userId))
+                .thenReturn(Optional.of(application));
+        when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
+        when(redisTransactionCallbackRegistrar.registerAfterCommit(
+                eq(resourceKey),
+                any(Runnable.class),
+                any(Runnable.class)
+        )).thenReturn(true);
+
+        eventUserService.cancel(application.getId(), new EventCancelRequest("일정 변경"), userId);
+
+        ArgumentCaptor<Runnable> action = ArgumentCaptor.forClass(Runnable.class);
+        ArgumentCaptor<Runnable> completion = ArgumentCaptor.forClass(Runnable.class);
+        verify(redisTransactionCallbackRegistrar).registerAfterCommit(
+                eq(resourceKey),
+                action.capture(),
+                completion.capture()
+        );
+        assertThat(application.getStatus()).isEqualTo(EventApplicationStatus.CANCELED);
+        verify(optionCapacityService, never()).release(option.getId());
+        action.getValue().run();
+        completion.getValue().run();
+        verify(optionCapacityService).release(option.getId());
+        verify(lockHandle).close();
+    }
+
+    @Test
+    void should_skip_redis_when_applying_to_unlimited_option() {
+        Long eventId = 405L;
+        Long optionId = 4005L;
+        Long userId = 45L;
+        Event event = event(eventId);
+        EventOption option = option(event, optionId, null);
+        User user = user(userId);
+
+        when(eventRepository.findById(eventId)).thenReturn(Optional.of(event));
+        when(eventOptionRepository.findByIdAndEventId(optionId, eventId)).thenReturn(Optional.of(option));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(eventApplicationRepository.save(any(EventApplication.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        eventUserService.apply(eventId, new EventApplyRequest(optionId, null), userId);
+
+        verifyNoInteractions(optionCapacityService, redisResourceGuard, redisTransactionCallbackRegistrar);
+    }
+
+    @Test
     void should_throw_when_request_qr_for_closed_event() {
         // Given
         User user = User.create("user@wearagain.kr", "사용자", null);
@@ -388,5 +564,36 @@ class EventUserServiceImplTest {
                 .extracting(throwable -> ((EventException) throwable).getErrorCode())
                 .isEqualTo(EventErrorCode.EVENT_CHECKIN_NOT_AVAILABLE);
         verify(eventQrTokenStore, never()).generateToken();
+    }
+
+    private Event event(Long eventId) {
+        AdminUser admin = AdminUser.createSuperAdmin("admin@wearagain.kr", "encoded", "관리자");
+        ReflectionTestUtils.setField(admin, "id", eventId + 1000);
+        Event event = Event.create(
+                "업사이클링 클래스",
+                "업사이클링 수업",
+                LocalDate.now(),
+                LocalDate.now().plusDays(1),
+                "서울시 마포구",
+                EventStatus.OPEN,
+                admin,
+                null,
+                null,
+                1
+        );
+        ReflectionTestUtils.setField(event, "id", eventId);
+        return event;
+    }
+
+    private EventOption option(Event event, Long optionId, Integer capacity) {
+        EventOption option = EventOption.create(event, null, "신청 옵션", 1, capacity);
+        ReflectionTestUtils.setField(option, "id", optionId);
+        return option;
+    }
+
+    private User user(Long userId) {
+        User user = User.create("user%s@wearagain.kr".formatted(userId), "사용자", null);
+        ReflectionTestUtils.setField(user, "id", userId);
+        return user;
     }
 }

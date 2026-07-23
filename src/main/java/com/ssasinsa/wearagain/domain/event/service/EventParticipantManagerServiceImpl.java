@@ -21,6 +21,9 @@ import com.ssasinsa.wearagain.domain.event.repository.EventApplicationSpecificat
 import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.user.dto.admin.AdminParticipantDetailResponse;
 import com.ssasinsa.wearagain.domain.user.service.UserAdminService;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
+import com.ssasinsa.wearagain.global.common.redis.RedisTransactionCallbackRegistrar;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -58,6 +61,9 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
     private final EventApplicationRepository eventApplicationRepository;
     private final EventRepository eventRepository;
     private final UserAdminService userAdminService;
+    private final OptionCapacityService optionCapacityService;
+    private final RedisResourceGuard redisResourceGuard;
+    private final RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
 
     @Override
     public ManagerEventParticipantListResponse getParticipants(
@@ -160,6 +166,42 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
             throw new EventException(EventErrorCode.EVENT_APPLICATION_NOT_CANCELABLE);
         }
 
+        EventOption option = application.getEventOption();
+        if (option == null || option.getCapacity() == null) {
+            rejectApplication(application, request, principal, eventId, applicationId);
+            return;
+        }
+
+        RedisResourceKey resourceKey = RedisResourceKey.eventOption(option.getId());
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            callbackRegistered = redisTransactionCallbackRegistrar.registerAfterCommit(
+                    resourceKey,
+                    () -> optionCapacityService.release(option.getId()),
+                    lockHandle::close
+            );
+            if (!callbackRegistered) {
+                throw capacityUnavailable();
+            }
+            rejectApplication(application, request, principal, eventId, applicationId);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
+        }
+    }
+
+    /**
+     * 행사 신청 관리자 거절 DB 반영 메서드.
+     */
+    private void rejectApplication(
+            EventApplication application,
+            ManagerEventParticipantCancelRequest request,
+            AdminAuthenticatedUser principal,
+            Long eventId,
+            Long applicationId
+    ) {
         String reason = request == null ? null : request.reason().trim();
         application.reject(LocalDateTime.now(), reason);
         log.info("[Event] action=ADMIN_CANCEL adminId={} role={} eventId={} applicationId={} targetUserId={}",
@@ -168,6 +210,13 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
                 eventId,
                 applicationId,
                 application.getUser() != null ? application.getUser().getId() : null);
+    }
+
+    /**
+     * 행사 정원 처리 불가 예외 생성 메서드.
+     */
+    private EventException capacityUnavailable() {
+        return new EventException(EventErrorCode.EVENT_CAPACITY_UNAVAILABLE);
     }
 
     private Specification<EventApplication> buildBaseSpecification(
