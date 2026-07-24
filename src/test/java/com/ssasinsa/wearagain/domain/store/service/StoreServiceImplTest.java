@@ -95,9 +95,14 @@ class StoreServiceImplTest {
         User user = user(1L, 5000);
         StoreItem item = item(10L, 1000, 5, 2);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(user));
         when(storeItemRepository.findById(10L)).thenReturn(Optional.of(item));
-        when(storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED)).thenReturn(0L);
+        when(storeOrderRepository.sumQuantityByUserAndItemAndStatus(
+                user,
+                item,
+                StoreOrderStatus.PURCHASED
+        )).thenReturn(0L);
+        when(storeItemRepository.decreaseStock(10L, 2, StoreItemStatus.ACTIVE)).thenReturn(1);
         RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
         when(storeStockService.reserve(10L, 2)).thenReturn(StoreStockService.ReserveResult.RESERVED);
@@ -126,12 +131,20 @@ class StoreServiceImplTest {
         completionCaptor.getValue().run();
         assertThat(response.orderId()).isEqualTo(50L);
         assertThat(response.usedCredit()).isEqualTo(2000);
-        assertThat(item.getStock()).isEqualTo(3);
+        assertThat(item.getStock()).isEqualTo(5);
         assertThat(user.getCreditBalance()).isEqualTo(3000);
-        InOrder ordered = inOrder(storeStockService, transactionOperations, userRepository);
+        InOrder ordered = inOrder(
+                storeStockService,
+                transactionOperations,
+                userRepository,
+                storeItemRepository,
+                storeOrderRepository
+        );
         ordered.verify(storeStockService).reserve(10L, 2);
         ordered.verify(transactionOperations).execute(any());
-        ordered.verify(userRepository).findById(1L);
+        ordered.verify(userRepository).findByIdForUpdate(1L);
+        ordered.verify(storeItemRepository).decreaseStock(10L, 2, StoreItemStatus.ACTIVE);
+        ordered.verify(storeOrderRepository).save(any(StoreOrder.class));
         verify(storeStockService, never()).release(anyLong(), anyInt());
         verify(lockHandle).close();
         verify(creditHistoryRepository).save(any());
@@ -143,7 +156,7 @@ class StoreServiceImplTest {
         User user = user(1L, 5000);
         StoreItem item = item(10L, 1000, 5, 2);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(user));
         when(storeItemRepository.findById(10L)).thenReturn(Optional.of(item));
         RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
@@ -182,9 +195,10 @@ class StoreServiceImplTest {
         ReflectionTestUtils.setField(order, "createdAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
         ReflectionTestUtils.setField(order, "updatedAt", LocalDateTime.of(2025, 2, 11, 4, 0, 0));
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(storeOrderRepository.findById(77L)).thenReturn(Optional.of(order));
+        when(userRepository.findByIdForUpdate(1L)).thenReturn(Optional.of(user));
+        when(storeOrderRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(order));
         when(storeOrderRepository.findItemIdById(77L)).thenReturn(Optional.of(10L));
+        when(storeItemRepository.increaseStock(10L, 2)).thenReturn(1);
         RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
         when(redisTransactionCallbackRegistrar.registerAfterCommit(
@@ -205,9 +219,10 @@ class StoreServiceImplTest {
         actionCaptor.getValue().run();
         completionCaptor.getValue().run();
         assertThat(response.refundedCredit()).isEqualTo(2000);
-        assertThat(item.getStock()).isEqualTo(2);
+        assertThat(item.getStock()).isZero();
         assertThat(user.getCreditBalance()).isEqualTo(2000);
         assertThat(order.getStatus()).isEqualTo(StoreOrderStatus.CANCELED);
+        verify(storeItemRepository).increaseStock(10L, 2);
         verify(storeStockService).release(10L, 2);
         verify(lockHandle).close();
         verify(creditHistoryRepository).save(any());
@@ -283,8 +298,7 @@ class StoreServiceImplTest {
         ReflectionTestUtils.setField(order, "id", 77L);
         RedisResourceKey resourceKey = RedisResourceKey.storeItem(10L);
 
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        when(storeOrderRepository.findById(77L)).thenReturn(Optional.of(order));
+        when(storeOrderRepository.findByIdForUpdate(77L)).thenReturn(Optional.of(order));
         when(storeOrderRepository.findItemIdById(77L)).thenReturn(Optional.of(10L));
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
 

@@ -167,7 +167,7 @@ public class StoreServiceImpl implements StoreService {
             throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
         }
 
-        User user = findUser(userId);
+        User user = findUserForUpdate(userId);
         StoreItem item = findActiveItem(request.itemId());
         validatePickupLocation(item, request.pickupLocation());
         enforcePurchaseLimit(user, item, request.quantity());
@@ -181,6 +181,8 @@ public class StoreServiceImpl implements StoreService {
             throw new StoreException(StoreErrorCode.STORE_CREDIT_NOT_ENOUGH, exception);
         }
 
+        decreaseDatabaseStock(item.getId(), request.quantity());
+
         StoreOrder order = StoreOrder.create(
                 user,
                 item,
@@ -190,8 +192,6 @@ public class StoreServiceImpl implements StoreService {
         );
         StoreOrder saved = storeOrderRepository.save(order);
         creditHistoryRepository.save(CreditHistory.create(user, saved, -usedCredit, "STORE_PURCHASE"));
-
-        item.decreaseStock(request.quantity());
 
         log.info("[Store] action=PURCHASE userId={} orderId={} itemId={} quantity={} usedCredit={}",
                 userId,
@@ -249,12 +249,12 @@ public class StoreServiceImpl implements StoreService {
             RedisResourceGuard.LockHandle lockHandle,
             AtomicBoolean callbackRegistered
     ) {
-        User user = findUser(userId);
-        StoreOrder order = findOrderOwnedBy(orderId, user);
+        StoreOrder order = findOrderOwnedByForUpdate(orderId, userId);
         if (order.getStatus() != StoreOrderStatus.PURCHASED) {
             throw new StoreException(StoreErrorCode.STORE_ORDER_CANCEL_INVALID);
         }
 
+        User user = findUserForUpdate(userId);
         StoreItem item = order.getItem();
         boolean registered = redisTransactionCallbackRegistrar.registerAfterCommit(
                 resourceKey,
@@ -266,7 +266,7 @@ public class StoreServiceImpl implements StoreService {
             throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
         }
 
-        item.increaseStock(order.getQuantity());
+        increaseDatabaseStock(item.getId(), order.getQuantity());
         int refundAmount = order.getPrice() * order.getQuantity();
         user.increaseCreditBalance(refundAmount);
         order.cancel();
@@ -417,6 +417,14 @@ public class StoreServiceImpl implements StoreService {
                 .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
     }
 
+    private User findUserForUpdate(Long userId) {
+        if (userId == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+        return userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
+    }
+
     private StoreItem findActiveItem(Long itemId) {
         StoreItem item = storeItemRepository.findById(itemId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ITEM_NOT_FOUND));
@@ -424,6 +432,30 @@ public class StoreServiceImpl implements StoreService {
             throw new StoreException(StoreErrorCode.STORE_ITEM_INACTIVE);
         }
         return item;
+    }
+
+    /**
+     * Redis에서 선점한 상품 재고를 DB에 차감하는 메서드.
+     */
+    private void decreaseDatabaseStock(Long itemId, int quantity) {
+        int updated = storeItemRepository.decreaseStock(
+                itemId,
+                quantity,
+                StoreItemStatus.ACTIVE
+        );
+        if (updated != 1) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * DB 상품 재고 증가 메서드.
+     */
+    private void increaseDatabaseStock(Long itemId, int quantity) {
+        int updated = storeItemRepository.increaseStock(itemId, quantity);
+        if (updated != 1) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+        }
     }
 
     private void validatePickupLocation(StoreItem item, String pickupLocation) {
@@ -437,8 +469,12 @@ public class StoreServiceImpl implements StoreService {
         if (maxPerUser == null) {
             return;
         }
-        long purchasedCount = storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED);
-        if ((long) quantity + purchasedCount > maxPerUser) {
+        long purchasedQuantity = storeOrderRepository.sumQuantityByUserAndItemAndStatus(
+                user,
+                item,
+                StoreOrderStatus.PURCHASED
+        );
+        if ((long) quantity + purchasedQuantity > maxPerUser) {
             throw new StoreException(StoreErrorCode.STORE_PURCHASE_LIMIT_EXCEEDED);
         }
     }
@@ -479,6 +515,12 @@ public class StoreServiceImpl implements StoreService {
     private StoreOrder findOrderOwnedBy(Long orderId, User user) {
         return storeOrderRepository.findById(orderId)
                 .filter(order -> order.getUser().equals(user))
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    private StoreOrder findOrderOwnedByForUpdate(Long orderId, Long userId) {
+        return storeOrderRepository.findByIdForUpdate(orderId)
+                .filter(order -> Objects.equals(order.getUser().getId(), userId))
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
     }
 

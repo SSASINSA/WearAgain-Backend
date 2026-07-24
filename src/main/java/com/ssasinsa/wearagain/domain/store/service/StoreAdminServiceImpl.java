@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.store.service;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
+import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.finance.entity.CreditHistory;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
@@ -73,6 +74,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     private final StoreOrderRepository storeOrderRepository;
     private final CreditHistoryRepository creditHistoryRepository;
     private final AdminUserRepository adminUserRepository;
+    private final UserRepository userRepository;
     private final StoreStockService storeStockService;
     private final RedisResourceGuard redisResourceGuard;
     private final RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
@@ -294,12 +296,13 @@ public class StoreAdminServiceImpl implements StoreAdminService {
             RedisResourceGuard.LockHandle lockHandle,
             AtomicBoolean callbackRegistered
     ) {
-        StoreOrder order = findOrder(orderId);
+        StoreOrder order = findOrderForUpdate(orderId);
         if (order.getStatus() != StoreOrderStatus.PURCHASED) {
             throw new StoreException(StoreErrorCode.STORE_ORDER_CANCEL_INVALID);
         }
 
         StoreItem item = order.getItem();
+        User user = findUserForUpdate(order.getUser().getId());
         boolean registered = redisTransactionCallbackRegistrar.registerAfterCommit(
                 resourceKey,
                 () -> storeStockService.release(item.getId(), order.getQuantity()),
@@ -310,9 +313,8 @@ public class StoreAdminServiceImpl implements StoreAdminService {
             throw stockUnavailable();
         }
 
-        item.increaseStock(order.getQuantity());
+        increaseDatabaseStock(item.getId(), order.getQuantity());
 
-        User user = order.getUser();
         int refundAmount = order.getPrice() * order.getQuantity();
         user.increaseCreditBalance(refundAmount);
         order.cancel();
@@ -468,9 +470,24 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ITEM_NOT_FOUND));
     }
 
-    private StoreOrder findOrder(Long orderId) {
-        return storeOrderRepository.findById(orderId)
+    private StoreOrder findOrderForUpdate(Long orderId) {
+        return storeOrderRepository.findByIdForUpdate(orderId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    private User findUserForUpdate(Long userId) {
+        return userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    /**
+     * DB 상품 재고 증가 메서드.
+     */
+    private void increaseDatabaseStock(Long itemId, int quantity) {
+        int updated = storeItemRepository.increaseStock(itemId, quantity);
+        if (updated != 1) {
+            throw stockUnavailable();
+        }
     }
 
     private Long findOrderItemId(Long orderId) {

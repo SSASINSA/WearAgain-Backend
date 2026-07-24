@@ -4,6 +4,7 @@ import com.ssasinsa.wearagain.domain.auth.entity.AdminRole;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
+import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest.StoreItemImageRequest;
@@ -76,6 +77,9 @@ class StoreAdminServiceImplTest {
 
     @Mock
     private AdminUserRepository adminUserRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @Mock
     private StoreStockService storeStockService;
@@ -413,8 +417,10 @@ class StoreAdminServiceImplTest {
         setId(user, 33L);
         StoreOrder order = StoreOrder.create(user, item, 1500, 2, "서울");
         setId(order, 1000L);
-        when(storeOrderRepository.findById(1000L)).thenReturn(java.util.Optional.of(order));
+        when(storeOrderRepository.findByIdForUpdate(1000L)).thenReturn(java.util.Optional.of(order));
         when(storeOrderRepository.findItemIdById(1000L)).thenReturn(Optional.of(77L));
+        when(userRepository.findByIdForUpdate(33L)).thenReturn(Optional.of(user));
+        when(storeItemRepository.increaseStock(77L, 2)).thenReturn(1);
         RedisResourceKey resourceKey = RedisResourceKey.storeItem(77L);
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
         when(redisTransactionCallbackRegistrar.registerAfterCommit(
@@ -437,8 +443,9 @@ class StoreAdminServiceImplTest {
         assertThat(response.orderId()).isEqualTo(1000L);
         assertThat(response.status()).isEqualTo(StoreOrderStatus.CANCELED);
         assertThat(response.refundedAmount()).isEqualTo(3000);
-        assertThat(item.getStock()).isEqualTo(3); // 기존 재고 1 + 취소 수량 2
+        assertThat(item.getStock()).isEqualTo(1);
         assertThat(user.getCreditBalance()).isEqualTo(3000);
+        verify(storeItemRepository).increaseStock(77L, 2);
         verify(creditHistoryRepository).save(any());
         verify(storeStockService).release(77L, 2);
         verify(lockHandle).close();
