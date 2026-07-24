@@ -188,7 +188,7 @@ public class EventUserServiceImpl implements EventUserService {
     @Override
     @Transactional
     public EventCancelResponse cancel(Long applicationId, EventCancelRequest request, Long userId) {
-        EventApplication application = eventApplicationRepository.findByIdAndUserId(applicationId, userId)
+        EventApplication application = eventApplicationRepository.findByIdAndUserIdForUpdate(applicationId, userId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND));
 
         if (application.getStatus() != EventApplicationStatus.APPLIED) {

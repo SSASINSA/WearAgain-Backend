@@ -53,6 +53,10 @@ public class OptionCapacityService {
             if (result == CAPACITY_EXCEEDED) {
                 return ReserveResult.CAPACITY_EXCEEDED;
             }
+            if (result == CACHE_MISS) {
+                log.warn("[OptionCapacity] reserve 대상 key가 없습니다. optionId={}", optionId);
+                return ReserveResult.CACHE_MISS;
+            }
             log.error("[OptionCapacity] reserve 결과가 올바르지 않습니다. optionId={}, result={}", optionId, result);
             return ReserveResult.UNAVAILABLE;
         } catch (DataAccessException exception) {
@@ -112,6 +116,7 @@ public class OptionCapacityService {
     public enum ReserveResult {
         RESERVED,
         CAPACITY_EXCEEDED,
+        CACHE_MISS,
         UNAVAILABLE
     }
 

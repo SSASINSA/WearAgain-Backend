@@ -151,7 +151,7 @@ public class EventParticipantManagerServiceImpl implements EventParticipantManag
             AdminAuthenticatedUser principal
     ) {
         ensureAuthenticated(principal);
-        EventApplication application = eventApplicationRepository.findById(applicationId)
+        EventApplication application = eventApplicationRepository.findByIdForUpdate(applicationId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND));
 
         if (application.getEvent() == null

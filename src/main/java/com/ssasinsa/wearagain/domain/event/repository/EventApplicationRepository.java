@@ -2,18 +2,20 @@ package com.ssasinsa.wearagain.domain.event.repository;
 
 import com.ssasinsa.wearagain.domain.event.entity.EventApplication;
 import com.ssasinsa.wearagain.domain.event.entity.EventApplicationStatus;
+import jakarta.persistence.LockModeType;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.repository.query.Param;
-import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface EventApplicationRepository extends
         JpaRepository<EventApplication, Long>,
@@ -26,6 +28,21 @@ public interface EventApplicationRepository extends
     long countByEventOptionIdAndStatusIn(Long eventOptionId, Collection<EventApplicationStatus> statuses);
 
     Optional<EventApplication> findByIdAndUserId(Long applicationId, Long userId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ea from EventApplication ea
+            where ea.id = :applicationId
+            and ea.user.id = :userId
+            """)
+    Optional<EventApplication> findByIdAndUserIdForUpdate(
+            @Param("applicationId") Long applicationId,
+            @Param("userId") Long userId
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select ea from EventApplication ea where ea.id = :applicationId")
+    Optional<EventApplication> findByIdForUpdate(@Param("applicationId") Long applicationId);
 
     @Query("""
             select new com.ssasinsa.wearagain.domain.event.repository.EventOptionApplicationCount(

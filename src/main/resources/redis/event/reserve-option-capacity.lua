@@ -1,7 +1,6 @@
 local used = redis.call('GET', KEYS[1])
 if not used then
-    redis.call('SET', KEYS[1], '0')
-    used = '0'
+    return -2
 end
 
 local usedNumber = tonumber(used)

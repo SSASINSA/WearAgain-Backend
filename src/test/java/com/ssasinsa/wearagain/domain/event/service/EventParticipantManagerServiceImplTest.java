@@ -169,7 +169,7 @@ class EventParticipantManagerServiceImplTest {
 
     @Test
     void should_cancelApplication_when_managerOwnsEvent() {
-        when(eventApplicationRepository.findById(application.getId()))
+        when(eventApplicationRepository.findByIdForUpdate(application.getId()))
                 .thenReturn(java.util.Optional.of(application));
         RedisResourceKey resourceKey = RedisResourceKey.eventOption(application.getEventOption().getId());
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
@@ -201,7 +201,7 @@ class EventParticipantManagerServiceImplTest {
 
     @Test
     void should_not_reject_when_transaction_callback_cannot_be_registered() {
-        when(eventApplicationRepository.findById(application.getId()))
+        when(eventApplicationRepository.findByIdForUpdate(application.getId()))
                 .thenReturn(java.util.Optional.of(application));
         RedisResourceKey resourceKey = RedisResourceKey.eventOption(application.getEventOption().getId());
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);

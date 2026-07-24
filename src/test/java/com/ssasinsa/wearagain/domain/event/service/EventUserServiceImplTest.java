@@ -475,7 +475,7 @@ class EventUserServiceImplTest {
         ReflectionTestUtils.setField(application, "id", 9404L);
         RedisResourceKey resourceKey = RedisResourceKey.eventOption(option.getId());
 
-        when(eventApplicationRepository.findByIdAndUserId(application.getId(), userId))
+        when(eventApplicationRepository.findByIdAndUserIdForUpdate(application.getId(), userId))
                 .thenReturn(Optional.of(application));
         when(redisResourceGuard.acquireRead(resourceKey)).thenReturn(lockHandle);
         when(redisTransactionCallbackRegistrar.registerAfterCommit(

@@ -92,9 +92,9 @@ class OptionCapacityServiceTest extends RedisTestContainerSupport {
     }
 
     @Test
-    void should_create_and_reserve_when_capacity_key_is_missing() {
-        assertThat(optionCapacityService.reserve(MISSING_OPTION_ID, 1)).isEqualTo(ReserveResult.RESERVED);
-        assertThat(redisTemplate.opsForValue().get(CAPACITY_KEY_PREFIX + MISSING_OPTION_ID)).isEqualTo("1");
+    void should_not_create_key_when_reserving_missing_capacity() {
+        assertThat(optionCapacityService.reserve(MISSING_OPTION_ID, 1)).isEqualTo(ReserveResult.CACHE_MISS);
+        assertThat(redisTemplate.hasKey(CAPACITY_KEY_PREFIX + MISSING_OPTION_ID)).isFalse();
     }
 
     @Test

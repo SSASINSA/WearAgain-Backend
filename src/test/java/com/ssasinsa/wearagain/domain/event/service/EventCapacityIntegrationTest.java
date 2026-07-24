@@ -30,6 +30,12 @@ import com.ssasinsa.wearagain.support.RedisTestContainerSupport;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -44,7 +50,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 @ActiveProfiles("test")
 class EventCapacityIntegrationTest extends RedisTestContainerSupport {
 
-    private static final int OPTION_CAPACITY = 1;
+    private static final int OPTION_CAPACITY = 2;
     private static final String CAPACITY_KEY_PREFIX = "event:option:used:";
 
     @Autowired
@@ -73,6 +79,7 @@ class EventCapacityIntegrationTest extends RedisTestContainerSupport {
     private Long adminId;
     private Long userId;
     private Long secondUserId;
+    private Long thirdUserId;
     private Long eventId;
     private Long optionId;
 
@@ -94,6 +101,9 @@ class EventCapacityIntegrationTest extends RedisTestContainerSupport {
             User secondUser = userRepository.save(
                     User.create("event-capacity-second-user@test.com", "두 번째 사용자", null)
             );
+            User thirdUser = userRepository.save(
+                    User.create("event-capacity-third-user@test.com", "세 번째 사용자", null)
+            );
             Event event = Event.create(
                     "행사 정원 통합 테스트",
                     "행사 신청과 취소의 Redis 정합성 검증",
@@ -112,6 +122,7 @@ class EventCapacityIntegrationTest extends RedisTestContainerSupport {
             adminId = admin.getId();
             userId = user.getId();
             secondUserId = secondUser.getId();
+            thirdUserId = thirdUser.getId();
             eventId = event.getId();
             optionId = option.getId();
         });
@@ -155,6 +166,9 @@ class EventCapacityIntegrationTest extends RedisTestContainerSupport {
             if (secondUserId != null) {
                 userRepository.deleteAllByIdInBatch(List.of(secondUserId));
             }
+            if (thirdUserId != null) {
+                userRepository.deleteAllByIdInBatch(List.of(thirdUserId));
+            }
             if (adminId != null) {
                 adminUserRepository.deleteAllByIdInBatch(List.of(adminId));
             }
@@ -189,16 +203,17 @@ class EventCapacityIntegrationTest extends RedisTestContainerSupport {
     }
 
     @Test
-    void should_reject_second_application_when_capacity_is_full() {
+    void should_reject_application_when_capacity_is_full() {
         apply();
+        apply(secondUserId);
 
-        assertThatThrownBy(() -> apply(secondUserId))
+        assertThatThrownBy(() -> apply(thirdUserId))
                 .isInstanceOf(EventException.class)
                 .extracting(throwable -> ((EventException) throwable).getErrorCode())
                 .isEqualTo(EventErrorCode.EVENT_CAPACITY_EXCEEDED);
 
-        assertThat(eventApplicationRepository.findAllWithUserByEventId(eventId)).hasSize(1);
-        assertRedisUsed(1);
+        assertThat(eventApplicationRepository.findAllWithUserByEventId(eventId)).hasSize(2);
+        assertRedisUsed(2);
     }
 
     @Test
@@ -266,16 +281,57 @@ class EventCapacityIntegrationTest extends RedisTestContainerSupport {
     }
 
     @Test
-    void should_initialize_missing_capacity_key_when_application_commits() {
+    void should_release_capacity_once_when_user_and_manager_cancel_concurrently() throws Exception {
+        EventApplyResponse response = apply();
+        AdminAuthenticatedUser principal = new AdminAuthenticatedUser(
+                adminId,
+                "event-capacity-admin@test.com",
+                "매니저",
+                AdminRole.MANAGER
+        );
+
+        List<ConcurrentAttempt<Void>> attempts = runConcurrently(List.of(
+                () -> {
+                    eventUserService.cancel(
+                            response.applicationId(),
+                            new EventCancelRequest("사용자 취소"),
+                            userId
+                    );
+                    return null;
+                },
+                () -> {
+                    eventParticipantManagerService.cancelApplication(
+                            eventId,
+                            response.applicationId(),
+                            new ManagerEventParticipantCancelRequest("관리자 거절"),
+                            principal
+                    );
+                    return null;
+                }
+        ));
+
+        assertThat(attempts).filteredOn(ConcurrentAttempt::succeeded).hasSize(1);
+        assertThat(attempts)
+                .filteredOn(attempt -> !attempt.succeeded())
+                .extracting(attempt -> ((EventException) attempt.failure()).getErrorCode())
+                .containsExactly(EventErrorCode.EVENT_APPLICATION_NOT_CANCELABLE);
+        assertThat(findApplication(response.applicationId()).getStatus())
+                .isIn(EventApplicationStatus.CANCELED, EventApplicationStatus.REJECTED);
+        assertRedisUsed(0);
+    }
+
+    @Test
+    void should_reject_application_when_capacity_key_is_missing() {
         try (RedisResourceGuard.LockHandle ignored = redisResourceGuard.acquireRead(resourceKey())) {
             redisTemplate.delete(capacityKey());
             assertThat(redisTemplate.hasKey(capacityKey())).isFalse();
 
-            EventApplyResponse response = apply();
-
-            assertThat(findApplication(response.applicationId()).getStatus())
-                    .isEqualTo(EventApplicationStatus.APPLIED);
-            assertRedisUsed(1);
+            assertThatThrownBy(this::apply)
+                    .isInstanceOf(EventException.class)
+                    .extracting(throwable -> ((EventException) throwable).getErrorCode())
+                    .isEqualTo(EventErrorCode.EVENT_CAPACITY_UNAVAILABLE);
+            assertThat(eventApplicationRepository.findAllWithUserByEventId(eventId)).isEmpty();
+            assertThat(redisTemplate.hasKey(capacityKey())).isFalse();
         }
     }
 
@@ -307,11 +363,55 @@ class EventCapacityIntegrationTest extends RedisTestContainerSupport {
                 .isEqualTo(String.valueOf(expected));
     }
 
+    private <T> List<ConcurrentAttempt<T>> runConcurrently(List<Supplier<T>> operations) throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(operations.size());
+        CountDownLatch ready = new CountDownLatch(operations.size());
+        CountDownLatch start = new CountDownLatch(1);
+        try {
+            List<CompletableFuture<ConcurrentAttempt<T>>> futures = operations.stream()
+                    .map(operation -> CompletableFuture.supplyAsync(() -> {
+                        ready.countDown();
+                        await(start);
+                        try {
+                            return new ConcurrentAttempt<>(operation.get(), null);
+                        } catch (Throwable throwable) {
+                            return new ConcurrentAttempt<T>(null, throwable);
+                        }
+                    }, executor))
+                    .toList();
+
+            assertThat(ready.await(5, TimeUnit.SECONDS)).isTrue();
+            start.countDown();
+            return futures.stream()
+                    .map(CompletableFuture::join)
+                    .toList();
+        } finally {
+            executor.shutdown();
+            assertThat(executor.awaitTermination(5, TimeUnit.SECONDS)).isTrue();
+        }
+    }
+
+    private void await(CountDownLatch latch) {
+        try {
+            latch.await();
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new AssertionError(exception);
+        }
+    }
+
     private String capacityKey() {
         return CAPACITY_KEY_PREFIX + optionId;
     }
 
     private RedisResourceKey resourceKey() {
         return RedisResourceKey.eventOption(optionId);
+    }
+
+    private record ConcurrentAttempt<T>(T result, Throwable failure) {
+
+        private boolean succeeded() {
+            return failure == null;
+        }
     }
 }
