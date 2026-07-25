@@ -14,6 +14,9 @@ import com.ssasinsa.wearagain.domain.store.exception.StoreException;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemImageRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
+import com.ssasinsa.wearagain.global.common.redis.RedisTransactionCallbackRegistrar;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -34,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Service
 @Slf4j
@@ -48,6 +53,9 @@ public class StoreServiceImpl implements StoreService {
     private final UserRepository userRepository;
     private final CreditHistoryRepository creditHistoryRepository;
     private final StoreStockService storeStockService;
+    private final RedisResourceGuard redisResourceGuard;
+    private final RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
+    private final TransactionOperations transactionOperations;
 
     @Override
     @Transactional(readOnly = true)
@@ -89,45 +97,101 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    @Transactional
     public StoreOrderCreateResponse createOrder(StoreOrderCreateRequest request, Long userId) {
-        User user = findUser(userId);
-        StoreItem item = findActiveItem(request.itemId());
-        validatePickupLocation(item, request.pickupLocation());
-
-        if (request.quantity() <= 0) {
+        if (userId == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+        if (request == null || request.itemId() == null || request.quantity() <= 0) {
             throw new StoreException(StoreErrorCode.STORE_QUERY_INVALID);
         }
+
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(request.itemId());
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        boolean reserved = false;
+        AtomicBoolean callbackRegistered = new AtomicBoolean();
+        try {
+            StoreStockService.ReserveResult reserveResult = storeStockService.reserve(
+                    request.itemId(),
+                    request.quantity()
+            );
+            if (reserveResult == StoreStockService.ReserveResult.STOCK_SHORTAGE) {
+                throw new StoreException(StoreErrorCode.STORE_STOCK_SHORTAGE);
+            }
+            if (reserveResult == StoreStockService.ReserveResult.CACHE_MISS) {
+                findActiveItem(request.itemId());
+            }
+            if (reserveResult != StoreStockService.ReserveResult.RESERVED) {
+                throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+            }
+            reserved = true;
+
+            return transactionOperations.execute(
+                    status -> createOrderInTransaction(
+                            request,
+                            userId,
+                            resourceKey,
+                            lockHandle,
+                            callbackRegistered
+                    )
+            );
+        } finally {
+            if (!callbackRegistered.get()) {
+                try {
+                    if (reserved) {
+                        storeStockService.release(request.itemId(), request.quantity());
+                    }
+                } finally {
+                    lockHandle.close();
+                }
+            }
+        }
+    }
+
+    /**
+     * Redis 재고 선점 이후 주문을 DB에 반영하는 메서드.
+     */
+    private StoreOrderCreateResponse createOrderInTransaction(
+            StoreOrderCreateRequest request,
+            Long userId,
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle,
+            AtomicBoolean callbackRegistered
+    ) {
+        boolean registered = redisTransactionCallbackRegistrar.registerRollbackCompensation(
+                resourceKey,
+                () -> storeStockService.release(request.itemId(), request.quantity()),
+                lockHandle::close
+        );
+        callbackRegistered.set(registered);
+        if (!registered) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+        }
+
+        User user = findUserForUpdate(userId);
+        StoreItem item = findActiveItem(request.itemId());
+        validatePickupLocation(item, request.pickupLocation());
+        enforcePurchaseLimit(user, item, request.quantity());
 
         int unitPrice = item.getPrice();
         int usedCredit = unitPrice * request.quantity();
 
-        enforcePurchaseLimit(user, item, request.quantity());
-
-        // 캐시 우선 예약
-        boolean reserved = storeStockService.reserve(item.getId(), request.quantity());
-        if (!reserved) {
-            throw new StoreException(StoreErrorCode.STORE_STOCK_SHORTAGE);
-        }
-
         try {
             user.decreaseCreditBalance(usedCredit);
         } catch (IllegalStateException exception) {
-            storeStockService.release(item.getId(), request.quantity());
             throw new StoreException(StoreErrorCode.STORE_CREDIT_NOT_ENOUGH, exception);
         }
 
-        StoreOrder order = StoreOrder.create(user, item, unitPrice, request.quantity(), request.pickupLocation().trim());
+        decreaseDatabaseStock(item.getId(), request.quantity());
+
+        StoreOrder order = StoreOrder.create(
+                user,
+                item,
+                unitPrice,
+                request.quantity(),
+                request.pickupLocation().trim()
+        );
         StoreOrder saved = storeOrderRepository.save(order);
         creditHistoryRepository.save(CreditHistory.create(user, saved, -usedCredit, "STORE_PURCHASE"));
-
-        // DB 재고를 캐시 결과에 맞춰 감소
-        try {
-            item.decreaseStock(request.quantity());
-        } catch (RuntimeException exception) {
-            storeStockService.release(item.getId(), request.quantity());
-            throw exception;
-        }
 
         log.info("[Store] action=PURCHASE userId={} orderId={} itemId={} quantity={} usedCredit={}",
                 userId,
@@ -149,18 +213,60 @@ public class StoreServiceImpl implements StoreService {
     }
 
     @Override
-    @Transactional
     public StoreOrderCancelResponse cancelOrder(Long orderId, Long userId) {
-        User user = findUser(userId);
-        StoreOrder order = findOrderOwnedBy(orderId, user);
+        if (userId == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+
+        Long itemId = findOrderItemId(orderId);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        AtomicBoolean callbackRegistered = new AtomicBoolean();
+        try {
+            return transactionOperations.execute(
+                    status -> cancelOrderInTransaction(
+                            orderId,
+                            userId,
+                            resourceKey,
+                            lockHandle,
+                            callbackRegistered
+                    )
+            );
+        } finally {
+            if (!callbackRegistered.get()) {
+                lockHandle.close();
+            }
+        }
+    }
+
+    /**
+     * 주문 취소를 DB에 반영하는 메서드.
+     */
+    private StoreOrderCancelResponse cancelOrderInTransaction(
+            Long orderId,
+            Long userId,
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle,
+            AtomicBoolean callbackRegistered
+    ) {
+        StoreOrder order = findOrderOwnedByForUpdate(orderId, userId);
         if (order.getStatus() != StoreOrderStatus.PURCHASED) {
             throw new StoreException(StoreErrorCode.STORE_ORDER_CANCEL_INVALID);
         }
 
+        User user = findUserForUpdate(userId);
         StoreItem item = order.getItem();
+        boolean registered = redisTransactionCallbackRegistrar.registerAfterCommit(
+                resourceKey,
+                () -> storeStockService.release(item.getId(), order.getQuantity()),
+                lockHandle::close
+        );
+        callbackRegistered.set(registered);
+        if (!registered) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+        }
 
-        storeStockService.release(item.getId(), order.getQuantity());
-        item.increaseStock(order.getQuantity());
+        increaseDatabaseStock(item.getId(), order.getQuantity());
         int refundAmount = order.getPrice() * order.getQuantity();
         user.increaseCreditBalance(refundAmount);
         order.cancel();
@@ -311,6 +417,14 @@ public class StoreServiceImpl implements StoreService {
                 .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
     }
 
+    private User findUserForUpdate(Long userId) {
+        if (userId == null) {
+            throw new CustomException(CommonErrorCode.UNAUTHORIZED);
+        }
+        return userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
+    }
+
     private StoreItem findActiveItem(Long itemId) {
         StoreItem item = storeItemRepository.findById(itemId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ITEM_NOT_FOUND));
@@ -318,6 +432,30 @@ public class StoreServiceImpl implements StoreService {
             throw new StoreException(StoreErrorCode.STORE_ITEM_INACTIVE);
         }
         return item;
+    }
+
+    /**
+     * Redis에서 선점한 상품 재고를 DB에 차감하는 메서드.
+     */
+    private void decreaseDatabaseStock(Long itemId, int quantity) {
+        int updated = storeItemRepository.decreaseStock(
+                itemId,
+                quantity,
+                StoreItemStatus.ACTIVE
+        );
+        if (updated != 1) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+        }
+    }
+
+    /**
+     * DB 상품 재고 증가 메서드.
+     */
+    private void increaseDatabaseStock(Long itemId, int quantity) {
+        int updated = storeItemRepository.increaseStock(itemId, quantity);
+        if (updated != 1) {
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
+        }
     }
 
     private void validatePickupLocation(StoreItem item, String pickupLocation) {
@@ -331,8 +469,12 @@ public class StoreServiceImpl implements StoreService {
         if (maxPerUser == null) {
             return;
         }
-        long purchasedCount = storeOrderRepository.countByUserAndItemAndStatus(user, item, StoreOrderStatus.PURCHASED);
-        if ((long) quantity + purchasedCount > maxPerUser) {
+        long purchasedQuantity = storeOrderRepository.sumQuantityByUserAndItemAndStatus(
+                user,
+                item,
+                StoreOrderStatus.PURCHASED
+        );
+        if ((long) quantity + purchasedQuantity > maxPerUser) {
             throw new StoreException(StoreErrorCode.STORE_PURCHASE_LIMIT_EXCEEDED);
         }
     }
@@ -373,6 +515,17 @@ public class StoreServiceImpl implements StoreService {
     private StoreOrder findOrderOwnedBy(Long orderId, User user) {
         return storeOrderRepository.findById(orderId)
                 .filter(order -> order.getUser().equals(user))
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    private StoreOrder findOrderOwnedByForUpdate(Long orderId, Long userId) {
+        return storeOrderRepository.findByIdForUpdate(orderId)
+                .filter(order -> Objects.equals(order.getUser().getId(), userId))
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    private Long findOrderItemId(Long orderId) {
+        return storeOrderRepository.findItemIdById(orderId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
     }
 

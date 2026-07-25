@@ -3,6 +3,7 @@ package com.ssasinsa.wearagain.domain.store.service;
 import com.ssasinsa.wearagain.domain.auth.entity.AdminUser;
 import com.ssasinsa.wearagain.domain.auth.entity.User;
 import com.ssasinsa.wearagain.domain.auth.repository.AdminUserRepository;
+import com.ssasinsa.wearagain.domain.auth.repository.UserRepository;
 import com.ssasinsa.wearagain.domain.finance.entity.CreditHistory;
 import com.ssasinsa.wearagain.domain.finance.repository.CreditHistoryRepository;
 import com.ssasinsa.wearagain.domain.store.dto.request.StoreItemCreateRequest;
@@ -32,6 +33,10 @@ import com.ssasinsa.wearagain.domain.store.repository.StoreItemRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreItemSpecifications;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderRepository;
 import com.ssasinsa.wearagain.domain.store.repository.StoreOrderSpecifications;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
+import com.ssasinsa.wearagain.global.common.redis.RedisTransactionCallbackRegistrar;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -41,6 +46,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -50,6 +56,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionOperations;
 import org.springframework.util.CollectionUtils;
 import org.springframework.util.StringUtils;
 
@@ -60,13 +67,18 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
     private static final int MAX_IMAGE_COUNT = 10;
     private static final int MAX_PAGE_SIZE = 50;
+    private static final Duration STOCK_UPDATE_LOCK_TIMEOUT = Duration.ofSeconds(3);
 
     private final StoreItemRepository storeItemRepository;
     private final StoreItemImageRepository storeItemImageRepository;
     private final StoreOrderRepository storeOrderRepository;
     private final CreditHistoryRepository creditHistoryRepository;
     private final AdminUserRepository adminUserRepository;
+    private final UserRepository userRepository;
     private final StoreStockService storeStockService;
+    private final RedisResourceGuard redisResourceGuard;
+    private final RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
+    private final TransactionOperations transactionOperations;
 
     @Override
     @Transactional
@@ -95,6 +107,7 @@ public class StoreAdminServiceImpl implements StoreAdminService {
 
         StoreItem saved = storeItemRepository.save(item);
         saveImages(saved, images);
+        registerStockResetAfterCommit(saved);
         log.info("[Store] action=ADMIN_CREATE_ITEM adminId={} itemId={} status={} price={} stock={}",
                 adminId,
                 saved.getId(),
@@ -144,70 +157,82 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     @Override
     @Transactional
     public StoreItemDetailResponse updateItem(Long itemId, StoreItemUpdateRequest request, Long adminId) {
-        getAdmin(adminId);
-        StoreItem item = findItem(itemId);
-        ensureNotDeleted(item);
-
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
+        boolean callbackRegistered = false;
         try {
-            item.updateInformation(
-                    normalizeText(request.name()),
-                    normalizeText(request.description()),
-                    normalizeText(request.category()),
-                    request.price(),
-                    request.stock(),
-                    request.maxPurchasePerUser(),
-                    request.pickupLocations()
-            );
-        } catch (IllegalArgumentException exception) {
-            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID, exception);
+            getAdmin(adminId);
+            StoreItem item = findItem(itemId);
+            ensureNotDeleted(item);
+            applyItemUpdate(item, request);
+            callbackRegistered = requiresStockReset(request)
+                    ? registerStockReset(resourceKey, lockHandle, item)
+                    : registerLockRelease(resourceKey, lockHandle);
+            if (!callbackRegistered) {
+                throw stockUnavailable();
+            }
+            return updatedItemResponse(item, adminId);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
         }
-
-        if (request.status() != null) {
-            item.changeStatus(request.status());
-        }
-
-        if (request.images() != null) {
-            List<SimpleImageRequest> imageRequests = mapUpdateImageRequests(request.images());
-            List<StoreItemImage> images = buildImages(item, imageRequests);
-            storeItemImageRepository.deleteByStoreItem(item);
-            item.replaceImages(images);
-            saveImages(item, images);
-        }
-
-        log.info("[Store] action=ADMIN_UPDATE_ITEM adminId={} itemId={} status={} price={} stock={}",
-                adminId,
-                itemId,
-                item.getStatus(),
-                item.getPrice(),
-                item.getStock());
-        return mapToDetail(item);
     }
 
     @Override
     @Transactional
     public StoreItemDetailResponse updateItemStatus(Long itemId, StoreItemStatusUpdateRequest request, Long adminId) {
-        getAdmin(adminId);
-        StoreItem item = findItem(itemId);
-        ensureNotDeleted(item);
-        if (request.status() == null) {
-            throw new StoreException(StoreErrorCode.STORE_ITEM_STATUS_INVALID);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            getAdmin(adminId);
+            StoreItem item = findItem(itemId);
+            ensureNotDeleted(item);
+            if (request.status() == null) {
+                throw new StoreException(StoreErrorCode.STORE_ITEM_STATUS_INVALID);
+            }
+
+            item.changeStatus(request.status());
+            callbackRegistered = request.status() == StoreItemStatus.ACTIVE
+                    ? registerStockReset(resourceKey, lockHandle, item)
+                    : registerLockRelease(resourceKey, lockHandle);
+            if (!callbackRegistered) {
+                throw stockUnavailable();
+            }
+            log.info("[Store] action=ADMIN_UPDATE_ITEM_STATUS adminId={} itemId={} status={}",
+                    adminId,
+                    itemId,
+                    request.status());
+            return mapToDetail(item);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
         }
-        item.changeStatus(request.status());
-        log.info("[Store] action=ADMIN_UPDATE_ITEM_STATUS adminId={} itemId={} status={}",
-                adminId,
-                itemId,
-                request.status());
-        return mapToDetail(item);
     }
 
     @Override
     @Transactional
     public void deleteItem(Long itemId, Long adminId) {
-        AdminUser adminUser = getAdmin(adminId);
-        StoreItem item = findItem(itemId);
-        ensureNotDeleted(item);
-        item.markDeleted(LocalDateTime.now(ZoneOffset.UTC), adminUser);
-        log.info("[Store] action=ADMIN_DELETE_ITEM adminId={} itemId={}", adminId, itemId);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            AdminUser adminUser = getAdmin(adminId);
+            StoreItem item = findItem(itemId);
+            ensureNotDeleted(item);
+            item.markDeleted(LocalDateTime.now(ZoneOffset.UTC), adminUser);
+            callbackRegistered = registerLockRelease(resourceKey, lockHandle);
+            if (!callbackRegistered) {
+                throw stockUnavailable();
+            }
+            log.info("[Store] action=ADMIN_DELETE_ITEM adminId={} itemId={}", adminId, itemId);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
+        }
     }
 
     @Override
@@ -238,19 +263,58 @@ public class StoreAdminServiceImpl implements StoreAdminService {
     }
 
     @Override
-    @Transactional
     public StoreAdminOrderCancelResponse cancelOrder(Long orderId, Long adminId) {
         getAdmin(adminId);
-        StoreOrder order = findOrder(orderId);
+        Long itemId = findOrderItemId(orderId);
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(itemId);
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        AtomicBoolean callbackRegistered = new AtomicBoolean();
+        try {
+            return transactionOperations.execute(
+                    status -> cancelOrderInTransaction(
+                            orderId,
+                            adminId,
+                            resourceKey,
+                            lockHandle,
+                            callbackRegistered
+                    )
+            );
+        } finally {
+            if (!callbackRegistered.get()) {
+                lockHandle.close();
+            }
+        }
+    }
+
+    /**
+     * 관리자 주문 취소를 DB에 반영하는 메서드.
+     */
+    private StoreAdminOrderCancelResponse cancelOrderInTransaction(
+            Long orderId,
+            Long adminId,
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle,
+            AtomicBoolean callbackRegistered
+    ) {
+        StoreOrder order = findOrderForUpdate(orderId);
         if (order.getStatus() != StoreOrderStatus.PURCHASED) {
             throw new StoreException(StoreErrorCode.STORE_ORDER_CANCEL_INVALID);
         }
 
         StoreItem item = order.getItem();
-        storeStockService.release(item.getId(), order.getQuantity());
-        item.increaseStock(order.getQuantity());
+        User user = findUserForUpdate(order.getUser().getId());
+        boolean registered = redisTransactionCallbackRegistrar.registerAfterCommit(
+                resourceKey,
+                () -> storeStockService.release(item.getId(), order.getQuantity()),
+                lockHandle::close
+        );
+        callbackRegistered.set(registered);
+        if (!registered) {
+            throw stockUnavailable();
+        }
 
-        User user = order.getUser();
+        increaseDatabaseStock(item.getId(), order.getQuantity());
+
         int refundAmount = order.getPrice() * order.getQuantity();
         user.increaseCreditBalance(refundAmount);
         order.cancel();
@@ -268,6 +332,123 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 refundAmount,
                 toOffset(order.getUpdatedAt())
         );
+    }
+
+    /**
+     * 상품 수정값 적용 메서드.
+     */
+    private void applyItemUpdate(StoreItem item, StoreItemUpdateRequest request) {
+        try {
+            item.updateInformation(
+                    normalizeText(request.name()),
+                    normalizeText(request.description()),
+                    normalizeText(request.category()),
+                    request.price(),
+                    request.stock(),
+                    request.maxPurchasePerUser(),
+                    request.pickupLocations()
+            );
+        } catch (IllegalArgumentException exception) {
+            throw new StoreException(StoreErrorCode.STORE_PICKUP_LOCATION_INVALID, exception);
+        }
+
+        if (request.status() != null) {
+            item.changeStatus(request.status());
+        }
+
+        if (request.images() != null) {
+            List<SimpleImageRequest> imageRequests = mapUpdateImageRequests(request.images());
+            List<StoreItemImage> images = buildImages(item, imageRequests);
+            storeItemImageRepository.deleteByStoreItem(item);
+            item.replaceImages(images);
+            saveImages(item, images);
+        }
+    }
+
+    /**
+     * 상품 수정 응답 및 로그 생성 메서드.
+     */
+    private StoreItemDetailResponse updatedItemResponse(StoreItem item, Long adminId) {
+        log.info("[Store] action=ADMIN_UPDATE_ITEM adminId={} itemId={} status={} price={} stock={}",
+                adminId,
+                item.getId(),
+                item.getStatus(),
+                item.getPrice(),
+                item.getStock());
+        return mapToDetail(item);
+    }
+
+    /**
+     * 상품 생성 후 Redis 재고 반영 callback 등록 메서드.
+     */
+    private void registerStockResetAfterCommit(StoreItem item) {
+        RedisResourceKey resourceKey = RedisResourceKey.storeItem(item.getId());
+        RedisResourceGuard.LockHandle lockHandle = acquireStockWriteLock(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            callbackRegistered = registerStockReset(resourceKey, lockHandle, item);
+            if (!callbackRegistered) {
+                throw stockUnavailable();
+            }
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
+        }
+    }
+
+    /**
+     * DB commit 후 Redis 재고 반영 callback 등록 메서드.
+     */
+    private boolean registerStockReset(
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle,
+            StoreItem item
+    ) {
+        Long itemId = item.getId();
+        int stock = item.getStock();
+        return redisTransactionCallbackRegistrar.registerAfterCommit(
+                resourceKey,
+                () -> storeStockService.reset(itemId, stock),
+                lockHandle::close
+        );
+    }
+
+    /**
+     * DB transaction 종료 후 상품 write lock 해제 등록 메서드.
+     */
+    private boolean registerLockRelease(
+            RedisResourceKey resourceKey,
+            RedisResourceGuard.LockHandle lockHandle
+    ) {
+        return redisTransactionCallbackRegistrar.registerCompletion(resourceKey, lockHandle::close);
+    }
+
+    /**
+     * 상품 재고 exclusive lock 획득 메서드.
+     */
+    private RedisResourceGuard.LockHandle acquireStockWriteLock(RedisResourceKey resourceKey) {
+        try {
+            return redisResourceGuard.tryAcquireWrite(resourceKey, STOCK_UPDATE_LOCK_TIMEOUT)
+                    .orElseThrow(this::stockUnavailable);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            throw new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE, exception);
+        }
+    }
+
+    /**
+     * Redis 재고 반영이 필요한 상품 수정 여부 확인 메서드.
+     */
+    private boolean requiresStockReset(StoreItemUpdateRequest request) {
+        return request.stock() != null || request.status() == StoreItemStatus.ACTIVE;
+    }
+
+    /**
+     * 상품 재고 일시 처리 불가 예외 생성 메서드.
+     */
+    private StoreException stockUnavailable() {
+        return new StoreException(StoreErrorCode.STORE_STOCK_UNAVAILABLE);
     }
 
     private void validatePage(int page, int size) {
@@ -289,8 +470,28 @@ public class StoreAdminServiceImpl implements StoreAdminService {
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ITEM_NOT_FOUND));
     }
 
-    private StoreOrder findOrder(Long orderId) {
-        return storeOrderRepository.findById(orderId)
+    private StoreOrder findOrderForUpdate(Long orderId) {
+        return storeOrderRepository.findByIdForUpdate(orderId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    private User findUserForUpdate(Long userId) {
+        return userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
+    }
+
+    /**
+     * DB 상품 재고 증가 메서드.
+     */
+    private void increaseDatabaseStock(Long itemId, int quantity) {
+        int updated = storeItemRepository.increaseStock(itemId, quantity);
+        if (updated != 1) {
+            throw stockUnavailable();
+        }
+    }
+
+    private Long findOrderItemId(Long orderId) {
+        return storeOrderRepository.findItemIdById(orderId)
                 .orElseThrow(() -> new StoreException(StoreErrorCode.STORE_ORDER_NOT_FOUND));
     }
 

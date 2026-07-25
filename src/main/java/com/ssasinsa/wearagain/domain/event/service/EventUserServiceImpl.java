@@ -33,6 +33,9 @@ import com.ssasinsa.wearagain.domain.event.repository.EventRepository;
 import com.ssasinsa.wearagain.domain.event.support.CheckinTokenPayload;
 import com.ssasinsa.wearagain.domain.event.support.EventApplicationCursor;
 import com.ssasinsa.wearagain.global.common.qr.QrTokenStore;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceGuard;
+import com.ssasinsa.wearagain.global.common.redis.RedisResourceKey;
+import com.ssasinsa.wearagain.global.common.redis.RedisTransactionCallbackRegistrar;
 import com.ssasinsa.wearagain.global.exception.CommonErrorCode;
 import com.ssasinsa.wearagain.global.exception.CustomException;
 import java.time.Duration;
@@ -87,6 +90,8 @@ public class EventUserServiceImpl implements EventUserService {
     private final UserRepository userRepository;
     private final QrTokenStore<CheckinTokenPayload> eventQrTokenStore;
     private final OptionCapacityService optionCapacityService;
+    private final RedisResourceGuard redisResourceGuard;
+    private final RedisTransactionCallbackRegistrar redisTransactionCallbackRegistrar;
 
     @Override
     @Transactional(readOnly = true)
@@ -173,60 +178,46 @@ public class EventUserServiceImpl implements EventUserService {
             throw new EventException(EventErrorCode.EVENT_REJECTED_CANNOT_REAPPLY);
         }
 
-        if (!reserveCapacity(option)) {
-            throw new EventException(EventErrorCode.EVENT_CAPACITY_EXCEEDED);
+        if (option.getCapacity() == null) {
+            return createApplication(event, option, request, userId);
         }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
-
-        try {
-            EventApplication application = EventApplication.create(
-                    user,
-                    event,
-                    option,
-                    EventApplicationStatus.APPLIED,
-                    StringUtils.hasText(request.memo()) ? request.memo().trim() : null
-            );
-
-            EventApplication saved = eventApplicationRepository.save(application);
-            log.info("[Event] action=APPLY userId={} eventId={} optionId={} applicationId={} status={}",
-                    userId,
-                    eventId,
-                    option.getId(),
-                    saved.getId(),
-                    saved.getStatus());
-            return new EventApplyResponse(saved.getId(), saved.getStatus().name());
-        } catch (RuntimeException exception) {
-            releaseCapacity(option);
-            throw exception;
-        }
+        return applyWithCapacityReservation(event, option, request, userId);
     }
 
     @Override
     @Transactional
     public EventCancelResponse cancel(Long applicationId, EventCancelRequest request, Long userId) {
-        EventApplication application = eventApplicationRepository.findByIdAndUserId(applicationId, userId)
+        EventApplication application = eventApplicationRepository.findByIdAndUserIdForUpdate(applicationId, userId)
                 .orElseThrow(() -> new EventException(EventErrorCode.EVENT_APPLICATION_NOT_FOUND));
 
         if (application.getStatus() != EventApplicationStatus.APPLIED) {
             throw new EventException(EventErrorCode.EVENT_APPLICATION_NOT_CANCELABLE);
         }
 
-        String reason = StringUtils.hasText(request.reason()) ? request.reason().trim() : null;
-        application.cancel(LocalDateTime.now(), reason);
+        EventOption option = application.getEventOption();
+        if (option == null || option.getCapacity() == null) {
+            return cancelApplication(application, request, userId);
+        }
 
-        releaseCapacity(application.getEventOption());
-
-        boolean hasReason = StringUtils.hasText(reason);
-        log.info("[Event] action=CANCEL userId={} applicationId={} eventId={} hasReason={} status={}",
-                userId,
-                application.getId(),
-                application.getEvent() != null ? application.getEvent().getId() : null,
-                hasReason,
-                application.getStatus());
-
-        return new EventCancelResponse(application.getId(), application.getStatus().name());
+        RedisResourceKey resourceKey = RedisResourceKey.eventOption(option.getId());
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        boolean callbackRegistered = false;
+        try {
+            callbackRegistered = redisTransactionCallbackRegistrar.registerAfterCommit(
+                    resourceKey,
+                    () -> optionCapacityService.release(option.getId()),
+                    lockHandle::close
+            );
+            if (!callbackRegistered) {
+                throw capacityUnavailable();
+            }
+            return cancelApplication(application, request, userId);
+        } finally {
+            if (!callbackRegistered) {
+                lockHandle.close();
+            }
+        }
     }
 
     @Override
@@ -549,19 +540,109 @@ public class EventUserServiceImpl implements EventUserService {
         return (int) value;
     }
 
-    private boolean reserveCapacity(EventOption option) {
-        Integer capacity = option.getCapacity();
-        if (capacity == null) {
-            return true;
+    /**
+     * 유한 정원 행사 신청 메서드.
+     */
+    private EventApplyResponse applyWithCapacityReservation(
+            Event event,
+            EventOption option,
+            EventApplyRequest request,
+            Long userId
+    ) {
+        RedisResourceKey resourceKey = RedisResourceKey.eventOption(option.getId());
+        RedisResourceGuard.LockHandle lockHandle = redisResourceGuard.acquireRead(resourceKey);
+        boolean reserved = false;
+        boolean callbackRegistered = false;
+        try {
+            OptionCapacityService.ReserveResult reserveResult = optionCapacityService.reserve(
+                    option.getId(),
+                    option.getCapacity()
+            );
+            if (reserveResult == OptionCapacityService.ReserveResult.CAPACITY_EXCEEDED) {
+                throw new EventException(EventErrorCode.EVENT_CAPACITY_EXCEEDED);
+            }
+            if (reserveResult != OptionCapacityService.ReserveResult.RESERVED) {
+                throw capacityUnavailable();
+            }
+            reserved = true;
+
+            callbackRegistered = redisTransactionCallbackRegistrar.registerRollbackCompensation(
+                    resourceKey,
+                    () -> optionCapacityService.release(option.getId()),
+                    lockHandle::close
+            );
+            if (!callbackRegistered) {
+                throw capacityUnavailable();
+            }
+            return createApplication(event, option, request, userId);
+        } finally {
+            if (!callbackRegistered) {
+                try {
+                    if (reserved) {
+                        optionCapacityService.release(option.getId());
+                    }
+                } finally {
+                    lockHandle.close();
+                }
+            }
         }
-        return optionCapacityService.reserve(option.getId(), capacity);
     }
 
-    private void releaseCapacity(EventOption option) {
-        if (option == null) {
-            return;
-        }
-        optionCapacityService.release(option.getId());
+    /**
+     * 행사 신청 DB 저장 메서드.
+     */
+    private EventApplyResponse createApplication(
+            Event event,
+            EventOption option,
+            EventApplyRequest request,
+            Long userId
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new CustomException(CommonErrorCode.UNAUTHORIZED));
+        EventApplication application = EventApplication.create(
+                user,
+                event,
+                option,
+                EventApplicationStatus.APPLIED,
+                StringUtils.hasText(request.memo()) ? request.memo().trim() : null
+        );
+
+        EventApplication saved = eventApplicationRepository.save(application);
+        log.info("[Event] action=APPLY userId={} eventId={} optionId={} applicationId={} status={}",
+                userId,
+                event.getId(),
+                option.getId(),
+                saved.getId(),
+                saved.getStatus());
+        return new EventApplyResponse(saved.getId(), saved.getStatus().name());
+    }
+
+    /**
+     * 행사 신청 취소 DB 반영 메서드.
+     */
+    private EventCancelResponse cancelApplication(
+            EventApplication application,
+            EventCancelRequest request,
+            Long userId
+    ) {
+        String reason = StringUtils.hasText(request.reason()) ? request.reason().trim() : null;
+        application.cancel(LocalDateTime.now(), reason);
+
+        boolean hasReason = StringUtils.hasText(reason);
+        log.info("[Event] action=CANCEL userId={} applicationId={} eventId={} hasReason={} status={}",
+                userId,
+                application.getId(),
+                application.getEvent() != null ? application.getEvent().getId() : null,
+                hasReason,
+                application.getStatus());
+        return new EventCancelResponse(application.getId(), application.getStatus().name());
+    }
+
+    /**
+     * 행사 정원 처리 불가 예외 생성 메서드.
+     */
+    private EventException capacityUnavailable() {
+        return new EventException(EventErrorCode.EVENT_CAPACITY_UNAVAILABLE);
     }
 
     private Set<Long> collectOptionIds(Collection<EventOption> roots) {

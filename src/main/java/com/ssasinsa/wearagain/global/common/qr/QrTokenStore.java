@@ -9,18 +9,16 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.script.DefaultRedisScript;
+import org.springframework.data.redis.core.script.RedisScript;
 
 @RequiredArgsConstructor
 public class QrTokenStore<T> {
 
-    private static final DefaultRedisScript<String> CONSUME_SCRIPT = new DefaultRedisScript<>(
-            "local payload = redis.call('GET', KEYS[1])\n"
-                    + "if not payload then return nil end\n"
-                    + "redis.call('DEL', KEYS[1])\n"
-                    + "return payload",
+    private static final RedisScript<String> CONSUME_SCRIPT = RedisScript.of(
+            new ClassPathResource("redis/qr/consume-token.lua"),
             String.class
     );
 

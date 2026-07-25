@@ -38,7 +38,8 @@ public enum EventErrorCode implements ErrorCode {
     EVENT_APPLICATION_CANCELED("E1032", "취소된 신청입니다.", HttpStatus.CONFLICT.value()),
     EVENT_APPLICATION_REJECTED("E1033", "승인 거절된 신청입니다.", HttpStatus.CONFLICT.value()),
     EVENT_OPTION_NOT_LEAF("E1034", "하위 옵션을 모두 선택한 경우에만 신청할 수 있습니다.", HttpStatus.BAD_REQUEST.value()),
-    EVENT_REJECTED_CANNOT_REAPPLY("E1035", "관리자에 의해 거절된 신청입니다. 재신청이 불가능합니다.", HttpStatus.CONFLICT.value());
+    EVENT_REJECTED_CANNOT_REAPPLY("E1035", "관리자에 의해 거절된 신청입니다. 재신청이 불가능합니다.", HttpStatus.CONFLICT.value()),
+    EVENT_CAPACITY_UNAVAILABLE("E1036", "행사 정원을 일시적으로 처리할 수 없습니다.", HttpStatus.SERVICE_UNAVAILABLE.value());
 
     private final String code;
     private final String message;
