@@ -19,6 +19,7 @@ public interface StoreItemRepository extends JpaRepository<StoreItem, Long>, Jpa
             SET i.stock = i.stock - :quantity
             WHERE i.id = :itemId
               AND i.status = :status
+              AND i.stock >= :quantity
             """)
     int decreaseStock(
             @Param("itemId") Long itemId,
