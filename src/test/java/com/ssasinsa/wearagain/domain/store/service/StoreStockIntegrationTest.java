@@ -34,6 +34,8 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -170,6 +172,43 @@ class StoreStockIntegrationTest extends RedisTestContainerSupport {
         assertThat(storeOrderRepository.count()).isZero();
     }
 
+    @ParameterizedTest
+    @CsvSource({"0, 1", "1, 2"})
+    void should_reject_order_and_restore_reservation_when_database_stock_is_insufficient(
+            int databaseStock,
+            int quantity
+    ) {
+        // Redis에는 5개가 남아 있지만 DB 재고는 주문 수량보다 적은 상태를 재현한다.
+        updateDatabaseStock(databaseStock);
+        StoreOrderCreateRequest request = new StoreOrderCreateRequest(item.getId(), quantity, "강남 팝업스토어");
+
+        assertThatThrownBy(() -> storeService.createOrder(request, user.getId()))
+                .isInstanceOf(StoreException.class)
+                .hasMessage(StoreErrorCode.STORE_STOCK_UNAVAILABLE.getMessage());
+
+        assertThat(fetchDatabaseStock()).isEqualTo(databaseStock);
+        assertThat(fetchRedisStock()).isEqualTo(5);
+        assertThat(fetchUserCredit()).isEqualTo(10_000);
+        assertThat(storeOrderRepository.count()).isZero();
+        assertThat(creditHistoryRepository.count()).isZero();
+    }
+
+    @Test
+    void should_purchase_remaining_quantity_when_database_stock_matches_order_quantity() {
+        updateDatabaseStock(2);
+        StoreOrderCreateRequest request = new StoreOrderCreateRequest(item.getId(), 2, "강남 팝업스토어");
+
+        var response = storeService.createOrder(request, user.getId());
+
+        StoreOrder order = storeOrderRepository.findById(response.orderId()).orElseThrow();
+        assertThat(order.getQuantity()).isEqualTo(2);
+        assertThat(fetchDatabaseStock()).isZero();
+        assertThat(fetchRedisStock()).isEqualTo(3);
+        assertThat(fetchUserCredit()).isEqualTo(8_000);
+        assertThat(storeOrderRepository.count()).isOne();
+        assertThat(creditHistoryRepository.count()).isOne();
+    }
+
     @Test
     void should_not_release_redis_stock_when_cancel_transaction_rolls_back() {
         StoreOrderCreateRequest request = new StoreOrderCreateRequest(item.getId(), 2, "강남 팝업스토어");
@@ -298,6 +337,28 @@ class StoreStockIntegrationTest extends RedisTestContainerSupport {
         assertThat(orderedQuantity).isEqualTo(5);
         assertThat(fetchDatabaseStock()).isZero();
         assertThat(fetchRedisStock()).isZero();
+    }
+
+    @Test
+    void should_keep_database_stock_non_negative_when_redis_overstates_stock() throws Exception {
+        int requestCount = 10;
+        List<Long> userIds = createUsers(requestCount, 10_000);
+        storeStockService.reset(item.getId(), requestCount);
+
+        long successCount = executeConcurrentOrders(
+                userIds,
+                StoreErrorCode.STORE_STOCK_UNAVAILABLE
+        );
+
+        int orderedQuantity = storeOrderRepository.findAll().stream()
+                .mapToInt(StoreOrder::getQuantity)
+                .sum();
+        assertThat(successCount).isEqualTo(5);
+        assertThat(orderedQuantity).isEqualTo(5);
+        assertThat(fetchDatabaseStock()).isZero();
+        assertThat(fetchRedisStock()).isEqualTo(5);
+        assertThat(storeOrderRepository.count()).isEqualTo(5);
+        assertThat(creditHistoryRepository.count()).isEqualTo(5);
     }
 
     @Test
